@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class NewbieWebLlmApiApplication {
+public class NewbieAnyBridgeApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(NewbieWebLlmApiApplication.class, args);
+		SpringApplication.run(NewbieAnyBridgeApplication.class, args);
 	}
 
 }
