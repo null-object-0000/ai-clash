@@ -298,6 +298,31 @@ public class AdminController {
             Map<String, Object> result = loginHandler.confirmQrCodeScanned(
                 accountId, request.getSessionId());
             
+            // 如果登录成功，调用 verifyLogin 获取账号信息并更新账号状态
+            if (Boolean.TRUE.equals(result.get("success"))) {
+                try {
+                    Map<String, Object> verifyResult = loginHandler.verifyLogin(accountId);
+                    if (Boolean.TRUE.equals(verifyResult.get("success"))) {
+                        if (verifyResult.containsKey("actualAccount")) {
+                            account.setAccountName((String) verifyResult.get("actualAccount"));
+                        }
+                        if (verifyResult.containsKey("nickname")) {
+                            account.setNickname((String) verifyResult.get("nickname"));
+                        }
+                        account.setLoginVerified(true);
+                        accountManager.saveAccounts();
+                        // 将账号信息添加到返回结果中
+                        result.put("actualAccount", verifyResult.get("actualAccount"));
+                        result.put("nickname", verifyResult.get("nickname"));
+                    }
+                } catch (Exception e) {
+                    log.warn("确认扫码成功后验证登录状态失败: {}", e.getMessage());
+                    // 即使验证失败，仍然标记为登录成功
+                    account.setLoginVerified(true);
+                    accountManager.saveAccounts();
+                }
+            }
+            
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             log.error("确认扫码失败: providerName={}, accountId={}", providerName, accountId, e);

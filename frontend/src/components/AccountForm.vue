@@ -7,9 +7,9 @@
         <label>提供器 *</label>
         <select v-model="form.provider" required :disabled="loading">
           <option value="">请选择</option>
+          <option value="deepseek">DeepSeek (Playwright)</option>
           <option value="gemini">Gemini (Playwright)</option>
           <option value="openai">OpenAI (Playwright)</option>
-          <option value="deepseek">DeepSeek (Playwright)</option>
           <option value="antigravity">Antigravity (逆向 API)</option>
         </select>
       </div>
@@ -488,7 +488,12 @@ const cancel = () => {
 // DeepSeek 登录方法
 const selectLoginMethod = (method) => {
   selectedLoginMethod.value = method;
-  loginForm.value = { account: '', password: '' };
+  // 如果是账号密码登录，自动填充之前输入的账号名称
+  if (method === 'account-password' && createdAccount.value?.accountName) {
+    loginForm.value = { account: createdAccount.value.accountName, password: '' };
+  } else {
+    loginForm.value = { account: '', password: '' };
+  }
   qrCodeImage.value = null;
   conversationId.value = null;
   loginStatus.value = null;
@@ -594,11 +599,11 @@ const startQrCodeLogin = async () => {
     // 优先使用 base64 格式的二维码，如果没有则使用 URL
     if (data.qrCodeBase64) {
       qrCodeImage.value = data.qrCodeBase64;
-      loginStatus.value = 'logging';
+      loginStatus.value = null; // 二维码显示后，允许点击"我已扫码"按钮
       loginMessage.value = '请使用微信扫描二维码完成登录';
     } else if (data.qrCodeImageUrl) {
       qrCodeImage.value = data.qrCodeImageUrl;
-      loginStatus.value = 'logging';
+      loginStatus.value = null; // 二维码显示后，允许点击"我已扫码"按钮
       loginMessage.value = '请使用微信扫描二维码完成登录';
     } else {
       loginStatus.value = 'failed';
@@ -629,8 +634,21 @@ const confirmQrCodeScanned = async () => {
     );
     
     if (data.success) {
+      // 登录成功，更新账号信息
       loginStatus.value = 'success';
-      loginMessage.value = '登录成功！';
+      
+      // 优先使用后端返回的账号信息
+      if (data.actualAccount) {
+        createdAccount.value.accountName = data.actualAccount;
+        loginMessage.value = `登录验证成功！实际登录账号: ${data.actualAccount}`;
+      } else {
+        loginMessage.value = '登录成功！';
+      }
+      
+      if (data.nickname) {
+        createdAccount.value.nickname = data.nickname;
+      }
+      
       createdAccount.value.isLoginVerified = true;
       emit('saved', { account: createdAccount.value });
       setTimeout(() => {

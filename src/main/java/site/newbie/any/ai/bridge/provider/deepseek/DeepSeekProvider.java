@@ -297,13 +297,22 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
             
             JsonNode bizData = data.get("biz_data");
             String email = null;
+            String mobileNumber = null;
             String nickname = null;
             
-            // 提取 email（可能是部分显示的）
+            // 优先提取 email（可能是部分显示的）
             if (bizData.has("email")) {
                 JsonNode emailNode = bizData.get("email");
                 if (emailNode != null && !emailNode.isNull()) {
                     email = emailNode.asString();
+                }
+            }
+            
+            // 如果 email 为空，尝试提取 mobile_number
+            if ((email == null || email.isEmpty()) && bizData.has("mobile_number")) {
+                JsonNode mobileNumberNode = bizData.get("mobile_number");
+                if (mobileNumberNode != null && !mobileNumberNode.isNull()) {
+                    mobileNumber = mobileNumberNode.asString();
                 }
             }
             
@@ -332,12 +341,20 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
                 }
             }
             
-            if (email == null || email.isEmpty()) {
-                return AccountInfo.failed("无法获取邮箱信息");
+            // 确定账号ID：优先使用 email，如果没有则使用 mobile_number
+            String accountId = null;
+            if (email != null && !email.isEmpty()) {
+                accountId = email;
+            } else if (mobileNumber != null && !mobileNumber.isEmpty()) {
+                accountId = mobileNumber;
             }
             
-            // 返回账号信息（email 作为 accountId，nickname 作为 accountName）
-            return AccountInfo.success(nickname != null && !nickname.isEmpty() ? nickname : email, email);
+            if (accountId == null || accountId.isEmpty()) {
+                return AccountInfo.failed("无法获取邮箱或手机号信息");
+            }
+            
+            // 返回账号信息（email 或 mobile_number 作为 accountId，nickname 作为 accountName）
+            return AccountInfo.success(nickname != null && !nickname.isEmpty() ? nickname : accountId, accountId);
             
         } catch (Exception e) {
             log.error("获取 DeepSeek 账号信息失败: {}", e.getMessage(), e);
@@ -432,7 +449,79 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
             // 设置登录接口拦截器，监听登录响应
             setupLoginInterceptor(page);
             
-            // 1. 切换到"密码登录"标签
+            // 1. 检查是否已经在账号密码模式，如果不是则切换到账号密码模式
+            try {
+                // 检查是否有 ds-input__prefix（手机号+验证码模式会有 +86 前缀）
+                Locator inputPrefix = page.locator(".ds-input__prefix");
+                boolean hasPrefix = inputPrefix.count() > 0;
+                
+                // 检查输入框类型和 placeholder
+                Locator accountInput = page.locator("input[type='text']")
+                        .or(page.locator("input[type='email']"))
+                        .or(page.locator("input[type='tel']"))
+                        .or(page.locator(".ds-input__input"));
+                
+                boolean needSwitch = true;
+                if (accountInput.count() > 0) {
+                    try {
+                        String inputType = accountInput.first().getAttribute("type");
+                        String placeholder = accountInput.first().getAttribute("placeholder");
+                        
+                        // 判断逻辑：
+                        // 1. 如果有 ds-input__prefix（+86），说明是手机号+验证码模式，需要切换
+                        // 2. 如果 input type 是 "tel"，说明是手机号+验证码模式，需要切换
+                        // 3. 如果 placeholder 只包含"手机号"而不包含"邮箱"，可能是手机号+验证码模式，需要切换
+                        // 4. 如果 placeholder 包含"邮箱"或"账号"，说明已经是账号密码模式，无需切换
+                        
+                        if (hasPrefix) {
+                            log.info("检测到手机号+验证码登录模式（有 +86 前缀），需要切换到账号密码模式");
+                            needSwitch = true;
+                        } else if ("tel".equals(inputType)) {
+                            log.info("检测到手机号+验证码登录模式（input type=tel），需要切换到账号密码模式");
+                            needSwitch = true;
+                        } else if (placeholder != null) {
+                            boolean hasPhoneOnly = (placeholder.contains("手机号") || placeholder.contains("手机")) 
+                                    && !placeholder.contains("邮箱") && !placeholder.contains("邮箱地址");
+                            boolean hasEmailOrAccount = placeholder.contains("邮箱") || placeholder.contains("账号") || 
+                                    placeholder.contains("用户名") || placeholder.contains("email") ||
+                                    placeholder.contains("account") || placeholder.contains("username");
+                            
+                            if (hasPhoneOnly) {
+                                log.info("检测到手机号登录模式（placeholder 只包含手机号），需要切换到账号密码模式");
+                                needSwitch = true;
+                            } else if (hasEmailOrAccount) {
+                                log.info("检测到账号密码登录模式（placeholder 包含邮箱/账号），无需切换");
+                                needSwitch = false;
+                            } else if (placeholder.contains("手机号/邮箱地址") || placeholder.contains("手机号/邮箱")) {
+                                // 这种情况可能是手机号+密码模式，需要切换到账号密码模式
+                                log.info("检测到手机号+密码登录模式（placeholder 包含手机号/邮箱），需要切换到账号密码模式");
+                                needSwitch = true;
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("检查输入框属性时出错: {}", e.getMessage());
+                        // 如果检查失败，默认尝试切换
+                    }
+                }
+                
+                // 如果需要切换，点击按钮切换到账号密码模式
+                if (needSwitch) {
+                    Locator socialButtons = page.locator(".ds-sign-in-form__social-buttons .ds-sign-in-form__social-buttons-container button");
+                    
+                    if (socialButtons.count() > 0) {
+                        socialButtons.first().click();
+                        page.waitForTimeout(500);
+                        log.info("已切换到账号密码模式");
+                    } else {
+                        log.warn("未找到切换到账号密码模式的按钮，可能已经在账号密码模式");
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("切换账号密码模式时出错: {}", e.getMessage());
+                // 继续执行，可能已经在账号密码模式
+            }
+            
+            // 2. 切换到"密码登录"标签（如果存在）
             Locator passwordTab = page.locator(".ds-tab:has-text('密码登录')");
             if (passwordTab.count() == 0) {
                 // 尝试英文
@@ -447,10 +536,10 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
                 log.warn("未找到密码登录标签，可能已经在密码登录模式");
             }
             
-            // 2. 等待登录表单加载
+            // 3. 等待登录表单加载
             page.waitForTimeout(500);
             
-            // 3. 输入账号（可能是邮箱或用户名）
+            // 4. 输入账号（可能是邮箱或用户名）
             Locator accountInput = page.locator("input[placeholder*='账号']")
                     .or(page.locator("input[placeholder*='邮箱']"))
                     .or(page.locator("input[placeholder*='用户名']"))
@@ -468,7 +557,7 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
             page.waitForTimeout(300);
             log.info("已输入账号");
             
-            // 4. 输入密码
+            // 5. 输入密码
             Locator passwordInput = page.locator("input[type='password']");
             if (passwordInput.count() == 0) {
                 log.error("未找到密码输入框");
@@ -481,7 +570,7 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
             page.waitForTimeout(300);
             log.info("已输入密码");
             
-            // 5. 点击登录按钮
+            // 6. 点击登录按钮
             Locator loginButton = page.locator(".ds-sign-up-form__register-button")
                     .or(page.locator("button:has-text('登录')"))
                     .or(page.locator("button:has-text('Login')"));
@@ -494,10 +583,26 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
             loginButton.first().click();
             log.info("已点击登录按钮");
             
-            // 6. 等待登录接口响应（最多等待5秒）
+            // 7. 等待登录接口响应（最多等待5秒），同时检查错误 toast
             String loginResponse = null;
             for (int i = 0; i < 10; i++) {
                 page.waitForTimeout(500);
+                
+                // 检查是否有错误 toast
+                Locator errorToast = page.locator(".ds-toast.ds-toast--error");
+                if (errorToast.count() > 0) {
+                    try {
+                        String errorText = errorToast.first().textContent();
+                        if (errorText != null && !errorText.trim().isEmpty()) {
+                            log.warn("检测到登录错误 toast: {}", errorText);
+                            session.setLoginError(errorText.trim());
+                            return false;
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析错误 toast 时出错: {}", e.getMessage());
+                    }
+                }
+                
                 loginResponse = getLoginResponse(page);
                 if (loginResponse != null && !loginResponse.isEmpty()) {
                     log.info("获取到登录接口响应");
@@ -522,10 +627,28 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
                 log.warn("未获取到登录接口响应，继续等待页面变化");
             }
             
-            // 7. 等待登录完成（检查聊天输入框是否出现）
+            // 8. 等待登录完成（检查聊天输入框是否出现）
             // 等待最多10秒，检查是否登录成功
             for (int i = 0; i < 10; i++) {
                 page.waitForTimeout(1000);
+                
+                // 检查是否有错误 toast（优先检查）
+                Locator errorToast = page.locator(".ds-toast.ds-toast--error");
+                if (errorToast.count() > 0) {
+                    try {
+                        // 等待 toast 内容加载
+                        page.waitForTimeout(300);
+                        String errorText = errorToast.first().textContent();
+                        if (errorText != null && !errorText.trim().isEmpty()) {
+                            log.warn("检测到登录错误 toast: {}", errorText);
+                            // 将错误信息保存到 session 中，供 Controller 使用
+                            session.setLoginError(errorText.trim());
+                            return false;
+                        }
+                    } catch (Exception e) {
+                        log.warn("解析错误 toast 时出错: {}", e.getMessage());
+                    }
+                }
                 
                 // 检查聊天输入框是否出现（已登录会有聊天输入框）
                 Locator chatInput = page.locator("textarea")
@@ -542,24 +665,43 @@ public class DeepSeekProvider implements LLMProvider, ProviderLoginHandler {
                     }
                 }
                 
-                // 检查是否有错误提示
+                // 检查是否有其他错误提示（作为备用）
                 Locator errorMsg = page.locator("[class*='error'], [class*='Error']")
                         .or(page.locator(":has-text('错误')"))
                         .or(page.locator(":has-text('失败')"));
                 if (errorMsg.count() > 0) {
                     String errorText = errorMsg.first().textContent();
                     log.warn("检测到错误提示: {}", errorText);
-                    // 不立即返回false，继续等待
+                    // 不立即返回false，继续等待（因为可能是其他错误）
                 }
             }
             
             // 最终检查登录状态
+            // 再次检查是否有错误 toast
+            Locator errorToast = page.locator(".ds-toast.ds-toast--error");
+            if (errorToast.count() > 0) {
+                try {
+                    String errorText = errorToast.first().textContent();
+                    if (errorText != null && !errorText.trim().isEmpty()) {
+                        log.warn("最终检查时检测到登录错误 toast: {}", errorText);
+                        session.setLoginError(errorText.trim());
+                        return false;
+                    }
+                } catch (Exception e) {
+                    log.warn("解析错误 toast 时出错: {}", e.getMessage());
+                }
+            }
+            
             Locator chatInput = page.locator("textarea.ds-scroll-area");
             if (chatInput.count() > 0) {
                 log.info("登录成功！");
                 return true;
             } else {
                 log.warn("登录超时或失败");
+                // 如果之前没有设置错误信息，尝试从 toast 获取
+                if (session.getLoginError() == null || session.getLoginError().isEmpty()) {
+                    session.setLoginError("登录超时或失败，请检查账号密码是否正确");
+                }
                 return false;
             }
         } catch (Exception e) {
