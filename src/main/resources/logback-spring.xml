@@ -29,7 +29,7 @@
     </appender>
     
     <!-- SSE 数据记录器 -->
-    <logger name="site.newbie.web.llm.api.provider.SseDataLogger" level="INFO" additivity="false">
+    <logger name="site.newbie.any.ai.bridge.provider.SseDataLogger" level="INFO" additivity="false">
         <appender-ref ref="SSE_FILE"/>
     </logger>
     

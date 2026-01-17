@@ -1,11 +1,11 @@
 version: '3.8'
 
 services:
-  newbie-web-llm-api:
+  any-ai-bridge:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: newbie-web-llm-api
+    container_name: any-ai-bridge
     ports:
       - "24753"  # 随机端口映射到容器 24753 端口
     volumes:

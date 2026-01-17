@@ -1,4 +1,4 @@
-# Web-LLM-API
+# Any-AI-Bridge
 
 将网页版 LLM（如 DeepSeek、Gemini、OpenAI）转换为标准的 OpenAI 兼容 API，支持流式响应、多模型管理、对话历史管理和图片生成功能。
 
@@ -42,7 +42,7 @@
 1. **克隆项目**
 ```bash
 git clone <repository-url>
-cd newbie-web-llm-api
+cd any-ai-bridge
 ```
 
 2. **编译项目**
@@ -57,7 +57,7 @@ mvn spring-boot:run
 
 或者运行编译后的 JAR：
 ```bash
-java -jar target/newbie-web-llm-api-0.0.1-SNAPSHOT.jar
+java -jar target/any.ai.bridge-0.0.1-SNAPSHOT.jar
 ```
 
 4. **使用兼容 OpenAI 的客户端**
@@ -101,7 +101,7 @@ docker-compose up -d
 **首次构建基础镜像**（只需要执行一次）：
 ```bash
 # 构建基础镜像（包含 Node.js 和 Chromium）
-docker build --target base -t newbie-web-llm-api-base:latest .
+docker build --target base -t any-ai-bridge-base:latest .
 
 # 或者使用 docker-compose
 docker-compose -f docker-compose.build.yml build base-image
@@ -118,41 +118,41 @@ docker-compose up -d
 如果使用 Docker Hub 或其他镜像仓库，可以推送基础镜像供团队共享：
 ```bash
 # 标记镜像
-docker tag newbie-web-llm-api-base:latest your-registry/newbie-web-llm-api-base:latest
+docker tag any-ai-bridge-base:latest your-registry/any-ai-bridge-base:latest
 
 # 推送镜像
-docker push your-registry/newbie-web-llm-api-base:latest
+docker push your-registry/any-ai-bridge-base:latest
 
 # 然后在 Dockerfile 中修改 FROM 语句使用远程镜像
-# FROM your-registry/newbie-web-llm-api-base:latest
+# FROM your-registry/any-ai-bridge-base:latest
 ```
 
 #### 使用 Docker 命令
 
 1. **构建镜像**
 ```bash
-docker build -t newbie-web-llm-api:latest .
+docker build -t any-ai-bridge:latest .
 ```
 
 2. **运行容器**
 ```bash
 docker run -d \
-  --name newbie-web-llm-api \
+  --name any-ai-bridge \
   -p 24753:24753 \
   -v $(pwd)/user-data:/app/user-data \
   -v $(pwd)/logs:/app/logs \
-  newbie-web-llm-api:latest
+  any-ai-bridge:latest
 ```
 
 3. **查看日志**
 ```bash
-docker logs -f newbie-web-llm-api
+docker logs -f any-ai-bridge
 ```
 
 4. **停止容器**
 ```bash
-docker stop newbie-web-llm-api
-docker rm newbie-web-llm-api
+docker stop any-ai-bridge
+docker rm any-ai-bridge
 ```
 
 #### Docker 部署注意事项

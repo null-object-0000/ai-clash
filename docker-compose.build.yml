@@ -9,6 +9,6 @@ services:
       context: .
       dockerfile: Dockerfile
       target: base  # 只构建到 base 阶段
-    image: newbie-web-llm-api-base:latest
+    image: any-ai-bridge-base:latest
     # 不启动容器，只构建镜像
 
