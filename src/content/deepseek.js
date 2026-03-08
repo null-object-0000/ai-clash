@@ -13,26 +13,39 @@ chrome.runtime.sendMessage({ type: MSG_TYPES.INJECT_HOOK }, (response) => {
   }
 });
 
-// 缓存当前回答，解决只展示最后一句话的 Bug
-let currentFullAnswer = "";
+// 分别缓存思考与正式回复，最终组合为 <think>...</think>\n\n回复
+let thinkContent = "";
+let responseContent = "";
+
+function buildDisplayText() {
+  const think = (thinkContent || "").trim();
+  const resp = (responseContent || "").trim();
+  if (!think && !resp) return "";
+  if (!think) return resp;
+  if (!resp) return "<think>" + think + "</think>";
+  return "<think>" + think + "</think>\n\n" + resp;
+}
 
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
 
   if (event.data.type === 'DEEPSEEK_HOOK_CHUNK') {
-    if (!currentFullAnswer) console.log('[AnyBridge] content 收到首包 CHUNK');
-    currentFullAnswer += event.data.payload;
+    const payload = event.data.payload;
+    const isThink = typeof payload === 'object' && payload && payload.isThink === true;
+    const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
+    if (!thinkContent && !responseContent) console.log('[AnyBridge] content 收到首包 CHUNK');
+    if (isThink) thinkContent += text; else responseContent += text;
 
-    // 实时发送给侧边栏 UI 进行打字机渲染
+    const stage = responseContent ? 'responding' : 'thinking';
     chrome.runtime.sendMessage({
       type: MSG_TYPES.CHUNK_RECEIVED,
-      payload: { provider: 'deepseek', text: currentFullAnswer }
+      payload: { provider: 'deepseek', text: buildDisplayText(), stage }
     });
   }
   else if (event.data.type === 'DEEPSEEK_HOOK_END') {
     console.log('[AnyBridge] content 收到 END');
-    // 若整轮从未收到任何 chunk，主动发一条兜底文案，避免侧栏一直显示「等待连接网页端...」
-    if (!currentFullAnswer.trim()) {
+    const full = buildDisplayText();
+    if (!full) {
       chrome.runtime.sendMessage({
         type: MSG_TYPES.CHUNK_RECEIVED,
         payload: { provider: 'deepseek', text: '（网页端已结束，但未抓取到流式内容，可能接口格式已变更）' }
@@ -42,7 +55,6 @@ window.addEventListener('message', (event) => {
       type: MSG_TYPES.TASK_COMPLETED,
       payload: { provider: 'deepseek' }
     });
-    // ⚠️ 注意：这里绝对不能清空 currentFullAnswer，否则会导致数据丢失！
   }
 });
 
@@ -52,8 +64,8 @@ window.addEventListener('message', (event) => {
 
 chrome.runtime.onMessage.addListener((request) => {
   if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
-    // ✅ 只有在发起新提问的时候，才清空历史记录缓存！
-    currentFullAnswer = "";
+    thinkContent = "";
+    responseContent = "";
     executeDeepSeek(request.payload.prompt);
   }
 });

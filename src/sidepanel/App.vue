@@ -62,10 +62,10 @@
               <div class="relative pl-3 border-l-2 border-blue-500">
                 <div class="font-semibold text-blue-600 mb-1.5 flex items-center gap-2">
                   DeepSeek
-                  <span v-if="statusMap.deepseek === 'running'" class="text-[10px] font-normal text-slate-400 animate-pulse">抓取中...</span>
+                  <span v-if="statusMap.deepseek === 'running'" class="text-[10px] font-normal text-slate-400 animate-pulse">{{ deepseekStageLabel }}</span>
                 </div>
                 <div class="text-slate-600 leading-relaxed whitespace-pre-wrap font-mono text-[12px] break-words">
-                  {{ responses.deepseek || '等待连接网页端...' }}
+                  {{ responses.deepseek || (statusMap.deepseek === 'running' ? deepseekStageLabel : '等待连接网页端...') }}
                   <span v-if="statusMap.deepseek === 'running'" class="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-500 animate-pulse align-middle"></span>
                 </div>
               </div>
@@ -129,12 +129,45 @@
   const textareaRef = ref(null);
   
   // 业务数据控制
-  const statusMap = reactive({ deepseek: 'idle' }); 
+  const statusMap = reactive({ deepseek: 'idle' });
   const responses = reactive({ deepseek: '' });
-  
+  // 操作阶段（在正式内容出现前展示，降低等待焦躁感）
+  const stageMap = reactive({ deepseek: 'connecting' });
+  const fullTextBuffer = reactive({ deepseek: '' });
+  const displayedLength = reactive({ deepseek: 0 });
+  let streamAnimationId = null;
+  const CHARS_PER_FRAME = 8;
+
+  const stageLabels = {
+    connecting: '等待连接网页端...',
+    thinking: '已连接 · 正在思考...',
+    responding: '正在输出...',
+  };
+  const deepseekStageLabel = computed(() => stageLabels[stageMap.deepseek] || stageLabels.connecting);
+
+  function tickStreamDisplay() {
+    let anyPending = false;
+    for (const provider of Object.keys(fullTextBuffer)) {
+      const full = fullTextBuffer[provider] || '';
+      let len = displayedLength[provider] || 0;
+      if (len < full.length) {
+        len = Math.min(len + CHARS_PER_FRAME, full.length);
+        displayedLength[provider] = len;
+        responses[provider] = full.slice(0, len);
+        anyPending = true;
+      }
+    }
+    scrollToBottom();
+    if (anyPending) {
+      streamAnimationId = requestAnimationFrame(tickStreamDisplay);
+    } else {
+      streamAnimationId = null;
+    }
+  }
+
   // 计算是否有任何模型还在运行
   const isRunning = computed(() => Object.values(statusMap).includes('running'));
-  
+
   // 自动滚动到底部
   const scrollToBottom = async () => {
     await nextTick();
@@ -142,19 +175,33 @@
       chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
     }
   };
-  
+
   // 监听流式数据
   onMounted(() => {
     chrome.runtime?.onMessage.addListener((request) => {
       const { provider } = request.payload || {};
-      
+
       if (request.type === MSG_TYPES.CHUNK_RECEIVED) {
-        responses[provider] = request.payload.text;
-        scrollToBottom(); // 每次有新字进来就滚动
-      } 
+        const payload = request.payload;
+        const prov = provider;
+        // 阶段立即更新，便于马上看到「已连接·正在思考」等
+        if (payload.stage) stageMap[prov] = payload.stage;
+        else if (payload.text && payload.text.length > 0) stageMap[prov] = 'responding';
+        // 缓冲与动画放到下一宏任务，避免大量 chunk 同帧只渲染最后一帧
+        setTimeout(() => {
+          fullTextBuffer[prov] = payload.text;
+          if (streamAnimationId == null) streamAnimationId = requestAnimationFrame(tickStreamDisplay);
+        }, 0);
+      }
       else if (request.type === MSG_TYPES.TASK_COMPLETED) {
         statusMap[provider] = 'completed';
-        // 思考完成后，自动把折叠面板关上，让用户的注意力回到总结上
+        if (provider === 'deepseek' && !(responses.deepseek || '').trim()) {
+          responses.deepseek = '（网页端已结束，但未抓取到流式内容，可能接口格式已变更）';
+        }
+        // 不在这里强制补全全文，让打字机动画自然播完，保持流式观感
+        if (streamAnimationId != null) {
+          // 动画会在 displayedLength 追上 full 时自行停止，不取消
+        }
         if (!isRunning.value) {
           setTimeout(() => isThoughtOpen.value = false, 1500);
         }
@@ -176,7 +223,14 @@
     
     // 重置状态
     statusMap.deepseek = 'running';
+    stageMap.deepseek = 'connecting';
     responses.deepseek = '';
+    fullTextBuffer.deepseek = '';
+    displayedLength.deepseek = 0;
+    if (streamAnimationId != null) {
+      cancelAnimationFrame(streamAnimationId);
+      streamAnimationId = null;
+    }
   
     chrome.runtime?.sendMessage({
       type: MSG_TYPES.DISPATCH_TASK,

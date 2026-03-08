@@ -8,6 +8,8 @@ function isChatCompletionUrl(url) {
     return typeof url === 'string' && url.includes('chat') && (url.includes('completion') || url.includes('completions'));
 }
 
+// 当前流式片段类型：THINK（思考）或 RESPONSE（正式回复），用于给纯 data.v 字符串打标
+var _anyBridgePhase = 'RESPONSE';
 function parseSSELineAndEmit(trimmedLine) {
     if (trimmedLine === 'event: close') {
         window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
@@ -19,25 +21,44 @@ function parseSSELineAndEmit(trimmedLine) {
     try {
         const data = JSON.parse(jsonStr);
         let chunkText = "";
-        if (typeof data.v === 'string') chunkText = data.v;
-        else if (data.p === 'response/fragments' && data.o === 'APPEND' && Array.isArray(data.v))
-            chunkText = data.v[0]?.content ?? data.v[0] ?? "";
-        else if (data.v?.response?.fragments?.length)
-            chunkText = data.v.response.fragments[0]?.content ?? "";
-        else if (data.p === 'response/status' && data.v === 'FINISHED') {
+        let isThink = false;
+
+        if (data.p === 'response/status' && data.v === 'FINISHED') {
             window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
             return;
         }
-        else if (data.choices?.[0]?.delta?.content != null)
+        if (data.choices?.[0]?.delta?.content != null) {
             chunkText = typeof data.choices[0].delta.content === 'string' ? data.choices[0].delta.content : String(data.choices[0].delta.content);
-        else if (typeof data.content === 'string') chunkText = data.content;
-        else if (typeof data.text === 'string') chunkText = data.text;
-        else if (data.v && typeof data.v === 'object' && typeof data.v.content === 'string') chunkText = data.v.content;
+        } else if (typeof data.content === 'string') {
+            chunkText = data.content;
+        } else if (typeof data.text === 'string') {
+            chunkText = data.text;
+        } else if (data.v && typeof data.v === 'object' && typeof data.v.content === 'string') {
+            chunkText = data.v.content;
+        } else if (data.p === 'response/fragments' && data.o === 'APPEND' && Array.isArray(data.v)) {
+            var frag = data.v[0];
+            chunkText = frag?.content ?? (typeof frag === 'string' ? frag : '');
+            _anyBridgePhase = (frag && frag.type === 'THINK') ? 'THINK' : 'RESPONSE';
+            isThink = _anyBridgePhase === 'THINK';
+        } else if (data.v?.response?.fragments?.length) {
+            var frags = data.v.response.fragments;
+            var first = frags[0];
+            chunkText = first?.content ?? '';
+            _anyBridgePhase = (first && first.type === 'THINK') ? 'THINK' : 'RESPONSE';
+            isThink = _anyBridgePhase === 'THINK';
+        } else if (data.p === 'response/fragments/-1/content' && data.v != null) {
+            chunkText = typeof data.v === 'string' ? data.v : String(data.v);
+            isThink = _anyBridgePhase === 'THINK';
+        } else if (typeof data.v === 'string') {
+            chunkText = data.v;
+            isThink = _anyBridgePhase === 'THINK';
+        }
+
         if (chunkText) {
             if (typeof window._anyBridgeChunkCount !== 'number') window._anyBridgeChunkCount = 0;
             window._anyBridgeChunkCount++;
             if (window._anyBridgeChunkCount === 1) try { console.log('[AnyBridge] 已解析到首包并发送'); } catch (_) {}
-            window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: chunkText }, '*');
+            window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: chunkText, isThink: isThink } }, '*');
         }
     } catch (_) {}
 }
