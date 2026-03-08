@@ -5,15 +5,22 @@ chrome.action.onClicked.addListener((tab) => {
     chrome.sidePanel.open({ windowId: tab.windowId });
 });
 
-// 监听派发任务
+// 监听派发任务 & 注入 hook（绕过 CSP：用 scripting.executeScript world: MAIN）
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === MSG_TYPES.INJECT_HOOK && sender.tab?.id) {
+        chrome.scripting.executeScript({
+            target: { tabId: sender.tab.id },
+            world: 'MAIN',
+            files: ['src/content/hook.js'],
+        }).then(() => { sendResponse({ ok: true }); }).catch((err) => { sendResponse({ ok: false, err: String(err) }); });
+        return true; // 保持 channel 开放以异步 sendResponse
+    }
     if (request.type === MSG_TYPES.DISPATCH_TASK) {
         const { provider, prompt } = request.payload;
 
         if (provider === 'deepseek') {
             routeToTab('https://chat.deepseek.com/*', 'https://chat.deepseek.com/', prompt);
         }
-        // 异步响应
         sendResponse({ status: 'routed' });
     }
     return true;
