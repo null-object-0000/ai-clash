@@ -13,6 +13,8 @@
     // ====== SSE 解析核心 ======
     var _chunkCount = 0;
     var _endSentThisSession = false;
+    var _currentEvent = '';  // 跟踪当前 SSE event 类型
+    var _fetchHandlingInProgress = false;  // fetch 拦截器活跃时，其他拦截器跳过
 
     function emitEnd() {
         if (_endSentThisSession) return;
@@ -21,58 +23,100 @@
         window.postMessage({ type: 'DOUBAO_HOOK_END' }, '*');
     }
 
+    function emitChunk(text) {
+        if (!text) return;
+        _chunkCount++;
+        if (_chunkCount <= 5) console.log('[AnyBridge doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
+        window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text } }, '*');
+    }
+
+    /** 根据 event 类型从 data JSON 中提取文本 */
+    function extractByEvent(eventType, d) {
+        // CHUNK_DELTA — 纯文本增量（最常见）
+        if (eventType === 'CHUNK_DELTA') {
+            return typeof d.text === 'string' ? d.text : '';
+        }
+        // STREAM_MSG_NOTIFY — AI 回复首包，包含第一段文本
+        if (eventType === 'STREAM_MSG_NOTIFY') {
+            var blocks = d && d.content && d.content.content_block;
+            if (Array.isArray(blocks)) {
+                for (var i = 0; i < blocks.length; i++) {
+                    var tb = blocks[i] && blocks[i].content && blocks[i].content.text_block;
+                    if (tb && typeof tb.text === 'string' && tb.text) return tb.text;
+                }
+            }
+            return '';
+        }
+        // STREAM_CHUNK — 增量 patch；从 patch_object===1 提取文本
+        if (eventType === 'STREAM_CHUNK') {
+            var ops = d && d.patch_op;
+            if (Array.isArray(ops)) {
+                for (var i = 0; i < ops.length; i++) {
+                    var op = ops[i];
+                    if (op.patch_object === 1 && op.patch_value && op.patch_value.content_block) {
+                        var cbs = op.patch_value.content_block;
+                        for (var j = 0; j < cbs.length; j++) {
+                            var cb = cbs[j];
+                            if (cb && cb.is_finish) continue; // 结束标记块，无新文本
+                            var txt = cb && cb.content && cb.content.text_block && cb.content.text_block.text;
+                            if (txt) return txt;
+                        }
+                    }
+                }
+            }
+            return '';
+        }
+        // SSE_REPLY_END — 回复结束信号
+        if (eventType === 'SSE_REPLY_END') {
+            if (d.end_type === 1) emitEnd();
+            return '';
+        }
+        // SSE_HEARTBEAT / SSE_ACK / FULL_MSG_NOTIFY — 忽略
+        if (eventType === 'SSE_HEARTBEAT' || eventType === 'SSE_ACK' || eventType === 'FULL_MSG_NOTIFY') {
+            return '';
+        }
+        return null; // 未知事件，走 fallback
+    }
+
     function parseSSE(line) {
+        // 跟踪 event: 行
+        if (line.startsWith('event: ')) {
+            _currentEvent = line.substring(7).trim();
+            return;
+        }
+        // 忽略 id: 行
+        if (line.startsWith('id: ')) return;
+
+        // 兼容旧格式 end 信号
         if (line === 'event: close' || line === 'event: done') { emitEnd(); return; }
         if (!line.startsWith('data: ')) return;
+
         var json = line.substring(6).trim();
         if (!json || json === '[DONE]') { emitEnd(); return; }
         try {
             var d = JSON.parse(json);
             var text = '';
 
-            // 豆包 SSE 格式解析 — 兼容多种可能的结构
-            // 格式 1: {"event":"reply","text":"..."}
-            if (d.event === 'reply' && typeof d.text === 'string') {
-                text = d.text;
-            }
-            // 格式 2: {"event":"done"} / {"event":"all_done"}
-            else if (d.event === 'done' || d.event === 'all_done') {
-                emitEnd(); return;
-            }
-            // 格式 3: OpenAI-compatible {"choices":[{"delta":{"content":"..."}}]}
-            else if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
-                text = String(d.choices[0].delta.content);
-            }
-            // 格式 4: {"message":{"content":{"text":"..."}}} 或 {"message":{"text":"..."}}
-            else if (d.message) {
-                if (d.message.content && typeof d.message.content.text === 'string') {
-                    text = d.message.content.text;
-                } else if (typeof d.message.text === 'string') {
-                    text = d.message.text;
-                }
-            }
-            // 格式 5: {"data":{"message":{"content":"..."}}} 或 {"data":{"text":"..."}}
-            else if (d.data) {
-                if (d.data.message && typeof d.data.message.content === 'string') {
-                    text = d.data.message.content;
-                } else if (typeof d.data.text === 'string') {
-                    text = d.data.text;
-                }
-            }
-            // 格式 6: 通用 content 字段
-            else if (typeof d.content === 'string') {
-                text = d.content;
-            }
-            // 格式 7: 通用文本
-            else if (typeof d.text === 'string') {
-                text = d.text;
+            // 优先：根据 event 类型精确提取
+            if (_currentEvent) {
+                var result = extractByEvent(_currentEvent, d);
+                if (result !== null) { emitChunk(result); return; }
             }
 
-            if (text) {
-                _chunkCount++;
-                if (_chunkCount <= 3) console.log('[AnyBridge doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
-                window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text } }, '*');
+            // Fallback: 无 event 类型或未知事件，尝试通用模式
+            if (d.event === 'reply' && typeof d.text === 'string') {
+                text = d.text;
+            } else if (d.event === 'done' || d.event === 'all_done') {
+                emitEnd(); return;
+            } else if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
+                text = String(d.choices[0].delta.content);
+            } else if (typeof d.text === 'string') {
+                text = d.text;
+            } else if (typeof d.content === 'string') {
+                text = d.content;
             }
+
+            emitChunk(text);
         } catch (_) {}
     }
 
@@ -91,6 +135,8 @@
     function resetSession() {
         _chunkCount = 0;
         _endSentThisSession = false;
+        _currentEvent = '';
+        _fetchHandlingInProgress = false;
     }
 
     // =====================================================================
@@ -99,6 +145,7 @@
     var _origFetch = window.fetch;
     var _rawGetReader = ReadableStream.prototype.getReader;
     var _rawDecode = TextDecoder.prototype.decode;
+    var _fetchInterceptedBodies = new WeakSet();
 
     window.fetch = function () {
         var url = '';
@@ -112,8 +159,10 @@
         if (isDoubaoApiUrl(url)) {
             console.log('[AnyBridge doubao] ★ fetch 命中:', url);
             resetSession();
+            _fetchHandlingInProgress = true;
             p.then(function (response) {
                 if (!response.body) return;
+                _fetchInterceptedBodies.add(response.body);
                 try {
                     var clone = response.clone();
                     var reader = _rawGetReader.call(clone.body);
@@ -123,6 +172,7 @@
                         reader.read().then(function (res) {
                             if (res.done) {
                                 if (buf.trim()) parseSSE(buf.trim());
+                                _fetchHandlingInProgress = false;
                                 emitEnd();
                                 return;
                             }
@@ -136,7 +186,7 @@
                                 if (t) parseSSE(t);
                             }
                             pump();
-                        }).catch(function () { emitEnd(); });
+                        }).catch(function () { _fetchHandlingInProgress = false; emitEnd(); });
                     })();
                 } catch (_) {}
             }).catch(function () {});
@@ -213,12 +263,13 @@
 
         var st = _decoderStates.get(this);
         if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; _decoderStates.set(this, st); }
-        if (st.rejected) return result;
+        if (st.rejected || _fetchHandlingInProgress) return result;
 
         if (!st.tracked) {
-            if (result.indexOf('event: reply') >= 0 || result.indexOf('event: done') >= 0 ||
-                result.indexOf('"event":"reply"') >= 0 || result.indexOf('data: {"choices"') >= 0 ||
-                result.indexOf('"alice/msg"') >= 0 || result.indexOf('"message"') >= 0) {
+            if (result.indexOf('event: CHUNK_DELTA') >= 0 || result.indexOf('event: STREAM_MSG_NOTIFY') >= 0 ||
+                result.indexOf('event: STREAM_CHUNK') >= 0 || result.indexOf('event: SSE_REPLY_END') >= 0 ||
+                result.indexOf('event: reply') >= 0 || result.indexOf('event: done') >= 0 ||
+                result.indexOf('data: {"choices"') >= 0 || result.indexOf('"alice/msg"') >= 0) {
                 st.tracked = true;
                 resetSession();
                 console.log('[AnyBridge doubao] ★ TextDecoder 检测到 SSE');
@@ -238,6 +289,8 @@
     var _origGetReader = ReadableStream.prototype.getReader;
     ReadableStream.prototype.getReader = function () {
         var reader = _origGetReader.apply(this, arguments);
+        // 已被 fetch 拦截处理过的 body，不再重复解析
+        if (_fetchInterceptedBodies.has(this) || _fetchHandlingInProgress) return reader;
         var origRead = reader.read.bind(reader);
         var st = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
 
@@ -254,9 +307,10 @@
                 catch (_) { st.rejected = true; return res; }
 
                 if (!st.tracked) {
-                    if (text.indexOf('event: reply') >= 0 || text.indexOf('event: done') >= 0 ||
-                        text.indexOf('"event":"reply"') >= 0 || text.indexOf('data: {"choices"') >= 0 ||
-                        text.indexOf('"alice/msg"') >= 0) {
+                    if (text.indexOf('event: CHUNK_DELTA') >= 0 || text.indexOf('event: STREAM_MSG_NOTIFY') >= 0 ||
+                        text.indexOf('event: STREAM_CHUNK') >= 0 || text.indexOf('event: SSE_REPLY_END') >= 0 ||
+                        text.indexOf('event: reply') >= 0 || text.indexOf('event: done') >= 0 ||
+                        text.indexOf('data: {"choices"') >= 0 || text.indexOf('"alice/msg"') >= 0) {
                         st.tracked = true; resetSession();
                         console.log('[AnyBridge doubao] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
