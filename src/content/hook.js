@@ -1,130 +1,260 @@
-// src/content/hook.js
-// 注入到页面上下文，尽早劫持 fetch/XHR，以便拦截 DeepSeek 流式接口
+// src/content/hook.js  —  v4 2024-06
+// 注入 MAIN world，实时拦截 DeepSeek 流式 SSE 响应
+// 四路拦截：fetch（主） | XHR 轮询 | TextDecoder | ReadableStream.getReader
+
 (function () {
-    try { console.log('[AnyBridge] hook 已注入页面（fetch/XHR 已劫持）'); } catch (_) {}
-})();
+    'use strict';
 
-function isChatCompletionUrl(url) {
-    return typeof url === 'string' && url.includes('chat') && (url.includes('completion') || url.includes('completions'));
-}
+    // ====== 去重守卫 ======
+    if (window.__abHookV) return;          // 避免重复注入
+    window.__abHookV = 4;
+    console.log('%c[AnyBridge hook v4]%c MAIN world 注入成功', 'color:#6366f1;font-weight:bold', 'color:inherit');
 
-// 当前流式片段类型：THINK（思考）或 RESPONSE（正式回复），用于给纯 data.v 字符串打标
-var _anyBridgePhase = 'RESPONSE';
-function parseSSELineAndEmit(trimmedLine) {
-    if (trimmedLine === 'event: close') {
+    // ====== SSE 解析核心 ======
+    var _phase = 'RESPONSE';
+    var _chunkCount = 0;
+    var _endSentThisSession = false;       // 每轮对话只发一次 END
+
+    function emitEnd() {
+        if (_endSentThisSession) return;
+        _endSentThisSession = true;
+        console.log('[AnyBridge v4] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
-        return;
     }
-    if (!trimmedLine.startsWith('data: ')) return;
-    const jsonStr = trimmedLine.substring(6).trim();
-    if (!jsonStr || jsonStr === '[DONE]') return;
-    try {
-        const data = JSON.parse(jsonStr);
-        let chunkText = "";
-        let isThink = false;
 
-        if (data.p === 'response/status' && data.v === 'FINISHED') {
-            window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
-            return;
-        }
-        if (data.choices?.[0]?.delta?.content != null) {
-            chunkText = typeof data.choices[0].delta.content === 'string' ? data.choices[0].delta.content : String(data.choices[0].delta.content);
-        } else if (typeof data.content === 'string') {
-            chunkText = data.content;
-        } else if (typeof data.text === 'string') {
-            chunkText = data.text;
-        } else if (data.v && typeof data.v === 'object' && typeof data.v.content === 'string') {
-            chunkText = data.v.content;
-        } else if (data.p === 'response/fragments' && data.o === 'APPEND' && Array.isArray(data.v)) {
-            var frag = data.v[0];
-            chunkText = frag?.content ?? (typeof frag === 'string' ? frag : '');
-            _anyBridgePhase = (frag && frag.type === 'THINK') ? 'THINK' : 'RESPONSE';
-            isThink = _anyBridgePhase === 'THINK';
-        } else if (data.v?.response?.fragments?.length) {
-            var frags = data.v.response.fragments;
-            var first = frags[0];
-            chunkText = first?.content ?? '';
-            _anyBridgePhase = (first && first.type === 'THINK') ? 'THINK' : 'RESPONSE';
-            isThink = _anyBridgePhase === 'THINK';
-        } else if (data.p === 'response/fragments/-1/content' && data.v != null) {
-            chunkText = typeof data.v === 'string' ? data.v : String(data.v);
-            isThink = _anyBridgePhase === 'THINK';
-        } else if (typeof data.v === 'string') {
-            chunkText = data.v;
-            isThink = _anyBridgePhase === 'THINK';
-        }
+    function parseSSE(line) {
+        if (line === 'event: close') { emitEnd(); return; }
+        if (!line.startsWith('data: ')) return;
+        var json = line.substring(6).trim();
+        if (!json || json === '[DONE]') return;
+        try {
+            var d = JSON.parse(json);
+            var text = '', isThink = false;
 
-        if (chunkText) {
-            if (typeof window._anyBridgeChunkCount !== 'number') window._anyBridgeChunkCount = 0;
-            window._anyBridgeChunkCount++;
-            if (window._anyBridgeChunkCount === 1) try { console.log('[AnyBridge] 已解析到首包并发送'); } catch (_) {}
-            window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: chunkText, isThink: isThink } }, '*');
-        }
-    } catch (_) {}
-}
+            if (d.p === 'response/status' && d.v === 'FINISHED') { emitEnd(); return; }
+            if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
+                text = String(d.choices[0].delta.content);
+            } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
+                var f = d.v[0];
+                text = f && f.content ? f.content : (typeof f === 'string' ? f : '');
+                _phase = (f && f.type === 'THINK') ? 'THINK' : 'RESPONSE';
+                isThink = _phase === 'THINK';
+            } else if (d.p === 'response/fragments/-1/content' && d.v != null) {
+                text = typeof d.v === 'string' ? d.v : String(d.v);
+                isThink = _phase === 'THINK';
+            } else if (d.v && d.v.response && d.v.response.fragments && d.v.response.fragments.length) {
+                var fr = d.v.response.fragments[0];
+                text = fr && fr.content ? fr.content : '';
+                _phase = (fr && fr.type === 'THINK') ? 'THINK' : 'RESPONSE';
+                isThink = _phase === 'THINK';
+            } else if (typeof d.v === 'string') {
+                text = d.v;
+                isThink = _phase === 'THINK';
+            } else if (d.v && typeof d.v === 'object' && typeof d.v.content === 'string') {
+                text = d.v.content;
+            }
 
-// ---------- fetch ----------
-const originalFetch = window.fetch;
-window.fetch = async function (...args) {
-    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url;
-    const response = await originalFetch.apply(this, args);
-    if (isChatCompletionUrl(url)) {
-        try { console.log('[AnyBridge] 拦截到 fetch:', url); } catch (_) {}
-        const clone = response.clone();
-        interceptDeepSeekStreamFromReader(clone);
+            if (text) {
+                _chunkCount++;
+                if (_chunkCount <= 3) console.log('[AnyBridge v4] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
+                window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
+            }
+        } catch (_) {}
     }
-    return response;
-};
 
-// ---------- XMLHttpRequest（部分站点用 XHR 发流式请求）---------
-const XHROpen = XMLHttpRequest.prototype.open;
-const XHRSend = XMLHttpRequest.prototype.send;
-XMLHttpRequest.prototype.open = function (method, url, ...rest) {
-    this._anyBridgeUrl = url;
-    return XHROpen.apply(this, [method, url, ...rest]);
-};
-XMLHttpRequest.prototype.send = function (...args) {
-    const url = this._anyBridgeUrl;
-    if (isChatCompletionUrl(url)) {
-        try { console.log('[AnyBridge] 拦截到 XHR:', url); } catch (_) {}
-        const origOnReady = this.onreadystatechange;
-        this.onreadystatechange = function () {
-            if (this.readyState === 4 && this.responseText) {
-                const lines = this.responseText.split('\n');
-                let buffer = '';
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (trimmed) parseSSELineAndEmit(trimmed);
+    function isCompletionUrl(url) {
+        return typeof url === 'string' && url.indexOf('/chat/completion') >= 0;
+    }
+
+    function resetSession() {
+        _phase = 'RESPONSE';
+        _chunkCount = 0;
+        _endSentThisSession = false;
+    }
+
+    // =====================================================================
+    //  策略 0（最强）：fetch 拦截 — 在页面 JS 运行前 patch，保证被缓存
+    //  使用 response.clone() + 主动 pump 读流，既不影响页面消费又能实时拿数据
+    // =====================================================================
+    var _origFetch = window.fetch;
+    // 保存原始 getReader 以避免策略 3 的 hook 产生递归
+    var _rawGetReader = ReadableStream.prototype.getReader;
+    // 保存原始 TextDecoder.decode 以避免策略 2 的 hook 产生递归
+    var _rawDecode = TextDecoder.prototype.decode;
+
+    window.fetch = function () {
+        var url = '';
+        try {
+            var arg0 = arguments[0];
+            url = typeof arg0 === 'string' ? arg0 : (arg0 && (arg0.url || ''));
+        } catch (_) {}
+
+        var p = _origFetch.apply(this, arguments);
+
+        if (isCompletionUrl(url)) {
+            console.log('[AnyBridge v4] ★ fetch 命中:', url);
+            resetSession();
+            p.then(function (response) {
+                if (!response.body) return;
+                try {
+                    var clone = response.clone();
+                    var reader = _rawGetReader.call(clone.body);
+                    var dec = new TextDecoder('utf-8');
+                    var buf = '';
+                    (function pump() {
+                        reader.read().then(function (res) {
+                            if (res.done) {
+                                if (buf.trim()) parseSSE(buf.trim());
+                                emitEnd();
+                                return;
+                            }
+                            var chunk;
+                            try { chunk = _rawDecode.call(dec, res.value, { stream: true }); } catch (_) { return; }
+                            buf += chunk;
+                            var lines = buf.split('\n');
+                            buf = lines.pop() || '';
+                            for (var i = 0; i < lines.length; i++) {
+                                var t = lines[i].trim();
+                                if (t) parseSSE(t);
+                            }
+                            pump();
+                        }).catch(function () { emitEnd(); });
+                    })();
+                } catch (_) {}
+            }).catch(function () {});
+        }
+        return p;
+    };
+
+    // =====================================================================
+    //  策略 1：XHR — 50ms 轮询 responseText
+    //  即使压缩导致 responseText 全量到达，也能在 loadend 时兜底解析
+    // =====================================================================
+    var _origXhrOpen = XMLHttpRequest.prototype.open;
+    var _origXhrSend = XMLHttpRequest.prototype.send;
+    var _rtDesc = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
+
+    XMLHttpRequest.prototype.open = function (method, url) {
+        this._ab = { url: url, pos: 0, ended: false };
+        return _origXhrOpen.apply(this, arguments);
+    };
+
+    XMLHttpRequest.prototype.send = function () {
+        var ab = this._ab;
+        if (!ab || !isCompletionUrl(ab.url)) {
+            return _origXhrSend.apply(this, arguments);
+        }
+
+        console.log('[AnyBridge v4] ★ XHR 命中:', ab.url, 'responseType:', this.responseType);
+        resetSession();
+        var xhr = this;
+
+        function processNew(fullText) {
+            if (typeof fullText !== 'string' || fullText.length <= ab.pos) return;
+            var newData = fullText.substring(ab.pos);
+            ab.pos = fullText.length;
+            var lines = newData.split('\n');
+            for (var i = 0; i < lines.length; i++) {
+                var t = lines[i].trim();
+                if (t) parseSSE(t);
+            }
+        }
+
+        // 50ms 轮询 — 如果浏览器支持增量 responseText 就能实时拿到数据
+        var poller = setInterval(function () {
+            try {
+                var txt = _rtDesc && _rtDesc.get ? _rtDesc.get.call(xhr) : xhr.responseText;
+                if (txt) processNew(txt);
+            } catch (_) {}
+            if (xhr.readyState === 4) clearInterval(poller);
+        }, 50);
+
+        xhr.addEventListener('loadend', function () {
+            clearInterval(poller);
+            try {
+                var txt = _rtDesc && _rtDesc.get ? _rtDesc.get.call(xhr) : xhr.responseText;
+                if (txt) processNew(txt);
+            } catch (_) {}
+            if (!ab.ended) {
+                ab.ended = true;
+                console.log('[AnyBridge v4] XHR loadend, chunks:', _chunkCount);
+                emitEnd();
+            }
+        });
+
+        return _origXhrSend.apply(this, arguments);
+    };
+
+    // =====================================================================
+    //  策略 2：TextDecoder.prototype.decode — 嗅探 SSE 内容
+    // =====================================================================
+    var _origDecode = TextDecoder.prototype.decode;
+    var _decoderStates = new WeakMap();
+
+    TextDecoder.prototype.decode = function (input, options) {
+        var result = _origDecode.apply(this, arguments);
+        if (!result || result.length < 5) return result;
+
+        var st = _decoderStates.get(this);
+        if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; _decoderStates.set(this, st); }
+        if (st.rejected) return result;
+
+        if (!st.tracked) {
+            if (result.indexOf('event: ready') >= 0 || result.indexOf('data: {"v"') >= 0 ||
+                result.indexOf('data: {"p"') >= 0 || result.indexOf('data: {"choices"') >= 0 ||
+                result.indexOf('"response_message_id"') >= 0) {
+                st.tracked = true;
+                resetSession();
+                console.log('[AnyBridge v4] ★ TextDecoder 检测到 SSE');
+            } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
+        }
+
+        st.buf += result;
+        var lines = st.buf.split('\n');
+        st.buf = lines.pop() || '';
+        for (var i = 0; i < lines.length; i++) { var t = lines[i].trim(); if (t) parseSSE(t); }
+        return result;
+    };
+
+    // =====================================================================
+    //  策略 3：ReadableStream.getReader — fetch 直接 pump 场景
+    // =====================================================================
+    var _origGetReader = ReadableStream.prototype.getReader;
+    ReadableStream.prototype.getReader = function () {
+        var reader = _origGetReader.apply(this, arguments);
+        var origRead = reader.read.bind(reader);
+        var st = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
+
+        reader.read = function () {
+            return origRead().then(function (res) {
+                if (st.rejected) return res;
+                if (res.done) {
+                    if (st.tracked) { if (st.buf.trim()) parseSSE(st.buf.trim()); emitEnd(); }
+                    return res;
                 }
-                window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
-            }
-            if (origOnReady) origOnReady.apply(this, arguments);
-        };
-    }
-    return XHRSend.apply(this, args);
-};
+                if (!res.value) return res;
+                var text;
+                try { text = typeof res.value === 'string' ? res.value : _rawDecode.call(st.dec, res.value, { stream: true }); }
+                catch (_) { st.rejected = true; return res; }
 
-async function interceptDeepSeekStreamFromReader(response) {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) {
-                try { console.log('[AnyBridge] 流读取结束，已发送 END'); } catch (_) {}
-                window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
-                break;
-            }
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
-            for (const line of lines) {
-                const trimmed = line.trim();
-                if (trimmed) parseSSELineAndEmit(trimmed);
-            }
-        }
-    } catch (err) {
-        window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
-    }
-}
+                if (!st.tracked) {
+                    if (text.indexOf('event: ready') >= 0 || text.indexOf('data: {"v"') >= 0 ||
+                        text.indexOf('data: {"choices"') >= 0 || text.indexOf('data: {"p"') >= 0 ||
+                        text.indexOf('"response_message_id"') >= 0) {
+                        st.tracked = true; resetSession();
+                        console.log('[AnyBridge v4] ★ ReadableStream 检测到 SSE');
+                    } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
+                }
+
+                st.buf += text;
+                var lines = st.buf.split('\n');
+                st.buf = lines.pop() || '';
+                for (var i = 0; i < lines.length; i++) { var t = lines[i].trim(); if (t) parseSSE(t); }
+                return res;
+            });
+        };
+        return reader;
+    };
+
+    console.log('[AnyBridge v4] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+})();

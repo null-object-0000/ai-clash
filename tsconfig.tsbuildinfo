@@ -1,0 +1,1 @@
+{"root":["./manifest.config.ts","./postcss.config.ts","./tailwind.config.ts","./vite.config.ts","./src/background/index.ts","./src/content/deepseek.ts","./src/content/hook.js","./src/shared/messages.ts","./src/sidepanel/app.vue","./src/sidepanel/main.ts"],"version":"5.8.3"}

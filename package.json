@@ -1,22 +1,28 @@
 {
-    "name": "any-ai-bridge-ext",
+    "name": "any-ai-bridge",
+    "description": "本地混合专家大模型聚合助手",
     "private": true,
     "version": "1.0.0",
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
-        "preview": "vite preview"
+        "build": "vue-tsc -b && vite build"
     },
     "dependencies": {
-        "vue": "^3.4.0"
+        "vue": "^3.5.17"
     },
     "devDependencies": {
-        "@crxjs/vite-plugin": "^2.0.0-beta.23",
-        "@vitejs/plugin-vue": "^5.0.0",
-        "autoprefixer": "^10.4.19",
-        "postcss": "^8.4.38",
-        "tailwindcss": "^3.4.1",
-        "vite": "^5.2.0"
+        "@crxjs/vite-plugin": "^2.3.0",
+        "@types/chrome": "^0.1.37",
+        "@types/node": "^24.12.0",
+        "@vitejs/plugin-vue": "^6.0.4",
+        "@vue/tsconfig": "^0.7.0",
+        "autoprefixer": "^10.4.27",
+        "postcss": "^8.5.8",
+        "tailwindcss": "^3.4.19",
+        "typescript": "~5.8.3",
+        "vite": "^7.3.1",
+        "vite-plugin-zip-pack": "^1.2.4",
+        "vue-tsc": "^3.2.5"
     }
 }
