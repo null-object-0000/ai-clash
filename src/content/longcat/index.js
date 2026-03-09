@@ -100,6 +100,20 @@ if (isContextValid()) {
 
 /** 尝试点击「新对话」按钮 */
 async function tryStartNewConversation() {
+  // 优先匹配LongCat特有的两个新对话按钮
+  const prioritySelectors = ['.new-content', '.chat-icon-box'];
+  for (const selector of prioritySelectors) {
+    const el = document.querySelector(selector);
+    if (el) {
+      const clickable = el.closest('[role="button"], button, a, [tabindex="0"]') || el;
+      if (clickable) {
+        (clickable).click();
+        await new Promise((r) => setTimeout(r, 600));
+        return true;
+      }
+    }
+  }
+
   const labels = ['新对话', '新会话', '开启新对话', '新建对话', 'New Chat', 'New'];
   for (const label of labels) {
     const el = Array.from(document.querySelectorAll('span, div, button, a')).find(

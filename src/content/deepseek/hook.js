@@ -31,7 +31,11 @@
             var d = JSON.parse(json);
             var text = '', isThink = false;
 
-            if (d.p === 'response/status' && d.v === 'FINISHED') { emitEnd(); return; }
+            // 过滤所有状态消息，不要当成内容返回
+            if (d.p === 'response/status') {
+                if (d.v === 'FINISHED') emitEnd();
+                return;
+            }
             if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
                 text = String(d.choices[0].delta.content);
             } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {

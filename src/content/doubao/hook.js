@@ -77,8 +77,8 @@
                         for (var j = 0; j < cbs.length; j++) {
                             var cb = cbs[j];
 
-                            // 检测思考是否完成：thinking_block的finish_title="已完成思考"且is_finish=true
-                            const isThinkFinish = cb.content?.thinking_block?.finish_title === '已完成思考' && cb.is_finish === true;
+                            // 检测思考是否完成：thinking_block的finish_title以"已完成思考"开头且is_finish=true
+                            const isThinkFinish = cb.content?.thinking_block?.finish_title?.startsWith('已完成思考') && cb.is_finish === true;
                             if (isThinkFinish) {
                                 _isThinkingFinished = true;
                                 _thinkingBlockId = null; // 清空思考块ID，避免后续内容被误判
