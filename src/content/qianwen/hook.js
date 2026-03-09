@@ -15,6 +15,7 @@
     var _endSentThisSession = false;
     var _currentEvent = '';  // 跟踪当前 SSE event 类型
     var _fetchHandlingInProgress = false;  // fetch 拦截器活跃时，其他拦截器跳过
+    var _lastFullContent = '';  // 记录上一次的完整内容，避免重复
 
     function emitEnd() {
         if (_endSentThisSession) return;
@@ -32,6 +33,39 @@
 
     /** 根据 event 类型从 data JSON 中提取文本 */
     function extractByEvent(eventType, d) {
+        // 调试日志：输出完整的响应结构
+        if (_chunkCount <= 3) console.log('[AI Clash qianwen] 收到响应结构:', JSON.stringify(d).slice(0, 300));
+
+        // 处理千问最新的v2 API格式：data.messages数组最后一个元素的content
+        if (d.data && d.data.messages && Array.isArray(d.data.messages)) {
+            const lastMsg = d.data.messages[d.data.messages.length - 1];
+            if (lastMsg && typeof lastMsg.content === 'string') {
+                // 放宽status判断，兼容可能的状态变更：processing/streaming/answering都可以
+                if (lastMsg.status === 'processing' || lastMsg.status === 'streaming' || lastMsg.status === 'answering' || !lastMsg.status) {
+                    const fullContent = lastMsg.content;
+                    // 只返回新增的部分，避免重复
+                    if (fullContent.length > _lastFullContent.length) {
+                        const newContent = fullContent.substring(_lastFullContent.length);
+                        _lastFullContent = fullContent;
+                        return newContent;
+                    }
+                    return ''; // 内容没有变化，返回空
+                }
+            }
+        }
+        // 兼容可能的结构变化：直接从d.messages提取
+        if (d.messages && Array.isArray(d.messages)) {
+            const lastMsg = d.messages[d.messages.length - 1];
+            if (lastMsg && typeof lastMsg.content === 'string') {
+                const fullContent = lastMsg.content;
+                if (fullContent.length > _lastFullContent.length) {
+                    const newContent = fullContent.substring(_lastFullContent.length);
+                    _lastFullContent = fullContent;
+                    return newContent;
+                }
+                return '';
+            }
+        }
         // 尝试从常见的字段中提取文本
         if (typeof d.text === 'string') {
             return d.text;
@@ -69,17 +103,18 @@
         if (line.startsWith('id: ')) return;
 
         // 兼容旧格式 end 信号
-        if (line === 'event: close' || line === 'event: done') { emitEnd(); return; }
+        if (line === 'event: close' || line === 'event: done' || line === 'event: complete') { emitEnd(); return; }
         if (!line.startsWith('data: ')) return;
 
         var json = line.substring(6).trim();
-        if (!json || json === '[DONE]') { emitEnd(); return; }
+        if (!json || json === '[DONE]' || json === 'true') { emitEnd(); return; }
         try {
             var d = JSON.parse(json);
             var text = '';
 
             // 检查是否为结束信号
-            if (d.event === 'done' || d.event === 'all_done' || d.status === 'done' || d.finished === true) {
+            if (d.event === 'done' || d.event === 'all_done' || d.status === 'done' || d.finished === true ||
+                d.status === 'finish' || d.status === 'completed' || d.is_end === true || d.end === true) {
                 emitEnd();
                 return;
             }
@@ -103,18 +138,8 @@
     /** 检测是否为千问聊天 API 端点 */
     function isQianwenApiUrl(url) {
         if (typeof url !== 'string') return false;
-        // 匹配千问的各种 API 路径
-        return url.indexOf('/api/chat') >= 0 ||
-               url.indexOf('/chat/completion') >= 0 ||
-               url.indexOf('/stream/chat') >= 0 ||
-               url.indexOf('/completions') >= 0 ||
-               url.indexOf('/conversation') >= 0 ||
-               url.indexOf('/message') >= 0 ||
-               url.indexOf('/send') >= 0 ||
-               url.indexOf('/answer') >= 0 ||
-               url.indexOf('/reply') >= 0 ||
-               url.indexOf('/stream') >= 0 ||
-               (url.indexOf('www.qianwen.com') >= 0 && (url.indexOf('/api') >= 0 || url.indexOf('/bot') >= 0 || url.indexOf('/gateway') >= 0));
+        // 只拦截指定的SSE接口
+        return url === '/api/v2/chat';
     }
 
     function resetSession() {
@@ -122,6 +147,7 @@
         _endSentThisSession = false;
         _currentEvent = '';
         _fetchHandlingInProgress = false;
+        _lastFullContent = '';
     }
 
     // =====================================================================

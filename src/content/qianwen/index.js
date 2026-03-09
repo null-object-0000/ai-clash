@@ -1,11 +1,11 @@
-import { MSG_TYPES } from '../../shared/messages.ts';
+import { MSG_TYPES } from '../../shared/messages.js';
 import {
   isContextValid, safeSend,
   waitForAnyElement,
   createDomObserverContext, startDomObserver, stopDomObserver,
   fillTextInput, fillContentEditable, simulateEnter,
   sendStatus, sendConnecting, sendError, sendCompleted,
-} from '../shared/utils.ts';
+} from '../shared/utils.js';
 
 const PROVIDER = 'qianwen';
 
@@ -71,7 +71,7 @@ const DOM_SELECTORS = [
   '[class*="reply"][class*="content"]',
 ];
 
-function pollQianwenDom(): string | null {
+function pollQianwenDom() {
   for (const sel of DOM_SELECTORS) {
     const blocks = document.querySelectorAll(sel);
     if (blocks.length > 0) {
@@ -108,7 +108,7 @@ async function tryStartNewConversation() {
     if (el) {
       const clickable = el.closest('[role="button"], button, a, [tabindex="0"]') || el;
       if (clickable) {
-        (clickable as HTMLElement).click();
+        (clickable).click();
         await new Promise((r) => setTimeout(r, 600));
         return true;
       }
@@ -117,7 +117,7 @@ async function tryStartNewConversation() {
 
   const testIdBtns = document.querySelectorAll('[data-testid*="new"], [data-testid*="create"]');
   for (const btn of Array.from(testIdBtns)) {
-    (btn as HTMLElement).click();
+    (btn).click();
     await new Promise((r) => setTimeout(r, 600));
     return true;
   }
@@ -128,7 +128,7 @@ async function tryStartNewConversation() {
     if (parent) {
       const d = btn.querySelector('path')?.getAttribute('d') || '';
       if (d.includes('M12 5v14M5 12h14') || d.includes('plus') || d.includes('+')) {
-        (parent as HTMLElement).click();
+        (parent).click();
         await new Promise((r) => setTimeout(r, 600));
         return true;
       }
@@ -138,7 +138,7 @@ async function tryStartNewConversation() {
   return false;
 }
 
-async function executeQianwen(prompt: string) {
+async function executeQianwen(prompt) {
   console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
@@ -147,6 +147,7 @@ async function executeQianwen(prompt: string) {
   sendStatus(PROVIDER, '正在定位输入框...');
 
   const inputSelectors = [
+    '[data-slate-editor="true"]', // 优先匹配千问的Slate编辑器
     'textarea',
     '[contenteditable="true"]',
     '[role="textbox"]',
@@ -161,20 +162,27 @@ async function executeQianwen(prompt: string) {
   }
 
   sendStatus(PROVIDER, '正在发送消息...');
-  (inputEl as HTMLElement).focus();
+  inputEl.focus();
+  await new Promise(r => setTimeout(r, 200));
 
   // 千问使用Slate编辑器，需要特殊处理
   if (inputEl.getAttribute('contenteditable') === 'true' || inputEl.tagName !== 'TEXTAREA' && inputEl.tagName !== 'INPUT') {
-    fillContentEditable(inputEl as HTMLElement, prompt);
+    await fillContentEditable(inputEl, prompt);
   } else {
-    fillTextInput(inputEl as HTMLTextAreaElement | HTMLInputElement, prompt);
+    fillTextInput(inputEl, prompt);
   }
 
-  setTimeout(async () => {
-    let sendBtn: Element | null = null;
+  await new Promise(r => setTimeout(r, 500)); // 等待输入完成
 
-    // 优先查找常见的发送按钮选择器
-    sendBtn = document.querySelector('[data-testid*="send"], [data-testid*="submit"], [data-testid*="Send"]');
+  setTimeout(async () => {
+    let sendBtn = null;
+
+    // 优先查找千问最新的发送按钮class
+    sendBtn = document.querySelector('.operateBtn-ehxNOr');
+
+    if (!sendBtn) {
+      sendBtn = document.querySelector('[data-testid*="send"], [data-testid*="submit"], [data-testid*="Send"]');
+    }
 
     if (!sendBtn) {
       sendBtn = document.querySelector('[aria-label*="发送"], [aria-label*="send"], [aria-label*="Send"]');
@@ -226,10 +234,10 @@ async function executeQianwen(prompt: string) {
 
     if (sendBtn) {
       console.log(`[AI Clash ${PROVIDER}] 找到发送按钮`, sendBtn);
-      (sendBtn as HTMLElement).focus();
+      (sendBtn).focus();
       // 尝试多次点击，避免单次点击失效
-      setTimeout(() => (sendBtn as HTMLElement).click(), 100);
-      setTimeout(() => (sendBtn as HTMLElement).click(), 300);
+      setTimeout(() => (sendBtn).click(), 100);
+      setTimeout(() => (sendBtn).click(), 300);
     } else {
       console.warn(`[AI Clash ${PROVIDER}] 未找到发送按钮，尝试按Enter提交`);
       simulateEnter(inputEl);

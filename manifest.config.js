@@ -16,16 +16,20 @@ export default defineManifest({
     default_title: "打开 AI 对撞机"
   },
   content_scripts: [{
-    js: ["src/content/deepseek/index.ts"],
+    js: ["src/content/deepseek/index.js"],
     matches: ["https://chat.deepseek.com/*"],
     run_at: "document_start"
   }, {
-    js: ["src/content/doubao/index.ts"],
+    js: ["src/content/doubao/index.js"],
     matches: ["https://www.doubao.com/*"],
     run_at: "document_start"
   }, {
-    js: ["src/content/qianwen/index.ts"],
+    js: ["src/content/qianwen/index.js"],
     matches: ["https://www.qianwen.com/*"],
+    run_at: "document_start"
+  }, {
+    js: ["src/content/longcat/index.js"],
+    matches: ["https://longcat.chat/*"],
     run_at: "document_start"
   }],
   permissions: [
@@ -37,10 +41,14 @@ export default defineManifest({
   host_permissions: [
     "https://chat.deepseek.com/*",
     "https://www.doubao.com/*",
-    "https://www.qianwen.com/*"
+    "https://www.qianwen.com/*",
+    "https://longcat.chat/*",
+    // API模式权限
+    "https://api.deepseek.com/*",
+    "https://api.longcat.chat/*"
   ],
   background: {
-    service_worker: "src/background/index.ts",
+    service_worker: "src/background/index.js",
     type: "module"
   },
   side_panel: {
@@ -50,7 +58,7 @@ export default defineManifest({
     {
       resources: [
         "src/content/deepseek/hook.js",
-        "src/content/deepseek/index.ts"
+        "src/content/deepseek/index.js"
       ],
       matches: [
         "https://chat.deepseek.com/*"
@@ -59,7 +67,7 @@ export default defineManifest({
     {
       resources: [
         "src/content/doubao/hook.js",
-        "src/content/doubao/index.ts"
+        "src/content/doubao/index.js"
       ],
       matches: [
         "https://www.doubao.com/*"
@@ -68,10 +76,19 @@ export default defineManifest({
     {
       resources: [
         "src/content/qianwen/hook.js",
-        "src/content/qianwen/index.ts"
+        "src/content/qianwen/index.js"
       ],
       matches: [
         "https://www.qianwen.com/*"
+      ]
+    },
+    {
+      resources: [
+        "src/content/longcat/hook.js",
+        "src/content/longcat/index.js"
+      ],
+      matches: [
+        "https://longcat.chat/*"
       ]
     }
   ],

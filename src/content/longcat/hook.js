@@ -1,86 +1,137 @@
-// src/content/hook.js  —  v4 2024-06
-// 注入 MAIN world，实时拦截 DeepSeek 流式 SSE 响应
+// src/content/longcat/hook.js  —  v1
+// 注入 MAIN world，实时拦截LongCat流式 SSE 响应
 // 四路拦截：fetch（主） | XHR 轮询 | TextDecoder | ReadableStream.getReader
 
 (function () {
     'use strict';
 
     // ====== 去重守卫 ======
-    if (window.__abHookV) return;          // 避免重复注入
-    window.__abHookV = 4;
-    console.log('%c[AI Clash hook v4]%c MAIN world 注入成功', 'color:#6366f1;font-weight:bold', 'color:inherit');
+    if (window.__abLongcatHookV) return;
+    window.__abLongcatHookV = 1;
+    console.log('%c[AI Clash longcat-hook v1]%c MAIN world 注入成功', 'color:#10b981;font-weight:bold', 'color:inherit');
 
     // ====== SSE 解析核心 ======
-    var _phase = 'RESPONSE';
     var _chunkCount = 0;
-    var _endSentThisSession = false;       // 每轮对话只发一次 END
+    var _endSentThisSession = false;
+    var _currentEvent = '';  // 跟踪当前 SSE event 类型
+    var _fetchHandlingInProgress = false;  // fetch 拦截器活跃时，其他拦截器跳过
 
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AI Clash v4] → END (chunks=' + _chunkCount + ')');
-        window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
+        console.log('[AI Clash longcat] → END (chunks=' + _chunkCount + ')');
+        window.postMessage({ type: 'LONGCAT_HOOK_END' }, '*');
+    }
+
+    function emitChunk(text) {
+        if (!text) return;
+        _chunkCount++;
+        if (_chunkCount <= 5) console.log('[AI Clash longcat] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
+        window.postMessage({ type: 'LONGCAT_HOOK_CHUNK', payload: { text: text } }, '*');
+    }
+
+    /** 根据 event 类型从 data JSON 中提取文本 */
+    function extractByEvent(eventType, d) {
+        // 处理通用OpenAI格式
+        if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
+            return String(d.choices[0].delta.content);
+        }
+        // 尝试从常见的字段中提取文本
+        if (typeof d.text === 'string') {
+            return d.text;
+        }
+        if (typeof d.content === 'string') {
+            return d.content;
+        }
+        if (d.output && typeof d.output === 'string') {
+            return d.output;
+        }
+        if (d.answer && typeof d.answer === 'string') {
+            return d.answer;
+        }
+        if (d.result && typeof d.result === 'string') {
+            return d.result;
+        }
+        // 处理消息数组格式
+        if (d.messages && Array.isArray(d.messages)) {
+            const lastMsg = d.messages[d.messages.length - 1];
+            if (lastMsg && typeof lastMsg.content === 'string') {
+                return lastMsg.content;
+            }
+        }
+        // 尝试从嵌套结构中提取
+        if (d.data && typeof d.data === 'object') {
+            if (typeof d.data.text === 'string') return d.data.text;
+            if (typeof d.data.content === 'string') return d.data.content;
+            if (d.data.choices && d.data.choices[0] && d.data.choices[0].delta && d.data.choices[0].delta.content != null) {
+                return String(d.data.choices[0].delta.content);
+            }
+        }
+        return '';
     }
 
     function parseSSE(line) {
-        if (line === 'event: close') { emitEnd(); return; }
+        // 跟踪 event: 行
+        if (line.startsWith('event: ')) {
+            _currentEvent = line.substring(7).trim();
+            return;
+        }
+        // 忽略 id: 行
+        if (line.startsWith('id: ')) return;
+
+        // 兼容旧格式 end 信号
+        if (line === 'event: close' || line === 'event: done' || line === 'event: complete') { emitEnd(); return; }
         if (!line.startsWith('data: ')) return;
+
         var json = line.substring(6).trim();
-        if (!json || json === '[DONE]') return;
+        if (!json || json === '[DONE]' || json === 'true') { emitEnd(); return; }
         try {
             var d = JSON.parse(json);
-            var text = '', isThink = false;
+            var text = '';
 
-            if (d.p === 'response/status' && d.v === 'FINISHED') { emitEnd(); return; }
-            if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
-                text = String(d.choices[0].delta.content);
-            } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
-                var f = d.v[0];
-                text = f && f.content ? f.content : (typeof f === 'string' ? f : '');
-                _phase = (f && f.type === 'THINK') ? 'THINK' : 'RESPONSE';
-                isThink = _phase === 'THINK';
-            } else if (d.p === 'response/fragments/-1/content' && d.v != null) {
-                text = typeof d.v === 'string' ? d.v : String(d.v);
-                isThink = _phase === 'THINK';
-            } else if (d.v && d.v.response && d.v.response.fragments && d.v.response.fragments.length) {
-                var fr = d.v.response.fragments[0];
-                text = fr && fr.content ? fr.content : '';
-                _phase = (fr && fr.type === 'THINK') ? 'THINK' : 'RESPONSE';
-                isThink = _phase === 'THINK';
-            } else if (typeof d.v === 'string') {
-                text = d.v;
-                isThink = _phase === 'THINK';
-            } else if (d.v && typeof d.v === 'object' && typeof d.v.content === 'string') {
-                text = d.v.content;
+            // 检查是否为结束信号
+            if (d.event === 'done' || d.event === 'all_done' || d.status === 'done' || d.finished === true) {
+                emitEnd();
+                return;
             }
 
-            if (text) {
-                _chunkCount++;
-                if (_chunkCount <= 3) console.log('[AI Clash v4] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
-                window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
+            // 优先：根据 event 类型精确提取
+            if (_currentEvent) {
+                var result = extractByEvent(_currentEvent, d);
+                if (result !== null && result !== '') {
+                    emitChunk(result);
+                    return;
+                }
             }
+
+            // Fallback: 无 event 类型或未知事件，尝试通用模式
+            text = extractByEvent('', d);
+
+            emitChunk(text);
         } catch (_) {}
     }
 
-    function isCompletionUrl(url) {
-        return typeof url === 'string' && url === '/api/v0/chat/completion';
+    /** 检测是否为LongCat聊天 API 端点 */
+    function isLongcatApiUrl(url) {
+        if (typeof url !== 'string') return false;
+        // 只拦截指定的SSE接口
+        return url === '/api/v1/chat-completion-V2';
     }
 
     function resetSession() {
-        _phase = 'RESPONSE';
         _chunkCount = 0;
         _endSentThisSession = false;
+        _currentEvent = '';
+        _fetchHandlingInProgress = false;
     }
 
     // =====================================================================
-    //  策略 0（最强）：fetch 拦截 — 在页面 JS 运行前 patch，保证被缓存
-    //  使用 response.clone() + 主动 pump 读流，既不影响页面消费又能实时拿数据
+    //  策略 0（最强）：fetch 拦截
     // =====================================================================
     var _origFetch = window.fetch;
-    // 保存原始 getReader 以避免策略 3 的 hook 产生递归
     var _rawGetReader = ReadableStream.prototype.getReader;
-    // 保存原始 TextDecoder.decode 以避免策略 2 的 hook 产生递归
     var _rawDecode = TextDecoder.prototype.decode;
+    var _fetchInterceptedBodies = new WeakSet();
 
     window.fetch = function () {
         var url = '';
@@ -91,11 +142,13 @@
 
         var p = _origFetch.apply(this, arguments);
 
-        if (isCompletionUrl(url)) {
-            console.log('[AI Clash v4] ★ fetch 命中:', url);
+        if (isLongcatApiUrl(url)) {
+            console.log('[AI Clash longcat] ★ fetch 命中:', url);
             resetSession();
+            _fetchHandlingInProgress = true;
             p.then(function (response) {
                 if (!response.body) return;
+                _fetchInterceptedBodies.add(response.body);
                 try {
                     var clone = response.clone();
                     var reader = _rawGetReader.call(clone.body);
@@ -105,6 +158,7 @@
                         reader.read().then(function (res) {
                             if (res.done) {
                                 if (buf.trim()) parseSSE(buf.trim());
+                                _fetchHandlingInProgress = false;
                                 emitEnd();
                                 return;
                             }
@@ -118,7 +172,7 @@
                                 if (t) parseSSE(t);
                             }
                             pump();
-                        }).catch(function () { emitEnd(); });
+                        }).catch(function () { _fetchHandlingInProgress = false; emitEnd(); });
                     })();
                 } catch (_) {}
             }).catch(function () {});
@@ -128,24 +182,23 @@
 
     // =====================================================================
     //  策略 1：XHR — 50ms 轮询 responseText
-    //  即使压缩导致 responseText 全量到达，也能在 loadend 时兜底解析
     // =====================================================================
     var _origXhrOpen = XMLHttpRequest.prototype.open;
     var _origXhrSend = XMLHttpRequest.prototype.send;
     var _rtDesc = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
 
     XMLHttpRequest.prototype.open = function (method, url) {
-        this._ab = { url: url, pos: 0, ended: false };
+        this._abLongcat = { url: url, pos: 0, ended: false };
         return _origXhrOpen.apply(this, arguments);
     };
 
     XMLHttpRequest.prototype.send = function () {
-        var ab = this._ab;
-        if (!ab || !isCompletionUrl(ab.url)) {
+        var ab = this._abLongcat;
+        if (!ab || !isLongcatApiUrl(ab.url)) {
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AI Clash v4] ★ XHR 命中:', ab.url, 'responseType:', this.responseType);
+        console.log('[AI Clash longcat] ★ XHR 命中:', ab.url);
         resetSession();
         var xhr = this;
 
@@ -160,7 +213,6 @@
             }
         }
 
-        // 50ms 轮询 — 如果浏览器支持增量 responseText 就能实时拿到数据
         var poller = setInterval(function () {
             try {
                 var txt = _rtDesc && _rtDesc.get ? _rtDesc.get.call(xhr) : xhr.responseText;
@@ -177,7 +229,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AI Clash v4] XHR loadend, chunks:', _chunkCount);
+                console.log('[AI Clash longcat] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -197,15 +249,15 @@
 
         var st = _decoderStates.get(this);
         if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; _decoderStates.set(this, st); }
-        if (st.rejected) return result;
+        if (st.rejected || _fetchHandlingInProgress) return result;
 
         if (!st.tracked) {
-            if (result.indexOf('event: ready') >= 0 || result.indexOf('data: {"v"') >= 0 ||
-                result.indexOf('data: {"p"') >= 0 || result.indexOf('data: {"choices"') >= 0 ||
-                result.indexOf('"response_message_id"') >= 0) {
+            if (result.indexOf('event: ') >= 0 || result.indexOf('data: {') >= 0 ||
+                result.indexOf('data: {"choices"') >= 0 || result.indexOf('"text":') >= 0 ||
+                result.indexOf('"content":') >= 0) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AI Clash v4] ★ TextDecoder 检测到 SSE');
+                console.log('[AI Clash longcat] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -222,6 +274,8 @@
     var _origGetReader = ReadableStream.prototype.getReader;
     ReadableStream.prototype.getReader = function () {
         var reader = _origGetReader.apply(this, arguments);
+        // 已被 fetch 拦截处理过的 body，不再重复解析
+        if (_fetchInterceptedBodies.has(this) || _fetchHandlingInProgress) return reader;
         var origRead = reader.read.bind(reader);
         var st = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
 
@@ -238,11 +292,11 @@
                 catch (_) { st.rejected = true; return res; }
 
                 if (!st.tracked) {
-                    if (text.indexOf('event: ready') >= 0 || text.indexOf('data: {"v"') >= 0 ||
-                        text.indexOf('data: {"choices"') >= 0 || text.indexOf('data: {"p"') >= 0 ||
-                        text.indexOf('"response_message_id"') >= 0) {
+                    if (text.indexOf('event: ') >= 0 || text.indexOf('data: {') >= 0 ||
+                        text.indexOf('data: {"choices"') >= 0 || text.indexOf('"text":') >= 0 ||
+                        text.indexOf('"content":') >= 0) {
                         st.tracked = true; resetSession();
-                        console.log('[AI Clash v4] ★ ReadableStream 检测到 SSE');
+                        console.log('[AI Clash longcat] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -256,5 +310,5 @@
         return reader;
     };
 
-    console.log('[AI Clash v4] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+    console.log('[AI Clash longcat] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
 })();

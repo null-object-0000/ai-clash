@@ -23,29 +23,37 @@
         window.postMessage({ type: 'DOUBAO_HOOK_END' }, '*');
     }
 
-    function emitChunk(text) {
+    function emitChunk(text, isThink = false) {
         if (!text) return;
         _chunkCount++;
-        if (_chunkCount <= 5) console.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
-        window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text } }, '*');
+        if (_chunkCount <= 5) console.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考内容)' : '');
+        window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
     }
 
     /** 根据 event 类型从 data JSON 中提取文本 */
     function extractByEvent(eventType, d) {
         // CHUNK_DELTA — 纯文本增量（最常见）
         if (eventType === 'CHUNK_DELTA') {
-            return typeof d.text === 'string' ? d.text : '';
+            const isThink = d.type === 'thinking' || d.is_thinking === true || !!d.thinking_text;
+            const text = typeof d.text === 'string' ? d.text : (typeof d.thinking_text === 'string' ? d.thinking_text : '');
+            if (text) emitChunk(text, isThink);
+            return null; // 已经emit，不需要返回
         }
         // STREAM_MSG_NOTIFY — AI 回复首包，包含第一段文本
         if (eventType === 'STREAM_MSG_NOTIFY') {
             var blocks = d && d.content && d.content.content_block;
             if (Array.isArray(blocks)) {
                 for (var i = 0; i < blocks.length; i++) {
-                    var tb = blocks[i] && blocks[i].content && blocks[i].content.text_block;
-                    if (tb && typeof tb.text === 'string' && tb.text) return tb.text;
+                    const block = blocks[i];
+                    // 识别思考块
+                    const isThink = block.type === 'thinking' || block.role === 'system' || block.is_thinking === true;
+                    var tb = block.content && block.content.text_block;
+                    if (tb && typeof tb.text === 'string' && tb.text) {
+                        emitChunk(tb.text, isThink);
+                    }
                 }
             }
-            return '';
+            return null; // 已经emit，不需要返回
         }
         // STREAM_CHUNK — 增量 patch；从 patch_object===1 提取文本
         if (eventType === 'STREAM_CHUNK') {
@@ -58,13 +66,14 @@
                         for (var j = 0; j < cbs.length; j++) {
                             var cb = cbs[j];
                             if (cb && cb.is_finish) continue; // 结束标记块，无新文本
+                            const isThink = cb.type === 'thinking' || cb.is_thinking === true;
                             var txt = cb && cb.content && cb.content.text_block && cb.content.text_block.text;
-                            if (txt) return txt;
+                            if (txt) emitChunk(txt, isThink);
                         }
                     }
                 }
             }
-            return '';
+            return null; // 已经emit，不需要返回
         }
         // SSE_REPLY_END — 回复结束信号
         if (eventType === 'SSE_REPLY_END') {
@@ -123,13 +132,8 @@
     /** 检测是否为豆包聊天 API 端点 */
     function isDoubaoApiUrl(url) {
         if (typeof url !== 'string') return false;
-        // 匹配豆包的各种 API 路径
-        return url.indexOf('/alice/msg') >= 0 ||
-               url.indexOf('/samantha/chat') >= 0 ||
-               url.indexOf('/api/chat') >= 0 ||
-               url.indexOf('/chat/completion') >= 0 ||
-               url.indexOf('/stream/chat') >= 0 ||
-               (url.indexOf('doubao.com') >= 0 && (url.indexOf('/send') >= 0 || url.indexOf('/message') >= 0));
+        // 只拦截指定的SSE接口
+        return url === '/chat/completion';
     }
 
     function resetSession() {

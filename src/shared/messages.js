@@ -4,6 +4,9 @@ export const MSG_TYPES = {
 
     // UI -> Background
     DISPATCH_TASK: 'DISPATCH_TASK',
+    SAVE_API_CONFIG: 'SAVE_API_CONFIG',
+    GET_API_CONFIG: 'GET_API_CONFIG',
+    TEST_API_KEY: 'TEST_API_KEY',
 
     // Background -> Content Script
     EXECUTE_PROMPT: 'EXECUTE_PROMPT',

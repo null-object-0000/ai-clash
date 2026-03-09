@@ -1,11 +1,11 @@
-import { MSG_TYPES } from '../../shared/messages.ts';
+import { MSG_TYPES } from '../../shared/messages.js';
 import {
   isContextValid, safeSend,
   waitForElement,
   createDomObserverContext, startDomObserver, stopDomObserver,
   fillTextInput, simulateEnter,
   sendStatus, sendConnecting, sendError, sendCompleted,
-} from '../shared/utils.ts';
+} from '../shared/utils.js';
 
 const PROVIDER = 'deepseek';
 
@@ -74,7 +74,7 @@ window.addEventListener('message', (event) => {
 // DOM 兜底 — 自定义 pollFn
 // ============================================================================
 
-function pollDeepSeekDom(): string | null {
+function pollDeepSeekDom() {
   const blocks = document.querySelectorAll('.ds-markdown--block');
   if (blocks.length === 0) return null;
   return blocks[blocks.length - 1].textContent || '';
@@ -106,7 +106,7 @@ async function tryStartNewConversation() {
   if (byText) {
     const clickable = byText.closest('[role="button"], button, a, [tabindex="0"]') || byText;
     if (clickable && !clickable.getAttribute?.('aria-disabled')) {
-      (clickable as HTMLElement).click();
+      (clickable).click();
       await new Promise((r) => setTimeout(r, 600));
       return true;
     }
@@ -117,7 +117,7 @@ async function tryStartNewConversation() {
     const d = path?.getAttribute('d') ?? '';
     const isPlusIcon = (d.includes('4.93945') && d.includes('7.34961')) || (d.includes('6.36949') && d.includes('9.22487'));
     if (isPlusIcon) {
-      (btn as HTMLElement).click();
+      (btn).click();
       await new Promise((r) => setTimeout(r, 600));
       return true;
     }
@@ -126,14 +126,14 @@ async function tryStartNewConversation() {
 }
 
 /** 同步 DeepSeek 页面的「深度思考」开关状态 */
-async function syncDeepThinkToggle(wantEnabled: boolean) {
+async function syncDeepThinkToggle(wantEnabled) {
   const toggleBtns = document.querySelectorAll('.ds-toggle-button[role="button"]');
   for (const btn of Array.from(toggleBtns)) {
     const label = btn.textContent?.trim();
     if (label && label.includes('深度思考')) {
       const isSelected = btn.classList.contains('ds-toggle-button--selected');
       if (wantEnabled !== isSelected) {
-        (btn as HTMLElement).click();
+        (btn).click();
         console.log(`[AIClash ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
         await new Promise(r => setTimeout(r, 300));
       } else {
@@ -145,7 +145,7 @@ async function syncDeepThinkToggle(wantEnabled: boolean) {
   console.warn(`[AIClash ${PROVIDER}] 未找到深度思考按钮`);
 }
 
-async function executeDeepSeek(prompt: string, settings?: { isDeepThinkingEnabled?: boolean }) {
+async function executeDeepSeek(prompt, settings) {
   console.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
@@ -155,7 +155,7 @@ async function executeDeepSeek(prompt: string, settings?: { isDeepThinkingEnable
   await syncDeepThinkToggle(deepThinkWanted);
 
   sendStatus(PROVIDER, '正在定位输入框...');
-  const textarea = await waitForElement('textarea') as HTMLTextAreaElement | null;
+  const textarea = await waitForElement('textarea');
 
   if (!textarea) {
     sendError(PROVIDER, '未找到 DeepSeek 输入框。请确认已登录。');
@@ -167,7 +167,7 @@ async function executeDeepSeek(prompt: string, settings?: { isDeepThinkingEnable
   fillTextInput(textarea, prompt);
 
   setTimeout(async () => {
-    let sendBtn: Element | null = null;
+    let sendBtn = null;
     let container = textarea.parentElement;
     for (let i = 0; i < 6 && container; i++) {
       const btns = container.querySelectorAll('.ds-icon-button[role="button"][aria-disabled="false"]');
@@ -184,8 +184,8 @@ async function executeDeepSeek(prompt: string, settings?: { isDeepThinkingEnable
     }
 
     if (sendBtn) {
-      (sendBtn as HTMLElement).focus();
-      (sendBtn as HTMLElement).click();
+      (sendBtn).focus();
+      (sendBtn).click();
     } else {
       simulateEnter(textarea);
     }

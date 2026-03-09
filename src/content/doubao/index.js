@@ -1,11 +1,11 @@
-import { MSG_TYPES } from '../../shared/messages.ts';
+import { MSG_TYPES } from '../../shared/messages.js';
 import {
   isContextValid, safeSend,
   waitForAnyElement,
   createDomObserverContext, startDomObserver, stopDomObserver,
   fillTextInput, fillContentEditable, simulateEnter,
   sendStatus, sendConnecting, sendError, sendCompleted,
-} from '../shared/utils.ts';
+} from '../shared/utils.js';
 
 const PROVIDER = 'doubao';
 
@@ -71,7 +71,7 @@ const DOM_SELECTORS = [
   '[class*="reply"][class*="content"]',
 ];
 
-function pollDoubaoDom(): string | null {
+function pollDoubaoDom() {
   for (const sel of DOM_SELECTORS) {
     const blocks = document.querySelectorAll(sel);
     if (blocks.length > 0) {
@@ -108,7 +108,7 @@ async function tryStartNewConversation() {
     if (el) {
       const clickable = el.closest('[role="button"], button, a, [tabindex="0"]') || el;
       if (clickable) {
-        (clickable as HTMLElement).click();
+        (clickable).click();
         await new Promise((r) => setTimeout(r, 600));
         return true;
       }
@@ -117,7 +117,7 @@ async function tryStartNewConversation() {
 
   const testIdBtns = document.querySelectorAll('[data-testid*="new"], [data-testid*="create"]');
   for (const btn of Array.from(testIdBtns)) {
-    (btn as HTMLElement).click();
+    (btn).click();
     await new Promise((r) => setTimeout(r, 600));
     return true;
   }
@@ -125,7 +125,48 @@ async function tryStartNewConversation() {
   return false;
 }
 
-async function executeDoubao(prompt: string) {
+/** 切换到思考模式 */
+async function switchToDeepThinking() {
+  try {
+    // 找到思考模式切换按钮
+    const deepThinkingBtn = await waitForAnyElement(['[data-testid="deep-thinking-action-button"] button'], 2000);
+    if (!deepThinkingBtn) {
+      console.log(`[AIClash ${PROVIDER}] 未找到思考模式按钮，使用默认模式`);
+      return false;
+    }
+
+    // 检查当前是否已经是思考模式
+    const isDeepThinking = deepThinkingBtn.getAttribute('data-checked') === 'true' ||
+                          deepThinkingBtn.textContent?.includes('思考');
+    if (isDeepThinking) {
+      console.log(`[AIClash ${PROVIDER}] 当前已经是思考模式`);
+      return true;
+    }
+
+    // 点击按钮展开下拉菜单
+    deepThinkingBtn.click();
+    await new Promise(r => setTimeout(r, 300));
+
+    // 找到思考模式选项
+    const deepThinkingOption = await waitForAnyElement(['[data-testid="deep-thinking-action-item-1"]'], 1000);
+    if (deepThinkingOption) {
+      deepThinkingOption.click();
+      await new Promise(r => setTimeout(r, 300));
+      console.log(`[AIClash ${PROVIDER}] 已切换到思考模式`);
+      return true;
+    } else {
+      console.log(`[AIClash ${PROVIDER}] 未找到思考模式选项，使用默认模式`);
+      // 点击其他地方关闭下拉菜单
+      document.body.click();
+      return false;
+    }
+  } catch (e) {
+    console.warn(`[AIClash ${PROVIDER}] 切换思考模式失败`, e);
+    return false;
+  }
+}
+
+async function executeDoubao(prompt) {
   console.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
@@ -147,17 +188,21 @@ async function executeDoubao(prompt: string) {
     return;
   }
 
+  // 切换到思考模式
+  sendStatus(PROVIDER, '正在切换思考模式...');
+  await switchToDeepThinking();
+
   sendStatus(PROVIDER, '正在发送消息...');
-  (inputEl as HTMLElement).focus();
+  (inputEl).focus();
 
   if (inputEl.tagName === 'TEXTAREA' || inputEl.tagName === 'INPUT') {
-    fillTextInput(inputEl as HTMLTextAreaElement | HTMLInputElement, prompt);
+    fillTextInput(inputEl, prompt);
   } else {
-    fillContentEditable(inputEl as HTMLElement, prompt);
+    fillContentEditable(inputEl, prompt);
   }
 
   setTimeout(async () => {
-    let sendBtn: Element | null = null;
+    let sendBtn = null;
 
     sendBtn = document.querySelector('[data-testid*="send"], [data-testid*="submit"]');
 
@@ -182,8 +227,8 @@ async function executeDoubao(prompt: string) {
     }
 
     if (sendBtn) {
-      (sendBtn as HTMLElement).focus();
-      (sendBtn as HTMLElement).click();
+      (sendBtn).focus();
+      (sendBtn).click();
     } else {
       simulateEnter(inputEl);
     }

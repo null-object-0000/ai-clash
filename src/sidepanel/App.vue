@@ -72,13 +72,26 @@
               </span>
             </button>
           </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] text-slate-700">LongCat</span>
+            <button
+              type="button"
+              @click="isLongcatEnabled = !isLongcatEnabled"
+              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+              :class="isLongcatEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                :class="isLongcatEnabled ? 'translate-x-4' : 'translate-x-1'">
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth" ref="chatContainer">
 
-      <div v-if="!hasAsked" class="h-full flex flex-col items-center justify-center text-center space-y-3 mt-10">
+      <div v-if="!hasAsked" class="h-full flex flex-col items-center justify-center text-center space-y-3 mt-6">
         <div
           class="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-2">
           <span class="text-3xl">✨</span>
@@ -87,6 +100,329 @@
         <p class="text-xs text-slate-400 max-w-[200px] leading-relaxed">
           输入您的问题，我将在后台同时调用多个头部模型为您交叉比对。
         </p>
+
+        <!-- 渠道设置卡片 -->
+        <div class="w-full max-w-[260px] mt-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+          <div class="text-[11px] font-semibold text-slate-500 tracking-wide text-left">通道设置</div>
+
+          <!-- DeepSeek -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="isDeepSeekEnabled = !isDeepSeekEnabled"
+                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                  :class="isDeepSeekEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="isDeepSeekEnabled ? 'translate-x-4' : 'translate-x-1'">
+                  </span>
+                </button>
+                <span class="text-[13px] text-slate-700">DeepSeek</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  @click="showAdvancedSettings.deepseek = !showAdvancedSettings.deepseek"
+                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
+                  {{ showAdvancedSettings.deepseek ? '收起' : '设置' }}
+                </button>
+                <a
+                  v-if="deepseekMode === 'web'"
+                  href="https://chat.deepseek.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                  前往
+                </a>
+              </div>
+            </div>
+            <!-- 高级设置 -->
+            <div v-if="showAdvancedSettings.deepseek" class="pl-11 space-y-2 pb-1">
+              <div class="flex items-center gap-3">
+                <span class="text-[11px] text-slate-500">接入模式:</span>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="web"
+                    v-model="deepseekMode"
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-700">网页模式</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="api"
+                    v-model="deepseekMode"
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-700">API模式</span>
+                </label>
+              </div>
+              <!-- API模式配置 -->
+              <div v-if="deepseekMode === 'api'" class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <input
+                    :type="showApiKey.deepseek ? 'text' : 'password'"
+                    v-model="deepseekApiKey"
+                    placeholder="输入API Key"
+                    class="flex-1 px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    @click="showApiKey.deepseek = !showApiKey.deepseek"
+                    class="text-[11px] text-slate-500 hover:text-slate-700 px-1.5 py-1 rounded-md hover:bg-slate-100 transition-colors"
+                    :title="showApiKey.deepseek ? '隐藏' : '显示'">
+                    {{ showApiKey.deepseek ? '🙈' : '👁️' }}
+                  </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    @click="testApiKey('deepseek', deepseekApiKey)"
+                    :disabled="testingApiKey.deepseek || !deepseekApiKey"
+                    class="text-[11px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors">
+                    {{ testingApiKey.deepseek ? '测试中...' : '测试Key' }}
+                  </button>
+                  <span
+                    v-if="apiKeyTestResult.deepseek"
+                    class="text-[10px]"
+                    :class="apiKeyTestResult.deepseek.success ? 'text-green-600' : 'text-red-600'">
+                    {{ apiKeyTestResult.deepseek.message }}
+                  </span>
+                </div>
+                <div>
+                  <select
+                    v-model="deepseekModel"
+                    class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">默认模型 (deepseek-chat)</option>
+                    <option value="deepseek-chat">deepseek-chat</option>
+                    <option value="deepseek-reasoner">deepseek-reasoner</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 豆包 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="isDoubaoEnabled = !isDoubaoEnabled"
+                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                  :class="isDoubaoEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="isDoubaoEnabled ? 'translate-x-4' : 'translate-x-1'">
+                  </span>
+                </button>
+                <span class="text-[13px] text-slate-700">豆包</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  @click="showAdvancedSettings.doubao = !showAdvancedSettings.doubao"
+                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
+                  {{ showAdvancedSettings.doubao ? '收起' : '设置' }}
+                </button>
+                <a
+                  v-if="doubaoMode === 'web'"
+                  href="https://www.doubao.com/chat/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                  前往
+                </a>
+              </div>
+            </div>
+            <!-- 高级设置 -->
+            <div v-if="showAdvancedSettings.doubao" class="pl-11 space-y-2 pb-1">
+              <div class="flex items-center gap-3">
+                <span class="text-[11px] text-slate-500">接入模式:</span>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="web"
+                    v-model="doubaoMode"
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-700">网页模式</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer opacity-50">
+                  <input
+                    type="radio"
+                    value="api"
+                    disabled
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-500">API模式 (暂不支持)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 千问 -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="isQianwenEnabled = !isQianwenEnabled"
+                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                  :class="isQianwenEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="isQianwenEnabled ? 'translate-x-4' : 'translate-x-1'">
+                  </span>
+                </button>
+                <span class="text-[13px] text-slate-700">千问</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  @click="showAdvancedSettings.qianwen = !showAdvancedSettings.qianwen"
+                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
+                  {{ showAdvancedSettings.qianwen ? '收起' : '设置' }}
+                </button>
+                <a
+                  v-if="qianwenMode === 'web'"
+                  href="https://www.qianwen.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                  前往
+                </a>
+              </div>
+            </div>
+            <!-- 高级设置 -->
+            <div v-if="showAdvancedSettings.qianwen" class="pl-11 space-y-2 pb-1">
+              <div class="flex items-center gap-3">
+                <span class="text-[11px] text-slate-500">接入模式:</span>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="web"
+                    v-model="qianwenMode"
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-700">网页模式</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer opacity-50">
+                  <input
+                    type="radio"
+                    value="api"
+                    disabled
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-500">API模式 (暂不支持)</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- LongCat -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="isLongcatEnabled = !isLongcatEnabled"
+                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+                  :class="isLongcatEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                    :class="isLongcatEnabled ? 'translate-x-4' : 'translate-x-1'">
+                  </span>
+                </button>
+                <span class="text-[13px] text-slate-700">LongCat</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button
+                  type="button"
+                  @click="showAdvancedSettings.longcat = !showAdvancedSettings.longcat"
+                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
+                  {{ showAdvancedSettings.longcat ? '收起' : '设置' }}
+                </button>
+                <a
+                  href="https://longcat.chat/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
+                  前往
+                </a>
+              </div>
+            </div>
+            <!-- 高级设置 -->
+            <div v-if="showAdvancedSettings.longcat" class="pl-11 space-y-2 pb-1">
+              <div class="flex items-center gap-3">
+                <span class="text-[11px] text-slate-500">接入模式:</span>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="web"
+                    v-model="longcatMode"
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-700">网页模式</span>
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="api"
+                    v-model="longcatMode"
+                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  />
+                  <span class="text-[11px] text-slate-700">API模式</span>
+                </label>
+              </div>
+              <!-- API模式配置 -->
+              <div v-if="longcatMode === 'api'" class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <input
+                    :type="showApiKey.longcat ? 'text' : 'password'"
+                    v-model="longcatApiKey"
+                    placeholder="输入API Key"
+                    class="flex-1 px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    @click="showApiKey.longcat = !showApiKey.longcat"
+                    class="text-[11px] text-slate-500 hover:text-slate-700 px-1.5 py-1 rounded-md hover:bg-slate-100 transition-colors"
+                    :title="showApiKey.longcat ? '隐藏' : '显示'">
+                    {{ showApiKey.longcat ? '🙈' : '👁️' }}
+                  </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    @click="testApiKey('longcat', longcatApiKey)"
+                    :disabled="testingApiKey.longcat || !longcatApiKey"
+                    class="text-[11px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors">
+                    {{ testingApiKey.longcat ? '测试中...' : '测试Key' }}
+                  </button>
+                  <span
+                    v-if="apiKeyTestResult.longcat"
+                    class="text-[10px]"
+                    :class="apiKeyTestResult.longcat.success ? 'text-green-600' : 'text-red-600'">
+                    {{ apiKeyTestResult.longcat.message }}
+                  </span>
+                </div>
+                <div>
+                  <select
+                    v-model="longcatModel"
+                    class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="">默认模型 (longcat-chat)</option>
+                    <option value="longcat-chat">longcat-chat</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <template v-else>
@@ -97,157 +433,59 @@
           </div>
         </div>
 
-        <!-- DeepSeek 独立折叠面板 -->
-        <div v-if="isDeepSeekEnabled"
-          class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-          <button @click="isDeepSeekOpen = !isDeepSeekOpen"
-            class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-            <div class="flex items-center gap-2.5">
-              <span v-if="statusMap.deepseek === 'running'" class="relative flex h-3 w-3 ml-1">
-                <span
-                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-              </span>
-              <span v-else class="text-emerald-500 ml-1">
-                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"></path>
-                </svg>
-              </span>
-              <span class="text-[13px] font-medium text-blue-600">
-                DeepSeek {{ statusMap.deepseek === 'running' ? '正在输出...' : '(已完成)' }}
-              </span>
-              <span v-if="operationStatus.deepseek"
-                class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus.deepseek }}</span>
-              <span v-else-if="statusMap.deepseek === 'running'"
-                class="text-[10px] font-normal text-slate-400 animate-pulse">{{ deepseekStageLabel }}</span>
-            </div>
-            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
-              :class="{ 'rotate-180': isDeepSeekOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        <!-- DeepSeek 折叠面板 -->
+        <ProviderCollapse
+          v-if="isDeepSeekEnabled"
+          provider-id="deepseek"
+          provider-name="DeepSeek"
+          theme-color="blue"
+          :status="statusMap.deepseek"
+          :stage="stageMap.deepseek"
+          :response="responses.deepseek"
+          :think-response="thinkResponses.deepseek"
+          :operation-status="operationStatus.deepseek"
+          :is-deep-thinking-enabled="isDeepThinkingEnabled"
+          :default-open="isDeepSeekOpen"
+        />
 
-          <div v-show="isDeepSeekOpen"
-            class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
-            <!-- 思考内容折叠块 -->
-            <template v-if="isDeepThinkingEnabled">
-              <div v-if="thinkResponses.deepseek" class="mb-2">
-                <button @click="isThinkBlockOpen = !isThinkBlockOpen"
-                  class="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1">
-                  <svg class="w-3 h-3 transition-transform duration-200" :class="{ 'rotate-90': isThinkBlockOpen }"
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                  <span>💭 思考过程</span>
-                  <span v-if="stageMap.deepseek === 'thinking' && statusMap.deepseek === 'running'"
-                    class="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle"></span>
-                </button>
-                <div v-show="isThinkBlockOpen"
-                  class="pl-3 border-l border-slate-200 text-slate-400 leading-relaxed whitespace-pre-wrap font-mono text-[11px] break-words italic max-h-[200px] overflow-y-auto">
-                  {{ thinkResponses.deepseek }}
-                </div>
-              </div>
-              <div v-else-if="stageMap.deepseek === 'thinking' && statusMap.deepseek === 'running'"
-                class="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
-                💭 正在思考...
-                <span class="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle"></span>
-              </div>
-            </template>
+        <!-- 豆包 折叠面板 -->
+        <ProviderCollapse
+          v-if="isDoubaoEnabled"
+          provider-id="doubao"
+          provider-name="豆包"
+          theme-color="amber"
+          :status="statusMap.doubao"
+          :stage="stageMap.doubao"
+          :response="responses.doubao"
+          :operation-status="operationStatus.doubao"
+          :default-open="isDoubaoOpen"
+        />
 
-            <!-- 正式回复 -->
-            <div class="text-slate-600 leading-relaxed prose prose-sm prose-blue max-w-none font-mono text-[12px] break-words">
-              <span v-html="renderMarkdown(responses.deepseek) || (statusMap.deepseek === 'running' ? (stageMap.deepseek === 'responding' ? '' : deepseekStageLabel) : '等待连接网页端...')"></span>
-              <span v-if="statusMap.deepseek === 'running' && stageMap.deepseek === 'responding'"
-                class="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-500 animate-pulse align-middle"></span>
-            </div>
-          </div>
-        </div>
+        <!-- 千问 折叠面板 -->
+        <ProviderCollapse
+          v-if="isQianwenEnabled"
+          provider-id="qianwen"
+          provider-name="千问"
+          theme-color="emerald"
+          :status="statusMap.qianwen"
+          :stage="stageMap.qianwen"
+          :response="responses.qianwen"
+          :operation-status="operationStatus.qianwen"
+          :default-open="isQianwenOpen"
+        />
 
-        <!-- 豆包 独立折叠面板 -->
-        <div v-if="isDoubaoEnabled"
-          class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-          <button @click="isDoubaoOpen = !isDoubaoOpen"
-            class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-            <div class="flex items-center gap-2.5">
-              <span v-if="statusMap.doubao === 'running'" class="relative flex h-3 w-3 ml-1">
-                <span
-                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
-              </span>
-              <span v-else class="text-emerald-500 ml-1">
-                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"></path>
-                </svg>
-              </span>
-              <span class="text-[13px] font-medium text-amber-600">
-                豆包 {{ statusMap.doubao === 'running' ? '正在输出...' : '(已完成)' }}
-              </span>
-              <span v-if="operationStatus.doubao"
-                class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus.doubao }}</span>
-              <span v-else-if="statusMap.doubao === 'running'"
-                class="text-[10px] font-normal text-slate-400 animate-pulse">{{ doubaoStageLabel }}</span>
-            </div>
-            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
-              :class="{ 'rotate-180': isDoubaoOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <div v-show="isDoubaoOpen"
-            class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
-            <div class="text-slate-600 leading-relaxed prose prose-sm prose-amber max-w-none font-mono text-[12px] break-words">
-              <span v-html="renderMarkdown(responses.doubao) || (statusMap.doubao === 'running' ? (stageMap.doubao === 'responding' ? '' : doubaoStageLabel) : '等待连接网页端...')"></span>
-              <span v-if="statusMap.doubao === 'running' && stageMap.doubao === 'responding'"
-                class="inline-block w-1.5 h-3.5 ml-0.5 bg-amber-500 animate-pulse align-middle"></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 千问 独立折叠面板 -->
-        <div v-if="isQianwenEnabled"
-          class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-          <button @click="isQianwenOpen = !isQianwenOpen"
-            class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-            <div class="flex items-center gap-2.5">
-              <span v-if="statusMap.qianwen === 'running'" class="relative flex h-3 w-3 ml-1">
-                <span
-                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </span>
-              <span v-else class="text-emerald-500 ml-1">
-                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd"
-                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                    clip-rule="evenodd"></path>
-                </svg>
-              </span>
-              <span class="text-[13px] font-medium text-emerald-600">
-                千问 {{ statusMap.qianwen === 'running' ? '正在输出...' : '(已完成)' }}
-              </span>
-              <span v-if="operationStatus.qianwen"
-                class="text-[10px] font-normal text-emerald-500 animate-pulse">{{ operationStatus.qianwen }}</span>
-              <span v-else-if="statusMap.qianwen === 'running'"
-                class="text-[10px] font-normal text-slate-400 animate-pulse">{{ qianwenStageLabel }}</span>
-            </div>
-            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
-              :class="{ 'rotate-180': isQianwenOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <div v-show="isQianwenOpen"
-            class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
-            <div class="text-slate-600 leading-relaxed prose prose-sm prose-emerald max-w-none font-mono text-[12px] break-words">
-              <span v-html="renderMarkdown(responses.qianwen) || (statusMap.qianwen === 'running' ? (stageMap.qianwen === 'responding' ? '' : qianwenStageLabel) : '等待连接网页端...')"></span>
-              <span v-if="statusMap.qianwen === 'running' && stageMap.qianwen === 'responding'"
-                class="inline-block w-1.5 h-3.5 ml-0.5 bg-emerald-500 animate-pulse align-middle"></span>
-            </div>
-          </div>
-        </div>
+        <!-- LongCat 折叠面板 -->
+        <ProviderCollapse
+          v-if="isLongcatEnabled"
+          provider-id="longcat"
+          provider-name="LongCat"
+          theme-color="purple"
+          :status="statusMap.longcat"
+          :stage="stageMap.longcat"
+          :response="responses.longcat"
+          :operation-status="operationStatus.longcat"
+          :default-open="isLongcatOpen"
+        />
 
         <div v-if="!isRunning && hasAsked"
           class="relative bg-white p-4 rounded-xl shadow-sm border border-indigo-100 ring-1 ring-indigo-50">
@@ -255,7 +493,8 @@
             class="absolute -top-2.5 left-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm tracking-wider">
             最终研判结论
           </div>
-          <div class="mt-2 text-[14px] text-slate-700 leading-relaxed prose prose-sm max-w-none" v-html="renderMarkdown('这是基于多个模型给出的综合优化建议。MVP 阶段暂未接大模型总结 API，您可以先在这里查看聚合后的排版效果。')">
+          <div class="mt-2 text-[14px] text-slate-700 leading-relaxed prose prose-sm max-w-none">
+            这是基于多个模型给出的综合优化建议。MVP 阶段暂未接大模型总结 API，您可以先在这里查看聚合后的排版效果。
           </div>
         </div>
       </template>
@@ -295,7 +534,7 @@
         </div>
       </div>
       <div class="text-center mt-2">
-        <span class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 · 千问 网页端提取</span>
+        <span class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 · 千问 · LongCat（网页模式/API模式双接入）</span>
       </div>
     </div>
   </div>
@@ -303,105 +542,152 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
-import { marked } from 'marked';
-import sanitizeHtml from 'sanitize-html';
-import { MSG_TYPES } from '../shared/messages.ts';
+import { MSG_TYPES } from '../shared/messages.js';
+import ProviderCollapse from './components/ProviderCollapse.vue';
 
 // UI 状态控制
 const inputStr = ref('');
 const currentQuestion = ref('');
 const hasAsked = ref(false);
-const isThinkBlockOpen = ref(true); // 控制 DeepSeek 思考内容折叠
 const isDeepThinkingEnabled = ref(true);
 const isDeepSeekEnabled = ref(true);
 const isDoubaoEnabled = ref(false);
 const isQianwenEnabled = ref(false);
+const isLongcatEnabled = ref(false);
 const isSettingsOpen = ref(false);
 // 每个通道独立的折叠状态
 const isDeepSeekOpen = ref(true);
 const isDoubaoOpen = ref(true);
 const isQianwenOpen = ref(true);
+const isLongcatOpen = ref(true);
+// API配置相关状态
+const deepseekMode = ref<'web' | 'api'>('web');
+const doubaoMode = ref<'web' | 'api'>('web');
+const qianwenMode = ref<'web' | 'api'>('web');
+const longcatMode = ref<'web' | 'api'>('web');
+const deepseekApiKey = ref('');
+const doubaoApiKey = ref('');
+const qianwenApiKey = ref('');
+const longcatApiKey = ref('');
+const deepseekModel = ref('');
+const doubaoModel = ref('');
+const qianwenModel = ref('');
+const longcatModel = ref('');
+// API Key测试状态
+const testingApiKey = ref<Record<string, boolean>>({});
+const apiKeyTestResult = ref<Record<string, { success: boolean; message: string }>>({});
+// 是否显示API Key
+const showApiKey = ref<Record<string, boolean>>({});
+// 是否展开高级设置
+const showAdvancedSettings = ref<Record<string, boolean>>({});
+
 const chatContainer = ref<HTMLElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const SETTINGS_KEY = 'aiclash.sidepanel.settings';
+const API_CONFIG_KEY = 'aiclash.api.config';
 type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
   isDeepSeekEnabled?: boolean;
   isDoubaoEnabled?: boolean;
   isQianwenEnabled?: boolean;
+  isLongcatEnabled?: boolean;
+};
+type ApiConfig = {
+  mode?: 'web' | 'api';
+  apiKey?: string;
+  model?: string;
+  enabled?: boolean;
 };
 
 function loadSettings() {
-  chrome.storage?.local.get([SETTINGS_KEY], (result) => {
+  // 加载基础设置
+  chrome.storage?.local.get([SETTINGS_KEY, API_CONFIG_KEY], (result) => {
     const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
     isDeepThinkingEnabled.value = saved.isDeepThinkingEnabled ?? true;
     isDeepSeekEnabled.value = saved.isDeepSeekEnabled ?? true;
     isDoubaoEnabled.value = saved.isDoubaoEnabled ?? false;
     isQianwenEnabled.value = saved.isQianwenEnabled ?? false;
+    isLongcatEnabled.value = saved.isLongcatEnabled ?? false;
+
+    // 加载API配置
+    const apiConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
+    deepseekMode.value = apiConfig.deepseek?.mode || 'web';
+    doubaoMode.value = apiConfig.doubao?.mode || 'web';
+    qianwenMode.value = apiConfig.qianwen?.mode || 'web';
+    longcatMode.value = apiConfig.longcat?.mode || 'web';
+    deepseekApiKey.value = apiConfig.deepseek?.apiKey || '';
+    doubaoApiKey.value = apiConfig.doubao?.apiKey || '';
+    qianwenApiKey.value = apiConfig.qianwen?.apiKey || '';
+    longcatApiKey.value = apiConfig.longcat?.apiKey || '';
+    deepseekModel.value = apiConfig.deepseek?.model || '';
+    doubaoModel.value = apiConfig.doubao?.model || '';
+    qianwenModel.value = apiConfig.qianwen?.model || '';
+    longcatModel.value = apiConfig.longcat?.model || '';
   });
 }
 
 function saveSettings() {
+  // 保存基础设置
   chrome.storage?.local.set({
     [SETTINGS_KEY]: {
       isDeepThinkingEnabled: isDeepThinkingEnabled.value,
       isDeepSeekEnabled: isDeepSeekEnabled.value,
       isDoubaoEnabled: isDoubaoEnabled.value,
       isQianwenEnabled: isQianwenEnabled.value,
+      isLongcatEnabled: isLongcatEnabled.value,
     }
   });
+}
+
+// 保存API配置
+function saveApiConfig(providerId: string, config: ApiConfig) {
+  chrome.storage?.local.get([API_CONFIG_KEY], (result) => {
+    const existingConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
+    const newConfig = {
+      ...existingConfig,
+      [providerId]: {
+        ...existingConfig[providerId],
+        ...config
+      }
+    };
+    chrome.storage?.local.set({ [API_CONFIG_KEY]: newConfig });
+  });
+}
+
+// 测试API Key
+async function testApiKey(providerId: string, apiKey: string) {
+  testingApiKey.value[providerId] = true;
+  try {
+    const result = await chrome.runtime?.sendMessage({
+      type: MSG_TYPES.TEST_API_KEY,
+      payload: { providerId, apiKey }
+    });
+    apiKeyTestResult.value[providerId] = result;
+  } catch (err) {
+    apiKeyTestResult.value[providerId] = { success: false, message: '请求失败' };
+  } finally {
+    testingApiKey.value[providerId] = false;
+  }
 }
 
 // 业务数据控制
 type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
 type StageType = 'connecting' | 'thinking' | 'responding';
 
-const statusMap: Record<string, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle' });
-const responses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
+const statusMap: Record<string, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
+const responses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 // 操作阶段（在正式内容出现前展示，降低等待焦躁感）
-const stageMap: Record<string, StageType> = reactive({ deepseek: 'connecting', doubao: 'connecting', qianwen: 'connecting' });
-const fullTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
-const thinkTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
-const displayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0 });
-const thinkDisplayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0 });
-const thinkResponses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
+const stageMap: Record<string, StageType> = reactive({ deepseek: 'connecting', doubao: 'connecting', qianwen: 'connecting', longcat: 'connecting' });
+const fullTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const thinkTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const displayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0, longcat: 0 });
+const thinkDisplayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0, longcat: 0 });
+const thinkResponses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 // 当前操作状态（显示在标题旁，如"正在定位输入框..."）
-const operationStatus: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
+const operationStatus: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 let streamAnimationId: number | null = null;
 const CHARS_PER_FRAME = 8;
 
-const stageLabels: Record<StageType, string> = {
-  connecting: '等待连接网页端...',
-  thinking: '已连接 · 正在思考...',
-  responding: '正在输出...',
-};
-const deepseekStageLabel = computed(() => stageLabels[stageMap.deepseek as StageType] || stageLabels.connecting);
-const doubaoStageLabel = computed(() => stageLabels[stageMap.doubao as StageType] || stageLabels.connecting);
-const qianwenStageLabel = computed(() => stageLabels[stageMap.qianwen as StageType] || stageLabels.connecting);
-
-// Markdown 渲染方法
-const renderMarkdown = (text: string) => {
-  if (!text) return '';
-  const html = marked.parse(text);
-  return sanitizeHtml(html as string, {
-    allowedTags: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'a', 'br', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
-    allowedAttributes: {
-      'a': ['href', 'target', 'rel']
-    },
-    transformTags: {
-      'a': (tagName: string, attribs: Record<string, string>) => {
-        return {
-          tagName: 'a',
-          attribs: {
-            ...attribs,
-            target: '_blank',
-            rel: 'noopener noreferrer'
-          }
-        };
-      }
-    }
-  });
-};
 
 function tickStreamDisplay() {
   let anyPending = false;
@@ -494,6 +780,7 @@ onMounted(() => {
           isDeepSeekOpen.value = false;
           isDoubaoOpen.value = false;
           isQianwenOpen.value = false;
+          isLongcatOpen.value = false;
         }, 1500);
       }
     }
@@ -515,36 +802,45 @@ const createNewChat = () => {
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
+  isLongcatOpen.value = isLongcatEnabled.value;
 
   // 重置所有状态
   statusMap.deepseek = 'idle';
   statusMap.doubao = 'idle';
   statusMap.qianwen = 'idle';
+  statusMap.longcat = 'idle';
   stageMap.deepseek = 'connecting';
   stageMap.doubao = 'connecting';
   stageMap.qianwen = 'connecting';
+  stageMap.longcat = 'connecting';
   responses.deepseek = '';
   responses.doubao = '';
   responses.qianwen = '';
+  responses.longcat = '';
   thinkResponses.deepseek = '';
   thinkResponses.doubao = '';
   thinkResponses.qianwen = '';
+  thinkResponses.longcat = '';
   fullTextBuffer.deepseek = '';
   fullTextBuffer.doubao = '';
   fullTextBuffer.qianwen = '';
+  fullTextBuffer.longcat = '';
   thinkTextBuffer.deepseek = '';
   thinkTextBuffer.doubao = '';
   thinkTextBuffer.qianwen = '';
+  thinkTextBuffer.longcat = '';
   displayedLength.deepseek = 0;
   displayedLength.doubao = 0;
   displayedLength.qianwen = 0;
+  displayedLength.longcat = 0;
   thinkDisplayedLength.deepseek = 0;
   thinkDisplayedLength.doubao = 0;
   thinkDisplayedLength.qianwen = 0;
+  thinkDisplayedLength.longcat = 0;
   operationStatus.deepseek = '';
   operationStatus.doubao = '';
   operationStatus.qianwen = '';
-  isThinkBlockOpen.value = true;
+  operationStatus.longcat = '';
   if (streamAnimationId != null) {
     cancelAnimationFrame(streamAnimationId);
     streamAnimationId = null;
@@ -558,7 +854,7 @@ const createNewChat = () => {
 // 提交问题
 const submit = () => {
   if (!inputStr.value.trim() || isRunning.value) return;
-  if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value && !isQianwenEnabled.value) {
+  if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value && !isQianwenEnabled.value && !isLongcatEnabled.value) {
     window.alert('请在设置中至少开启一个通道。');
     return;
   }
@@ -569,36 +865,45 @@ const submit = () => {
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
+  isLongcatOpen.value = isLongcatEnabled.value;
 
   // 重置状态
   statusMap.deepseek = 'idle';
   statusMap.doubao = 'idle';
   statusMap.qianwen = 'idle';
+  statusMap.longcat = 'idle';
   stageMap.deepseek = 'connecting';
   stageMap.doubao = 'connecting';
   stageMap.qianwen = 'connecting';
+  stageMap.longcat = 'connecting';
   responses.deepseek = '';
   responses.doubao = '';
   responses.qianwen = '';
+  responses.longcat = '';
   thinkResponses.deepseek = '';
   thinkResponses.doubao = '';
   thinkResponses.qianwen = '';
+  thinkResponses.longcat = '';
   fullTextBuffer.deepseek = '';
   fullTextBuffer.doubao = '';
   fullTextBuffer.qianwen = '';
+  fullTextBuffer.longcat = '';
   thinkTextBuffer.deepseek = '';
   thinkTextBuffer.doubao = '';
   thinkTextBuffer.qianwen = '';
+  thinkTextBuffer.longcat = '';
   displayedLength.deepseek = 0;
   displayedLength.doubao = 0;
   displayedLength.qianwen = 0;
+  displayedLength.longcat = 0;
   thinkDisplayedLength.deepseek = 0;
   thinkDisplayedLength.doubao = 0;
   thinkDisplayedLength.qianwen = 0;
+  thinkDisplayedLength.longcat = 0;
   operationStatus.deepseek = '';
   operationStatus.doubao = '';
   operationStatus.qianwen = '';
-  isThinkBlockOpen.value = true;
+  operationStatus.longcat = '';
   if (streamAnimationId != null) {
     cancelAnimationFrame(streamAnimationId);
     streamAnimationId = null;
@@ -611,6 +916,7 @@ const submit = () => {
       payload: {
         provider: 'deepseek',
         prompt: inputStr.value.trim(),
+        mode: deepseekMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
         }
@@ -625,6 +931,7 @@ const submit = () => {
       payload: {
         provider: 'doubao',
         prompt: inputStr.value.trim(),
+        mode: doubaoMode.value,
         settings: {}
       }
     });
@@ -637,6 +944,20 @@ const submit = () => {
       payload: {
         provider: 'qianwen',
         prompt: inputStr.value.trim(),
+        mode: qianwenMode.value,
+        settings: {}
+      }
+    });
+  }
+
+  if (isLongcatEnabled.value) {
+    statusMap.longcat = 'running';
+    chrome.runtime?.sendMessage({
+      type: MSG_TYPES.DISPATCH_TASK,
+      payload: {
+        provider: 'longcat',
+        prompt: inputStr.value.trim(),
+        mode: longcatMode.value,
         settings: {}
       }
     });
@@ -659,7 +980,6 @@ watch(isDeepThinkingEnabled, (enabled) => {
     thinkResponses.deepseek = '';
     thinkTextBuffer.deepseek = '';
     thinkDisplayedLength.deepseek = 0;
-    isThinkBlockOpen.value = false;
   }
   saveSettings();
 });
@@ -674,6 +994,50 @@ watch(isDoubaoEnabled, () => {
 
 watch(isQianwenEnabled, () => {
   saveSettings();
+});
+
+watch(isLongcatEnabled, () => {
+  saveSettings();
+});
+
+// API配置变化监听
+watch(deepseekMode, (value) => {
+  saveApiConfig('deepseek', { mode: value });
+});
+watch(doubaoMode, (value) => {
+  saveApiConfig('doubao', { mode: value });
+});
+watch(qianwenMode, (value) => {
+  saveApiConfig('qianwen', { mode: value });
+});
+watch(longcatMode, (value) => {
+  saveApiConfig('longcat', { mode: value });
+});
+
+watch(deepseekApiKey, (value) => {
+  saveApiConfig('deepseek', { apiKey: value });
+});
+watch(doubaoApiKey, (value) => {
+  saveApiConfig('doubao', { apiKey: value });
+});
+watch(qianwenApiKey, (value) => {
+  saveApiConfig('qianwen', { apiKey: value });
+});
+watch(longcatApiKey, (value) => {
+  saveApiConfig('longcat', { apiKey: value });
+});
+
+watch(deepseekModel, (value) => {
+  saveApiConfig('deepseek', { model: value });
+});
+watch(doubaoModel, (value) => {
+  saveApiConfig('doubao', { model: value });
+});
+watch(qianwenModel, (value) => {
+  saveApiConfig('qianwen', { model: value });
+});
+watch(longcatModel, (value) => {
+  saveApiConfig('longcat', { model: value });
 });
 </script>
 
