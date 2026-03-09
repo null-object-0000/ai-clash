@@ -36,7 +36,9 @@
     function extractByEvent(eventType, d) {
         // CHUNK_DELTA — 纯文本增量（最常见）
         if (eventType === 'CHUNK_DELTA') {
-            const isThink = d.type === 'thinking' || d.is_thinking === true || !!d.thinking_text;
+            // 思考未完成时，CHUNK_DELTA的内容也是思考内容
+            const isThink = !_isThinkingFinished && (
+                          d.type === 'thinking' || d.is_thinking === true || !!d.thinking_text || _thinkingBlockId != null);
             const text = typeof d.text === 'string' ? d.text : (typeof d.thinking_text === 'string' ? d.thinking_text : '');
             if (text) emitChunk(text, isThink);
             return null; // 已经emit，不需要返回

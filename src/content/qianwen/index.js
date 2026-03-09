@@ -14,6 +14,9 @@ const PROVIDER = 'qianwen';
 // ============================================================================
 console.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
+// 标记content script已就绪，供background检查
+window.__aiclash_content_script_ready = true;
+
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {

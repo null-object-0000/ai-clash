@@ -55,6 +55,11 @@
             }
 
             if (text) {
+                // 处理DeepSeek联网搜索标识
+                if (text.startsWith('FINISHEDSEARCH')) {
+                    // 替换为特殊tag，保留后面的内容
+                    text = '🔍 已联网搜索\n' + text.substring('FINISHEDSEARCH'.length);
+                }
                 _chunkCount++;
                 if (_chunkCount <= 3) console.log('[AI Clash v4] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
                 window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
