@@ -218,7 +218,7 @@
         </div>
       </div>
       <div class="text-center mt-2">
-        <span class="text-[10px] text-slate-400">目前支持：DeepSeek 网页端提取（豆包开发中）</span>
+        <span class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 网页端提取</span>
       </div>
     </div>
   </div>
@@ -441,11 +441,15 @@ const submit = () => {
   }
 
   if (isDoubaoEnabled.value) {
-    statusMap.doubao = 'completed';
-    stageMap.doubao = 'responding';
-    fullTextBuffer.doubao = '豆包通道暂未接入，敬请期待。';
-    displayedLength.doubao = 0;
-    if (streamAnimationId == null) streamAnimationId = requestAnimationFrame(tickStreamDisplay);
+    statusMap.doubao = 'running';
+    chrome.runtime?.sendMessage({
+      type: MSG_TYPES.DISPATCH_TASK,
+      payload: {
+        provider: 'doubao',
+        prompt: inputStr.value.trim(),
+        settings: {}
+      }
+    });
   }
 
   inputStr.value = '';

@@ -1,5 +1,5 @@
 export const MSG_TYPES = {
-    // Content Script -> Background（请求在页面 MAIN world 注入 hook）
+    // Content Script -> Background（请求在页面 MAIN world 注入 hook，payload 含 provider）
     INJECT_HOOK: 'INJECT_HOOK',
 
     // UI -> Background

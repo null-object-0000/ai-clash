@@ -16,9 +16,12 @@ export default defineManifest({
     default_title: "打开 Any AI Bridge"
   },
   content_scripts: [{
-    js: ["src/content/deepseek.ts"],
-    matches: ["https://chat.deepseek.com/*"
-    ],
+    js: ["src/content/deepseek/index.ts"],
+    matches: ["https://chat.deepseek.com/*"],
+    run_at: "document_start"
+  }, {
+    js: ["src/content/doubao/index.ts"],
+    matches: ["https://www.doubao.com/*"],
     run_at: "document_start"
   }],
   permissions: [
@@ -28,7 +31,8 @@ export default defineManifest({
     "storage"
   ],
   host_permissions: [
-    "https://chat.deepseek.com/*"
+    "https://chat.deepseek.com/*",
+    "https://www.doubao.com/*"
   ],
   background: {
     service_worker: "src/background/index.ts",
@@ -40,10 +44,18 @@ export default defineManifest({
   web_accessible_resources: [
     {
       resources: [
-        "src/content/hook.js"
+        "src/content/deepseek/hook.js"
       ],
       matches: [
         "https://chat.deepseek.com/*"
+      ]
+    },
+    {
+      resources: [
+        "src/content/doubao/hook.js"
+      ],
+      matches: [
+        "https://www.doubao.com/*"
       ]
     }
   ],
