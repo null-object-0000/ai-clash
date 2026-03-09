@@ -24,7 +24,8 @@ export default defineManifest({
   permissions: [
     "sidePanel",
     "tabs",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   host_permissions: [
     "https://chat.deepseek.com/*"

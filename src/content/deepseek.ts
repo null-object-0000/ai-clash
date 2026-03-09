@@ -159,7 +159,7 @@ if (isContextValid()) {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         thinkContent = "";
         responseContent = "";
-        executeDeepSeek(request.payload.prompt);
+        executeDeepSeek(request.payload.prompt, request.payload.settings);
       }
     });
   } catch {
@@ -206,7 +206,28 @@ async function tryStartNewConversation() {
   return false;
 }
 
-async function executeDeepSeek(prompt: string) {
+/** 同步 DeepSeek 页面的「深度思考」开关状态 */
+async function syncDeepThinkToggle(wantEnabled: boolean) {
+  // 「深度思考」按钮是 .ds-toggle-button，文本包含「深度思考」
+  const toggleBtns = document.querySelectorAll('.ds-toggle-button[role="button"]');
+  for (const btn of Array.from(toggleBtns)) {
+    const label = btn.textContent?.trim();
+    if (label && label.includes('深度思考')) {
+      const isSelected = btn.classList.contains('ds-toggle-button--selected');
+      if (wantEnabled !== isSelected) {
+        (btn as HTMLElement).click();
+        console.log(`[AnyBridge] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
+        await new Promise(r => setTimeout(r, 300));
+      } else {
+        console.log(`[AnyBridge] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
+      }
+      return;
+    }
+  }
+  console.warn('[AnyBridge] 未找到深度思考按钮');
+}
+
+async function executeDeepSeek(prompt: string, settings?: { isDeepThinkingEnabled?: boolean }) {
   // 0. 每次对话前先尝试开启新对话
   console.log('[AnyBridge] 开始执行 DeepSeek 任务...');
   safeSend({
@@ -215,6 +236,10 @@ async function executeDeepSeek(prompt: string) {
   });
 
   await tryStartNewConversation();
+
+  // 0.5 同步深度思考开关
+  const deepThinkWanted = settings?.isDeepThinkingEnabled ?? true;
+  await syncDeepThinkToggle(deepThinkWanted);
 
   // 1. 寻找输入框
   safeSend({
