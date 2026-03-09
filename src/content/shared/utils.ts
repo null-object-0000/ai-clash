@@ -111,7 +111,7 @@ export function startDomObserver(
   // 超时保护
   setTimeout(() => {
     if (ctx.observer) {
-      console.log(`[AnyBridge ${provider}] DOM 观测超时，自动停止`);
+      console.log(`[AIClash ${provider}] DOM 观测超时，自动停止`);
       stopDomObserver(ctx);
     }
   }, 60000);

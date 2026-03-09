@@ -5,15 +5,18 @@
     <header
       class="flex items-center justify-between px-4 py-3 bg-white/70 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-10">
       <div class="flex items-center gap-2">
-        <div
-          class="w-6 h-6 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm">
-          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        </div>
-        <h1 class="text-[15px] font-semibold tracking-tight text-slate-800">AnyBridge AI</h1>
       </div>
       <div class="relative flex items-center gap-2">
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+          @click="createNewChat"
+          :disabled="!hasAsked || isRunning"
+          aria-label="新建对话">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
         <button
           type="button"
           class="w-7 h-7 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors flex items-center justify-center"
@@ -56,6 +59,19 @@
               </span>
             </button>
           </div>
+          <div class="flex items-center justify-between">
+            <span class="text-[13px] text-slate-700">千问</span>
+            <button
+              type="button"
+              @click="isQianwenEnabled = !isQianwenEnabled"
+              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
+              :class="isQianwenEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                :class="isQianwenEnabled ? 'translate-x-4' : 'translate-x-1'">
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -81,15 +97,16 @@
           </div>
         </div>
 
-        <div
+        <!-- DeepSeek 独立折叠面板 -->
+        <div v-if="isDeepSeekEnabled"
           class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-          <button @click="isThoughtOpen = !isThoughtOpen"
+          <button @click="isDeepSeekOpen = !isDeepSeekOpen"
             class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
             <div class="flex items-center gap-2.5">
-              <span v-if="isRunning" class="relative flex h-3 w-3 ml-1">
+              <span v-if="statusMap.deepseek === 'running'" class="relative flex h-3 w-3 ml-1">
                 <span
-                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
               </span>
               <span v-else class="text-emerald-500 ml-1">
                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
@@ -98,76 +115,137 @@
                     clip-rule="evenodd"></path>
                 </svg>
               </span>
-              <span class="text-[13px] font-medium" :class="isRunning ? 'text-indigo-600' : 'text-slate-600'">
-                {{ isRunning ? '各平台专家正在输出...' : '各平台原始输出 (已完成)' }}
+              <span class="text-[13px] font-medium text-blue-600">
+                DeepSeek {{ statusMap.deepseek === 'running' ? '正在输出...' : '(已完成)' }}
               </span>
+              <span v-if="operationStatus.deepseek"
+                class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus.deepseek }}</span>
+              <span v-else-if="statusMap.deepseek === 'running'"
+                class="text-[10px] font-normal text-slate-400 animate-pulse">{{ deepseekStageLabel }}</span>
             </div>
             <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
-              :class="{ 'rotate-180': isThoughtOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              :class="{ 'rotate-180': isDeepSeekOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
 
-          <div v-show="isThoughtOpen"
-            class="p-4 border-t border-slate-100 bg-white space-y-5 max-h-[350px] overflow-y-auto text-[13px]">
-            <div v-if="isDeepSeekEnabled" class="relative pl-3 border-l-2 border-blue-500">
-              <div class="font-semibold text-blue-600 mb-1.5 flex items-center gap-2">
-                DeepSeek
-                <span v-if="operationStatus.deepseek"
-                  class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus.deepseek }}</span>
-                <span v-else-if="statusMap.deepseek === 'running'"
-                  class="text-[10px] font-normal text-slate-400 animate-pulse">{{ deepseekStageLabel }}</span>
-              </div>
-
-              <!-- 思考内容折叠块 -->
-              <template v-if="isDeepThinkingEnabled">
-                <div v-if="thinkResponses.deepseek" class="mb-2">
-                  <button @click="isThinkBlockOpen = !isThinkBlockOpen"
-                    class="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1">
-                    <svg class="w-3 h-3 transition-transform duration-200" :class="{ 'rotate-90': isThinkBlockOpen }"
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                    </svg>
-                    <span>💭 思考过程</span>
-                    <span v-if="stageMap.deepseek === 'thinking' && statusMap.deepseek === 'running'"
-                      class="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle"></span>
-                  </button>
-                  <div v-show="isThinkBlockOpen"
-                    class="pl-3 border-l border-slate-200 text-slate-400 leading-relaxed whitespace-pre-wrap font-mono text-[11px] break-words italic max-h-[200px] overflow-y-auto">
-                    {{ thinkResponses.deepseek }}
-                  </div>
+          <div v-show="isDeepSeekOpen"
+            class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
+            <!-- 思考内容折叠块 -->
+            <template v-if="isDeepThinkingEnabled">
+              <div v-if="thinkResponses.deepseek" class="mb-2">
+                <button @click="isThinkBlockOpen = !isThinkBlockOpen"
+                  class="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1">
+                  <svg class="w-3 h-3 transition-transform duration-200" :class="{ 'rotate-90': isThinkBlockOpen }"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span>💭 思考过程</span>
+                  <span v-if="stageMap.deepseek === 'thinking' && statusMap.deepseek === 'running'"
+                    class="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle"></span>
+                </button>
+                <div v-show="isThinkBlockOpen"
+                  class="pl-3 border-l border-slate-200 text-slate-400 leading-relaxed whitespace-pre-wrap font-mono text-[11px] break-words italic max-h-[200px] overflow-y-auto">
+                  {{ thinkResponses.deepseek }}
                 </div>
-                <div v-else-if="stageMap.deepseek === 'thinking' && statusMap.deepseek === 'running'"
-                  class="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
-                  💭 正在思考...
-                  <span class="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle"></span>
-                </div>
-              </template>
-
-              <!-- 正式回复 -->
-              <div class="text-slate-600 leading-relaxed whitespace-pre-wrap font-mono text-[12px] break-words">
-                {{ responses.deepseek || (statusMap.deepseek === 'running' ? (stageMap.deepseek === 'responding' ? '' : deepseekStageLabel) : '等待连接网页端...') }}
-                <span v-if="statusMap.deepseek === 'running' && stageMap.deepseek === 'responding'"
-                  class="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-500 animate-pulse align-middle"></span>
               </div>
+              <div v-else-if="stageMap.deepseek === 'thinking' && statusMap.deepseek === 'running'"
+                class="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
+                💭 正在思考...
+                <span class="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle"></span>
+              </div>
+            </template>
+
+            <!-- 正式回复 -->
+            <div class="text-slate-600 leading-relaxed prose prose-sm prose-blue max-w-none font-mono text-[12px] break-words">
+              <span v-html="renderMarkdown(responses.deepseek) || (statusMap.deepseek === 'running' ? (stageMap.deepseek === 'responding' ? '' : deepseekStageLabel) : '等待连接网页端...')"></span>
+              <span v-if="statusMap.deepseek === 'running' && stageMap.deepseek === 'responding'"
+                class="inline-block w-1.5 h-3.5 ml-0.5 bg-blue-500 animate-pulse align-middle"></span>
             </div>
+          </div>
+        </div>
 
-            <div v-if="isDoubaoEnabled" class="relative pl-3 border-l-2 border-amber-500">
-              <div class="font-semibold text-amber-600 mb-1.5 flex items-center gap-2">
-                豆包
-                <span v-if="operationStatus.doubao"
-                  class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus.doubao }}</span>
-                <span v-else-if="statusMap.doubao === 'running'"
-                  class="text-[10px] font-normal text-slate-400 animate-pulse">{{ doubaoStageLabel }}</span>
-              </div>
-
-              <div class="text-slate-600 leading-relaxed whitespace-pre-wrap font-mono text-[12px] break-words">
-                {{ responses.doubao || (statusMap.doubao === 'running' ? (stageMap.doubao === 'responding' ? '' : doubaoStageLabel) : '等待连接网页端...') }}
-                <span v-if="statusMap.doubao === 'running' && stageMap.doubao === 'responding'"
-                  class="inline-block w-1.5 h-3.5 ml-0.5 bg-amber-500 animate-pulse align-middle"></span>
-              </div>
+        <!-- 豆包 独立折叠面板 -->
+        <div v-if="isDoubaoEnabled"
+          class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+          <button @click="isDoubaoOpen = !isDoubaoOpen"
+            class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span v-if="statusMap.doubao === 'running'" class="relative flex h-3 w-3 ml-1">
+                <span
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </span>
+              <span v-else class="text-emerald-500 ml-1">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"></path>
+                </svg>
+              </span>
+              <span class="text-[13px] font-medium text-amber-600">
+                豆包 {{ statusMap.doubao === 'running' ? '正在输出...' : '(已完成)' }}
+              </span>
+              <span v-if="operationStatus.doubao"
+                class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus.doubao }}</span>
+              <span v-else-if="statusMap.doubao === 'running'"
+                class="text-[10px] font-normal text-slate-400 animate-pulse">{{ doubaoStageLabel }}</span>
             </div>
+            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
+              :class="{ 'rotate-180': isDoubaoOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
 
+          <div v-show="isDoubaoOpen"
+            class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
+            <div class="text-slate-600 leading-relaxed prose prose-sm prose-amber max-w-none font-mono text-[12px] break-words">
+              <span v-html="renderMarkdown(responses.doubao) || (statusMap.doubao === 'running' ? (stageMap.doubao === 'responding' ? '' : doubaoStageLabel) : '等待连接网页端...')"></span>
+              <span v-if="statusMap.doubao === 'running' && stageMap.doubao === 'responding'"
+                class="inline-block w-1.5 h-3.5 ml-0.5 bg-amber-500 animate-pulse align-middle"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 千问 独立折叠面板 -->
+        <div v-if="isQianwenEnabled"
+          class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
+          <button @click="isQianwenOpen = !isQianwenOpen"
+            class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
+            <div class="flex items-center gap-2.5">
+              <span v-if="statusMap.qianwen === 'running'" class="relative flex h-3 w-3 ml-1">
+                <span
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </span>
+              <span v-else class="text-emerald-500 ml-1">
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clip-rule="evenodd"></path>
+                </svg>
+              </span>
+              <span class="text-[13px] font-medium text-emerald-600">
+                千问 {{ statusMap.qianwen === 'running' ? '正在输出...' : '(已完成)' }}
+              </span>
+              <span v-if="operationStatus.qianwen"
+                class="text-[10px] font-normal text-emerald-500 animate-pulse">{{ operationStatus.qianwen }}</span>
+              <span v-else-if="statusMap.qianwen === 'running'"
+                class="text-[10px] font-normal text-slate-400 animate-pulse">{{ qianwenStageLabel }}</span>
+            </div>
+            <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
+              :class="{ 'rotate-180': isQianwenOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <div v-show="isQianwenOpen"
+            class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
+            <div class="text-slate-600 leading-relaxed prose prose-sm prose-emerald max-w-none font-mono text-[12px] break-words">
+              <span v-html="renderMarkdown(responses.qianwen) || (statusMap.qianwen === 'running' ? (stageMap.qianwen === 'responding' ? '' : qianwenStageLabel) : '等待连接网页端...')"></span>
+              <span v-if="statusMap.qianwen === 'running' && stageMap.qianwen === 'responding'"
+                class="inline-block w-1.5 h-3.5 ml-0.5 bg-emerald-500 animate-pulse align-middle"></span>
+            </div>
           </div>
         </div>
 
@@ -177,8 +255,7 @@
             class="absolute -top-2.5 left-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm tracking-wider">
             最终研判结论
           </div>
-          <div class="mt-2 text-[14px] text-slate-700 leading-relaxed whitespace-pre-wrap">
-            这是基于多个模型给出的综合优化建议。MVP 阶段暂未接大模型总结 API，您可以先在这里查看聚合后的排版效果。
+          <div class="mt-2 text-[14px] text-slate-700 leading-relaxed prose prose-sm max-w-none" v-html="renderMarkdown('这是基于多个模型给出的综合优化建议。MVP 阶段暂未接大模型总结 API，您可以先在这里查看聚合后的排版效果。')">
           </div>
         </div>
       </template>
@@ -218,7 +295,7 @@
         </div>
       </div>
       <div class="text-center mt-2">
-        <span class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 网页端提取</span>
+        <span class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 · 千问 网页端提取</span>
       </div>
     </div>
   </div>
@@ -226,25 +303,32 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
+import { marked } from 'marked';
+import sanitizeHtml from 'sanitize-html';
 import { MSG_TYPES } from '../shared/messages.ts';
 
 // UI 状态控制
 const inputStr = ref('');
 const currentQuestion = ref('');
 const hasAsked = ref(false);
-const isThoughtOpen = ref(true); // 控制思考过程是否折叠
 const isThinkBlockOpen = ref(true); // 控制 DeepSeek 思考内容折叠
 const isDeepThinkingEnabled = ref(true);
 const isDeepSeekEnabled = ref(true);
 const isDoubaoEnabled = ref(false);
+const isQianwenEnabled = ref(false);
 const isSettingsOpen = ref(false);
+// 每个通道独立的折叠状态
+const isDeepSeekOpen = ref(true);
+const isDoubaoOpen = ref(true);
+const isQianwenOpen = ref(true);
 const chatContainer = ref<HTMLElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
-const SETTINGS_KEY = 'anybridge.sidepanel.settings';
+const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
   isDeepSeekEnabled?: boolean;
   isDoubaoEnabled?: boolean;
+  isQianwenEnabled?: boolean;
 };
 
 function loadSettings() {
@@ -253,6 +337,7 @@ function loadSettings() {
     isDeepThinkingEnabled.value = saved.isDeepThinkingEnabled ?? true;
     isDeepSeekEnabled.value = saved.isDeepSeekEnabled ?? true;
     isDoubaoEnabled.value = saved.isDoubaoEnabled ?? false;
+    isQianwenEnabled.value = saved.isQianwenEnabled ?? false;
   });
 }
 
@@ -262,6 +347,7 @@ function saveSettings() {
       isDeepThinkingEnabled: isDeepThinkingEnabled.value,
       isDeepSeekEnabled: isDeepSeekEnabled.value,
       isDoubaoEnabled: isDoubaoEnabled.value,
+      isQianwenEnabled: isQianwenEnabled.value,
     }
   });
 }
@@ -270,17 +356,17 @@ function saveSettings() {
 type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
 type StageType = 'connecting' | 'thinking' | 'responding';
 
-const statusMap: Record<string, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle' });
-const responses: Record<string, string> = reactive({ deepseek: '', doubao: '' });
+const statusMap: Record<string, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle' });
+const responses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
 // 操作阶段（在正式内容出现前展示，降低等待焦躁感）
-const stageMap: Record<string, StageType> = reactive({ deepseek: 'connecting', doubao: 'connecting' });
-const fullTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '' });
-const thinkTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '' });
-const displayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0 });
-const thinkDisplayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0 });
-const thinkResponses: Record<string, string> = reactive({ deepseek: '', doubao: '' });
+const stageMap: Record<string, StageType> = reactive({ deepseek: 'connecting', doubao: 'connecting', qianwen: 'connecting' });
+const fullTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
+const thinkTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
+const displayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0 });
+const thinkDisplayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0 });
+const thinkResponses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
 // 当前操作状态（显示在标题旁，如"正在定位输入框..."）
-const operationStatus: Record<string, string> = reactive({ deepseek: '', doubao: '' });
+const operationStatus: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '' });
 let streamAnimationId: number | null = null;
 const CHARS_PER_FRAME = 8;
 
@@ -291,6 +377,31 @@ const stageLabels: Record<StageType, string> = {
 };
 const deepseekStageLabel = computed(() => stageLabels[stageMap.deepseek as StageType] || stageLabels.connecting);
 const doubaoStageLabel = computed(() => stageLabels[stageMap.doubao as StageType] || stageLabels.connecting);
+const qianwenStageLabel = computed(() => stageLabels[stageMap.qianwen as StageType] || stageLabels.connecting);
+
+// Markdown 渲染方法
+const renderMarkdown = (text: string) => {
+  if (!text) return '';
+  const html = marked.parse(text);
+  return sanitizeHtml(html as string, {
+    allowedTags: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'li', 'strong', 'em', 'code', 'pre', 'blockquote', 'a', 'br', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+    allowedAttributes: {
+      'a': ['href', 'target', 'rel']
+    },
+    transformTags: {
+      'a': (tagName: string, attribs: Record<string, string>) => {
+        return {
+          tagName: 'a',
+          attribs: {
+            ...attribs,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          }
+        };
+      }
+    }
+  });
+};
 
 function tickStreamDisplay() {
   let anyPending = false;
@@ -378,7 +489,12 @@ onMounted(() => {
         // 动画会在 displayedLength 追上 full 时自行停止，不取消
       }
       if (!isRunning.value) {
-        setTimeout(() => isThoughtOpen.value = false, 1500);
+        // 所有任务完成后，1.5秒后折叠所有通道面板（和原行为保持一致）
+        setTimeout(() => {
+          isDeepSeekOpen.value = false;
+          isDoubaoOpen.value = false;
+          isQianwenOpen.value = false;
+        }, 1500);
       }
     }
     else if (request.type === MSG_TYPES.ERROR) {
@@ -389,37 +505,99 @@ onMounted(() => {
   });
 });
 
+// 新建对话
+const createNewChat = () => {
+  if (isRunning.value) return;
+
+  currentQuestion.value = '';
+  hasAsked.value = false;
+  // 新建对话时展开所有启用的通道面板
+  isDeepSeekOpen.value = isDeepSeekEnabled.value;
+  isDoubaoOpen.value = isDoubaoEnabled.value;
+  isQianwenOpen.value = isQianwenEnabled.value;
+
+  // 重置所有状态
+  statusMap.deepseek = 'idle';
+  statusMap.doubao = 'idle';
+  statusMap.qianwen = 'idle';
+  stageMap.deepseek = 'connecting';
+  stageMap.doubao = 'connecting';
+  stageMap.qianwen = 'connecting';
+  responses.deepseek = '';
+  responses.doubao = '';
+  responses.qianwen = '';
+  thinkResponses.deepseek = '';
+  thinkResponses.doubao = '';
+  thinkResponses.qianwen = '';
+  fullTextBuffer.deepseek = '';
+  fullTextBuffer.doubao = '';
+  fullTextBuffer.qianwen = '';
+  thinkTextBuffer.deepseek = '';
+  thinkTextBuffer.doubao = '';
+  thinkTextBuffer.qianwen = '';
+  displayedLength.deepseek = 0;
+  displayedLength.doubao = 0;
+  displayedLength.qianwen = 0;
+  thinkDisplayedLength.deepseek = 0;
+  thinkDisplayedLength.doubao = 0;
+  thinkDisplayedLength.qianwen = 0;
+  operationStatus.deepseek = '';
+  operationStatus.doubao = '';
+  operationStatus.qianwen = '';
+  isThinkBlockOpen.value = true;
+  if (streamAnimationId != null) {
+    cancelAnimationFrame(streamAnimationId);
+    streamAnimationId = null;
+  }
+
+  inputStr.value = '';
+  // 恢复输入框高度
+  if (textareaRef.value) textareaRef.value.style.height = 'auto';
+};
+
 // 提交问题
 const submit = () => {
   if (!inputStr.value.trim() || isRunning.value) return;
-  if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value) {
+  if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value && !isQianwenEnabled.value) {
     window.alert('请在设置中至少开启一个通道。');
     return;
   }
 
   currentQuestion.value = inputStr.value;
   hasAsked.value = true;
-  isThoughtOpen.value = true; // 发送新问题时，强行展开面板让用户看到正在拉取
+  // 发送新问题时，强行展开所有启用的通道面板让用户看到正在拉取
+  isDeepSeekOpen.value = isDeepSeekEnabled.value;
+  isDoubaoOpen.value = isDoubaoEnabled.value;
+  isQianwenOpen.value = isQianwenEnabled.value;
 
   // 重置状态
   statusMap.deepseek = 'idle';
   statusMap.doubao = 'idle';
+  statusMap.qianwen = 'idle';
   stageMap.deepseek = 'connecting';
   stageMap.doubao = 'connecting';
+  stageMap.qianwen = 'connecting';
   responses.deepseek = '';
   responses.doubao = '';
+  responses.qianwen = '';
   thinkResponses.deepseek = '';
   thinkResponses.doubao = '';
+  thinkResponses.qianwen = '';
   fullTextBuffer.deepseek = '';
   fullTextBuffer.doubao = '';
+  fullTextBuffer.qianwen = '';
   thinkTextBuffer.deepseek = '';
   thinkTextBuffer.doubao = '';
+  thinkTextBuffer.qianwen = '';
   displayedLength.deepseek = 0;
   displayedLength.doubao = 0;
+  displayedLength.qianwen = 0;
   thinkDisplayedLength.deepseek = 0;
   thinkDisplayedLength.doubao = 0;
+  thinkDisplayedLength.qianwen = 0;
   operationStatus.deepseek = '';
   operationStatus.doubao = '';
+  operationStatus.qianwen = '';
   isThinkBlockOpen.value = true;
   if (streamAnimationId != null) {
     cancelAnimationFrame(streamAnimationId);
@@ -446,6 +624,18 @@ const submit = () => {
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
         provider: 'doubao',
+        prompt: inputStr.value.trim(),
+        settings: {}
+      }
+    });
+  }
+
+  if (isQianwenEnabled.value) {
+    statusMap.qianwen = 'running';
+    chrome.runtime?.sendMessage({
+      type: MSG_TYPES.DISPATCH_TASK,
+      payload: {
+        provider: 'qianwen',
         prompt: inputStr.value.trim(),
         settings: {}
       }
@@ -479,6 +669,10 @@ watch(isDeepSeekEnabled, () => {
 });
 
 watch(isDoubaoEnabled, () => {
+  saveSettings();
+});
+
+watch(isQianwenEnabled, () => {
   saveSettings();
 });
 </script>

@@ -7,17 +7,17 @@ import {
   sendStatus, sendConnecting, sendError, sendCompleted,
 } from '../shared/utils.ts';
 
-const PROVIDER = 'doubao';
+const PROVIDER = 'qianwen';
 
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-console.log(`[AIClash ${PROVIDER}] content script 已在该页运行（document_start）`);
+console.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      console.log(`[AIClash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      console.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -32,11 +32,11 @@ const domCtx = createDomObserverContext();
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
 
-  if (event.data.type === 'DOUBAO_HOOK_CHUNK') {
+  if (event.data.type === 'QIANWEN_HOOK_CHUNK') {
     domCtx.hookDataReceived = true;
     const payload = event.data.payload;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!responseContent) console.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!responseContent) console.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
     responseContent += text;
 
     safeSend({
@@ -44,8 +44,8 @@ window.addEventListener('message', (event) => {
       payload: { provider: PROVIDER, text, stage: 'responding', isThink: false }
     });
   }
-  else if (event.data.type === 'DOUBAO_HOOK_END') {
-    console.log(`[AIClash ${PROVIDER}] content 收到 END`);
+  else if (event.data.type === 'QIANWEN_HOOK_END') {
+    console.log(`[AI Clash ${PROVIDER}] content 收到 END`);
     stopDomObserver(domCtx);
     if (!responseContent) {
       safeSend({
@@ -71,7 +71,7 @@ const DOM_SELECTORS = [
   '[class*="reply"][class*="content"]',
 ];
 
-function pollDoubaoDom(): string | null {
+function pollQianwenDom(): string | null {
   for (const sel of DOM_SELECTORS) {
     const blocks = document.querySelectorAll(sel);
     if (blocks.length > 0) {
@@ -90,17 +90,17 @@ if (isContextValid()) {
     chrome.runtime.onMessage.addListener((request) => {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         responseContent = "";
-        executeDoubao(request.payload.prompt);
+        executeQianwen(request.payload.prompt);
       }
     });
   } catch {
-    console.warn(`[AIClash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
+    console.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
 }
 
 /** 尝试点击「新对话」按钮 */
 async function tryStartNewConversation() {
-  const labels = ['新对话', '新会话', '开启新对话'];
+  const labels = ['新对话', '新会话', '开启新对话', '新建对话'];
   for (const label of labels) {
     const el = Array.from(document.querySelectorAll('span, div, button, a')).find(
       (e) => e.textContent?.trim() === label
@@ -122,11 +122,24 @@ async function tryStartNewConversation() {
     return true;
   }
 
+  const iconBtns = document.querySelectorAll('[class*="icon"], svg');
+  for (const btn of Array.from(iconBtns)) {
+    const parent = btn.closest('[role="button"], button, a');
+    if (parent) {
+      const d = btn.querySelector('path')?.getAttribute('d') || '';
+      if (d.includes('M12 5v14M5 12h14') || d.includes('plus') || d.includes('+')) {
+        (parent as HTMLElement).click();
+        await new Promise((r) => setTimeout(r, 600));
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 
-async function executeDoubao(prompt: string) {
-  console.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
+async function executeQianwen(prompt: string) {
+  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
@@ -143,52 +156,86 @@ async function executeDoubao(prompt: string) {
   const inputEl = await waitForAnyElement(inputSelectors);
 
   if (!inputEl) {
-    sendError(PROVIDER, '未找到豆包输入框。请确认已登录 doubao.com。');
+    sendError(PROVIDER, '未找到千问输入框。请确认已登录 www.qianwen.com。');
     return;
   }
 
   sendStatus(PROVIDER, '正在发送消息...');
   (inputEl as HTMLElement).focus();
 
-  if (inputEl.tagName === 'TEXTAREA' || inputEl.tagName === 'INPUT') {
-    fillTextInput(inputEl as HTMLTextAreaElement | HTMLInputElement, prompt);
-  } else {
+  // 千问使用Slate编辑器，需要特殊处理
+  if (inputEl.getAttribute('contenteditable') === 'true' || inputEl.tagName !== 'TEXTAREA' && inputEl.tagName !== 'INPUT') {
     fillContentEditable(inputEl as HTMLElement, prompt);
+  } else {
+    fillTextInput(inputEl as HTMLTextAreaElement | HTMLInputElement, prompt);
   }
 
   setTimeout(async () => {
     let sendBtn: Element | null = null;
 
-    sendBtn = document.querySelector('[data-testid*="send"], [data-testid*="submit"]');
+    // 优先查找常见的发送按钮选择器
+    sendBtn = document.querySelector('[data-testid*="send"], [data-testid*="submit"], [data-testid*="Send"]');
 
     if (!sendBtn) {
-      sendBtn = document.querySelector('[aria-label*="发送"], [aria-label*="send"]');
+      sendBtn = document.querySelector('[aria-label*="发送"], [aria-label*="send"], [aria-label*="Send"]');
+    }
+
+    if (!sendBtn) {
+      // 查找包含发送图标的按钮
+      const iconBtns = document.querySelectorAll('button svg, [role="button"] svg');
+      for (const icon of Array.from(iconBtns)) {
+        const d = icon.querySelector('path')?.getAttribute('d') || '';
+        // 常见的发送图标路径特征：包含M12 19l9 2-9-18-9 18 9-2zm0 0v-8这样的形状
+        if (d.includes('M12') && d.includes('19l') && d.includes('v-8') ||
+            d.includes('send') || d.includes('paper-plane') ||
+            d.includes('arrow') && d.includes('right')) {
+          const parent = icon.closest('button, [role="button"]');
+          if (parent && !parent.getAttribute('aria-disabled')) {
+            sendBtn = parent;
+            break;
+          }
+        }
+      }
     }
 
     if (!sendBtn) {
       const el = Array.from(document.querySelectorAll('button, [role="button"]')).find(
-        (e) => { const t = e.textContent?.trim(); return t === '发送' || t === 'Send'; }
+        (e) => {
+          const t = e.textContent?.trim();
+          return t === '发送' || t === 'Send' || t === '发送消息';
+        }
       );
       if (el) sendBtn = el;
     }
 
     if (!sendBtn) {
+      // 从输入框向上查找最近的按钮
       let container = inputEl.parentElement;
-      for (let i = 0; i < 6 && container; i++) {
+      for (let i = 0; i < 8 && container; i++) {
         const btns = container.querySelectorAll('button, [role="button"]');
-        if (btns.length > 0) { sendBtn = btns[btns.length - 1]; break; }
+        for (const btn of Array.from(btns)) {
+          if (!btn.getAttribute('aria-disabled')) {
+            sendBtn = btn;
+            break;
+          }
+        }
+        if (sendBtn) break;
         container = container.parentElement;
       }
     }
 
     if (sendBtn) {
+      console.log(`[AI Clash ${PROVIDER}] 找到发送按钮`, sendBtn);
       (sendBtn as HTMLElement).focus();
-      (sendBtn as HTMLElement).click();
+      // 尝试多次点击，避免单次点击失效
+      setTimeout(() => (sendBtn as HTMLElement).click(), 100);
+      setTimeout(() => (sendBtn as HTMLElement).click(), 300);
     } else {
+      console.warn(`[AI Clash ${PROVIDER}] 未找到发送按钮，尝试按Enter提交`);
       simulateEnter(inputEl);
     }
 
     sendStatus(PROVIDER, '正在等待回复...');
-    startDomObserver(domCtx, PROVIDER, pollDoubaoDom);
-  }, 800);
+    startDomObserver(domCtx, PROVIDER, pollQianwenDom);
+  }, 1000);
 }

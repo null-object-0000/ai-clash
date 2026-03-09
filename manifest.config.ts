@@ -3,7 +3,7 @@ import pkg from './package.json'
 
 export default defineManifest({
   manifest_version: 3,
-  name: pkg.name,
+  name: 'AI 对撞机',
   version: pkg.version,
   description: pkg.description,
   icons: {
@@ -13,7 +13,7 @@ export default defineManifest({
     default_icon: {
       48: 'public/logo.png',
     },
-    default_title: "打开 Any AI Bridge"
+    default_title: "打开 AI 对撞机"
   },
   content_scripts: [{
     js: ["src/content/deepseek/index.ts"],
@@ -22,6 +22,10 @@ export default defineManifest({
   }, {
     js: ["src/content/doubao/index.ts"],
     matches: ["https://www.doubao.com/*"],
+    run_at: "document_start"
+  }, {
+    js: ["src/content/qianwen/index.ts"],
+    matches: ["https://www.qianwen.com/*"],
     run_at: "document_start"
   }],
   permissions: [
@@ -32,7 +36,8 @@ export default defineManifest({
   ],
   host_permissions: [
     "https://chat.deepseek.com/*",
-    "https://www.doubao.com/*"
+    "https://www.doubao.com/*",
+    "https://www.qianwen.com/*"
   ],
   background: {
     service_worker: "src/background/index.ts",
@@ -44,7 +49,8 @@ export default defineManifest({
   web_accessible_resources: [
     {
       resources: [
-        "src/content/deepseek/hook.js"
+        "src/content/deepseek/hook.js",
+        "src/content/deepseek/index.ts"
       ],
       matches: [
         "https://chat.deepseek.com/*"
@@ -52,10 +58,20 @@ export default defineManifest({
     },
     {
       resources: [
-        "src/content/doubao/hook.js"
+        "src/content/doubao/hook.js",
+        "src/content/doubao/index.ts"
       ],
       matches: [
         "https://www.doubao.com/*"
+      ]
+    },
+    {
+      resources: [
+        "src/content/qianwen/hook.js",
+        "src/content/qianwen/index.ts"
+      ],
+      matches: [
+        "https://www.qianwen.com/*"
       ]
     }
   ],

@@ -8,7 +8,7 @@
     // ====== 去重守卫 ======
     if (window.__abDoubaoHookV) return;
     window.__abDoubaoHookV = 1;
-    console.log('%c[AnyBridge doubao-hook v1]%c MAIN world 注入成功', 'color:#f59e0b;font-weight:bold', 'color:inherit');
+    console.log('%c[AI Clash doubao-hook v1]%c MAIN world 注入成功', 'color:#f59e0b;font-weight:bold', 'color:inherit');
 
     // ====== SSE 解析核心 ======
     var _chunkCount = 0;
@@ -19,14 +19,14 @@
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AnyBridge doubao] → END (chunks=' + _chunkCount + ')');
+        console.log('[AI Clash doubao] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'DOUBAO_HOOK_END' }, '*');
     }
 
     function emitChunk(text) {
         if (!text) return;
         _chunkCount++;
-        if (_chunkCount <= 5) console.log('[AnyBridge doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
+        if (_chunkCount <= 5) console.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
         window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text } }, '*');
     }
 
@@ -157,7 +157,7 @@
         var p = _origFetch.apply(this, arguments);
 
         if (isDoubaoApiUrl(url)) {
-            console.log('[AnyBridge doubao] ★ fetch 命中:', url);
+            console.log('[AI Clash doubao] ★ fetch 命中:', url);
             resetSession();
             _fetchHandlingInProgress = true;
             p.then(function (response) {
@@ -212,7 +212,7 @@
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AnyBridge doubao] ★ XHR 命中:', ab.url);
+        console.log('[AI Clash doubao] ★ XHR 命中:', ab.url);
         resetSession();
         var xhr = this;
 
@@ -243,7 +243,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AnyBridge doubao] XHR loadend, chunks:', _chunkCount);
+                console.log('[AI Clash doubao] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -272,7 +272,7 @@
                 result.indexOf('data: {"choices"') >= 0 || result.indexOf('"alice/msg"') >= 0) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AnyBridge doubao] ★ TextDecoder 检测到 SSE');
+                console.log('[AI Clash doubao] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -312,7 +312,7 @@
                         text.indexOf('event: reply') >= 0 || text.indexOf('event: done') >= 0 ||
                         text.indexOf('data: {"choices"') >= 0 || text.indexOf('"alice/msg"') >= 0) {
                         st.tracked = true; resetSession();
-                        console.log('[AnyBridge doubao] ★ ReadableStream 检测到 SSE');
+                        console.log('[AI Clash doubao] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -326,5 +326,5 @@
         return reader;
     };
 
-    console.log('[AnyBridge doubao] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+    console.log('[AI Clash doubao] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
 })();

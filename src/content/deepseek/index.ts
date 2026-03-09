@@ -12,12 +12,12 @@ const PROVIDER = 'deepseek';
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-console.log(`[AnyBridge ${PROVIDER}] content script 已在该页运行（document_start）`);
+console.log(`[AIClash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      console.log(`[AnyBridge ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      console.log(`[AIClash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -47,7 +47,7 @@ window.addEventListener('message', (event) => {
     const payload = event.data.payload;
     const isThink = typeof payload === 'object' && payload && payload.isThink === true;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!thinkContent && !responseContent) console.log(`[AnyBridge ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!thinkContent && !responseContent) console.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`);
     if (isThink) thinkContent += text; else responseContent += text;
 
     const stage = responseContent ? 'responding' : 'thinking';
@@ -57,7 +57,7 @@ window.addEventListener('message', (event) => {
     });
   }
   else if (event.data.type === 'DEEPSEEK_HOOK_END') {
-    console.log(`[AnyBridge ${PROVIDER}] content 收到 END`);
+    console.log(`[AIClash ${PROVIDER}] content 收到 END`);
     stopDomObserver(domCtx);
     const full = buildDisplayText();
     if (!full) {
@@ -94,7 +94,7 @@ if (isContextValid()) {
       }
     });
   } catch {
-    console.warn(`[AnyBridge ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
+    console.warn(`[AIClash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
 }
 
@@ -134,19 +134,19 @@ async function syncDeepThinkToggle(wantEnabled: boolean) {
       const isSelected = btn.classList.contains('ds-toggle-button--selected');
       if (wantEnabled !== isSelected) {
         (btn as HTMLElement).click();
-        console.log(`[AnyBridge ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
+        console.log(`[AIClash ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
         await new Promise(r => setTimeout(r, 300));
       } else {
-        console.log(`[AnyBridge ${PROVIDER}] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
+        console.log(`[AIClash ${PROVIDER}] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
       }
       return;
     }
   }
-  console.warn(`[AnyBridge ${PROVIDER}] 未找到深度思考按钮`);
+  console.warn(`[AIClash ${PROVIDER}] 未找到深度思考按钮`);
 }
 
 async function executeDeepSeek(prompt: string, settings?: { isDeepThinkingEnabled?: boolean }) {
-  console.log(`[AnyBridge ${PROVIDER}] 开始执行任务...`);
+  console.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
