@@ -15,6 +15,8 @@
     var _endSentThisSession = false;
     var _currentEvent = '';  // 跟踪当前 SSE event 类型
     var _fetchHandlingInProgress = false;  // fetch 拦截器活跃时，其他拦截器跳过
+    var _thinkingBlockId = null; // 跟踪当前思考块的ID，用于识别思考内容
+    var _isThinkingFinished = false; // 标记思考是否已经完成
 
     function emitEnd() {
         if (_endSentThisSession) return;
@@ -45,8 +47,15 @@
             if (Array.isArray(blocks)) {
                 for (var i = 0; i < blocks.length; i++) {
                     const block = blocks[i];
-                    // 识别思考块
-                    const isThink = block.type === 'thinking' || block.role === 'system' || block.is_thinking === true;
+                    // 识别思考块：block_type=10040是思考块标记
+                    const isThinkBlock = block.block_type === 10040 || block.content?.thinking_block;
+                    if (isThinkBlock) {
+                        _thinkingBlockId = block.block_id; // 记录思考块ID
+                        console.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
+                    }
+                    // 识别思考内容：思考未完成 + 是思考块
+                    const isThink = !_isThinkingFinished && (
+                                    isThinkBlock || block.type === 'thinking' || block.role === 'system' || block.is_thinking === true);
                     var tb = block.content && block.content.text_block;
                     if (tb && typeof tb.text === 'string' && tb.text) {
                         emitChunk(tb.text, isThink);
@@ -65,8 +74,31 @@
                         var cbs = op.patch_value.content_block;
                         for (var j = 0; j < cbs.length; j++) {
                             var cb = cbs[j];
-                            if (cb && cb.is_finish) continue; // 结束标记块，无新文本
-                            const isThink = cb.type === 'thinking' || cb.is_thinking === true;
+
+                            // 检测思考是否完成：thinking_block的finish_title="已完成思考"且is_finish=true
+                            const isThinkFinish = cb.content?.thinking_block?.finish_title === '已完成思考' && cb.is_finish === true;
+                            if (isThinkFinish) {
+                                _isThinkingFinished = true;
+                                console.log('[AI Clash doubao] 思考已完成，后续为正式回复内容');
+                                continue; // 完成标记本身不需要输出文本
+                            }
+
+                            if (cb && cb.is_finish && !cb.content?.text_block?.text) continue; // 结束标记块，无新文本
+
+                            // 识别思考块
+                            const isThinkBlock = cb.block_type === 10040 || cb.content?.thinking_block;
+                            if (isThinkBlock && !_isThinkingFinished) {
+                                _thinkingBlockId = cb.block_id;
+                                console.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
+                            }
+
+                            // 识别思考内容：思考未完成 + （要么是思考块本身，要么父级是思考块）
+                            const isThink = !_isThinkingFinished && (
+                                            isThinkBlock ||
+                                            cb.parent_id === _thinkingBlockId ||
+                                            cb.type === 'thinking' ||
+                                            cb.is_thinking === true);
+
                             var txt = cb && cb.content && cb.content.text_block && cb.content.text_block.text;
                             if (txt) emitChunk(txt, isThink);
                         }
@@ -108,24 +140,27 @@
 
             // 优先：根据 event 类型精确提取
             if (_currentEvent) {
-                var result = extractByEvent(_currentEvent, d);
-                if (result !== null) { emitChunk(result); return; }
+                extractByEvent(_currentEvent, d);
+                return;
             }
 
             // Fallback: 无 event 类型或未知事件，尝试通用模式
+            const isThink = d.type === 'thinking' || d.is_thinking === true || !!d.thinking_text;
             if (d.event === 'reply' && typeof d.text === 'string') {
                 text = d.text;
             } else if (d.event === 'done' || d.event === 'all_done') {
                 emitEnd(); return;
             } else if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
                 text = String(d.choices[0].delta.content);
+            } else if (typeof d.thinking_text === 'string') {
+                text = d.thinking_text;
             } else if (typeof d.text === 'string') {
                 text = d.text;
             } else if (typeof d.content === 'string') {
                 text = d.content;
             }
 
-            emitChunk(text);
+            emitChunk(text, isThink);
         } catch (_) {}
     }
 
@@ -141,6 +176,8 @@
         _endSentThisSession = false;
         _currentEvent = '';
         _fetchHandlingInProgress = false;
+        _thinkingBlockId = null; // 重置思考块ID
+        _isThinkingFinished = false; // 重置思考完成标记
     }
 
     // =====================================================================

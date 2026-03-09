@@ -932,7 +932,9 @@ const submit = () => {
         provider: 'doubao',
         prompt: inputStr.value.trim(),
         mode: doubaoMode.value,
-        settings: {}
+        settings: {
+          isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+        }
       }
     });
   }

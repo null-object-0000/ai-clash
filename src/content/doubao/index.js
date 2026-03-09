@@ -36,12 +36,13 @@ window.addEventListener('message', (event) => {
     domCtx.hookDataReceived = true;
     const payload = event.data.payload;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!responseContent) console.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`);
+    const isThink = typeof payload === 'object' ? (payload?.isThink ?? false) : false;
+    if (!responseContent) console.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`, isThink ? '(思考内容)' : '');
     responseContent += text;
 
     safeSend({
       type: MSG_TYPES.CHUNK_RECEIVED,
-      payload: { provider: PROVIDER, text, stage: 'responding', isThink: false }
+      payload: { provider: PROVIDER, text, stage: 'responding', isThink: isThink }
     });
   }
   else if (event.data.type === 'DOUBAO_HOOK_END') {
@@ -90,7 +91,7 @@ if (isContextValid()) {
     chrome.runtime.onMessage.addListener((request) => {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         responseContent = "";
-        executeDoubao(request.payload.prompt);
+        executeDoubao(request.payload.prompt, request.payload.settings || {});
       }
     });
   } catch {
@@ -125,49 +126,188 @@ async function tryStartNewConversation() {
   return false;
 }
 
+/** 模拟真实用户点击，解决Radix UI按钮点击无响应问题 */
+function simulateRealClick(element) {
+  if (!element) return;
+  // 强制聚焦
+  element.focus();
+  // 依次派发完整的鼠标事件序列，模拟真实人类点击
+  const events = [
+    new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
+    new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
+    new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
+    new MouseEvent('mouseup', { bubbles: true, cancelable: true }),
+    new MouseEvent('click', { bubbles: true, cancelable: true })
+  ];
+  events.forEach(ev => element.dispatchEvent(ev));
+}
+
 /** 切换到思考模式 */
 async function switchToDeepThinking() {
   try {
-    // 找到思考模式切换按钮
-    const deepThinkingBtn = await waitForAnyElement(['[data-testid="deep-thinking-action-button"] button'], 2000);
-    if (!deepThinkingBtn) {
-      console.log(`[AIClash ${PROVIDER}] 未找到思考模式按钮，使用默认模式`);
+    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 开始执行...`);
+
+    // 找到内部wrapper，然后查找最外层的dropdown触发按钮
+    const innerWrapper = await waitForAnyElement(['[data-testid="deep-thinking-action-button"]'], 2000);
+    if (!innerWrapper) {
+      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 未找到思考模式按钮`);
       return false;
     }
 
+    // 核心：通过closest找到真正的Radix触发器按钮
+    const targetBtn = innerWrapper.closest('[data-slot="dropdown-menu-trigger"]') ||
+                      innerWrapper.closest('button[aria-haspopup="menu"]') ||
+                      innerWrapper.querySelector('button');
+
+    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 找到触发按钮:`, targetBtn.tagName, targetBtn.textContent?.slice(0, 50));
+
     // 检查当前是否已经是思考模式
-    const isDeepThinking = deepThinkingBtn.getAttribute('data-checked') === 'true' ||
-                          deepThinkingBtn.textContent?.includes('思考');
+    const btnText = targetBtn.textContent || '';
+    const isDeepThinking = btnText.includes('思考') || targetBtn.querySelector('button')?.getAttribute('data-checked') === 'true';
+
+    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 当前模式: ${isDeepThinking ? '思考模式' : '快速模式'}`);
+
     if (isDeepThinking) {
-      console.log(`[AIClash ${PROVIDER}] 当前已经是思考模式`);
+      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 已经是思考模式，无需切换`);
       return true;
     }
 
-    // 点击按钮展开下拉菜单
-    deepThinkingBtn.click();
-    await new Promise(r => setTimeout(r, 300));
+    // 使用真实点击模拟展开菜单
+    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 模拟真实点击展开菜单...`);
+    simulateRealClick(targetBtn);
+    await new Promise(r => setTimeout(r, 800)); // 等待菜单展开
+
+    // 查找菜单项（Radix菜单会渲染到body末尾，所以全局查找）
+    const menuItems = [
+      ...Array.from(document.querySelectorAll('[data-testid*="deep-thinking-action-item"]')),
+      ...Array.from(document.querySelectorAll('[role="menuitem"]')),
+      ...Array.from(document.querySelectorAll('[data-slot="dropdown-menu-item"]'))
+    ];
+
+    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 找到菜单项数量:`, menuItems.length);
 
     // 找到思考模式选项
-    const deepThinkingOption = await waitForAnyElement(['[data-testid="deep-thinking-action-item-1"]'], 1000);
+    let deepThinkingOption = menuItems.find(el => el.textContent?.includes('思考')) ||
+                              menuItems.find(el => el.textContent?.includes('擅长解决更难的问题')) ||
+                              document.querySelector('[data-testid="deep-thinking-action-item-1"]');
+
     if (deepThinkingOption) {
-      deepThinkingOption.click();
-      await new Promise(r => setTimeout(r, 300));
-      console.log(`[AIClash ${PROVIDER}] 已切换到思考模式`);
-      return true;
+      // 找到真正可点击的菜单项元素（可能在内部）
+      const clickableOption = deepThinkingOption.closest('[role="menuitem"]') ||
+                              deepThinkingOption.querySelector('[role="menuitem"]') ||
+                              deepThinkingOption;
+
+      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 找到思考模式选项，点击切换...`, clickableOption.tagName);
+      simulateRealClick(clickableOption); // 同样用真实点击
+      await new Promise(r => setTimeout(r, 800)); // 等待切换完成
+
+      // ✅ 最终验证：确认当前是否真的切换到了思考模式
+      const updatedBtnText = targetBtn.textContent || '';
+      const isReallyDeepThinking = updatedBtnText.includes('思考') || targetBtn.querySelector('button')?.getAttribute('data-checked') === 'true';
+
+      if (isReallyDeepThinking) {
+        console.log(`[AIClash ${PROVIDER}] [思考模式切换] ✅ 切换成功！当前模式：思考模式`);
+        return true;
+      } else {
+        console.error(`[AIClash ${PROVIDER}] [思考模式切换] ❌ 切换失败！点击后仍为快速模式`);
+        return false;
+      }
     } else {
-      console.log(`[AIClash ${PROVIDER}] 未找到思考模式选项，使用默认模式`);
-      // 点击其他地方关闭下拉菜单
-      document.body.click();
+      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 未找到思考模式选项`);
+      // 关闭菜单
+      simulateRealClick(document.body);
       return false;
     }
   } catch (e) {
-    console.warn(`[AIClash ${PROVIDER}] 切换思考模式失败`, e);
+    console.warn(`[AIClash ${PROVIDER}] [思考模式切换] 切换失败，异常:`, e);
     return false;
   }
 }
 
-async function executeDoubao(prompt) {
-  console.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
+/** 切换到快速模式 */
+async function switchToFastMode() {
+  try {
+    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 开始执行...`);
+
+    // 找到内部wrapper，然后查找最外层的dropdown触发按钮
+    const innerWrapper = await waitForAnyElement(['[data-testid="deep-thinking-action-button"]'], 2000);
+    if (!innerWrapper) {
+      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 未找到模式切换按钮`);
+      return false;
+    }
+
+    // 核心：通过closest找到真正的Radix触发器按钮
+    const targetBtn = innerWrapper.closest('[data-slot="dropdown-menu-trigger"]') ||
+                      innerWrapper.closest('button[aria-haspopup="menu"]') ||
+                      innerWrapper.querySelector('button');
+
+    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 找到触发按钮:`, targetBtn.tagName, targetBtn.textContent?.slice(0, 50));
+
+    // 检查当前是否已经是快速模式
+    const btnText = targetBtn.textContent || '';
+    const isFastMode = btnText.includes('快速') || targetBtn.querySelector('button')?.getAttribute('data-checked') !== 'true';
+
+    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 当前模式: ${isFastMode ? '快速模式' : '思考模式'}`);
+
+    if (isFastMode) {
+      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 已经是快速模式，无需切换`);
+      return true;
+    }
+
+    // 使用真实点击模拟展开菜单
+    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 模拟真实点击展开菜单...`);
+    simulateRealClick(targetBtn);
+    await new Promise(r => setTimeout(r, 800)); // 等待菜单展开
+
+    // 查找菜单项
+    const menuItems = [
+      ...Array.from(document.querySelectorAll('[data-testid*="deep-thinking-action-item"]')),
+      ...Array.from(document.querySelectorAll('[role="menuitem"]')),
+      ...Array.from(document.querySelectorAll('[data-slot="dropdown-menu-item"]'))
+    ];
+
+    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 找到菜单项数量:`, menuItems.length);
+
+    // 找到快速模式选项
+    const fastModeOption = menuItems.find(el => el.textContent?.includes('快速')) ||
+                          menuItems.find(el => el.textContent?.includes('适用于大部分情况')) ||
+                          document.querySelector('[data-testid="deep-thinking-action-item-0"]');
+
+    if (fastModeOption) {
+      // 找到真正可点击的菜单项元素
+      const clickableOption = fastModeOption.closest('[role="menuitem"]') ||
+                              fastModeOption.querySelector('[role="menuitem"]') ||
+                              fastModeOption;
+
+      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 找到快速模式选项，点击切换...`, clickableOption.tagName);
+      simulateRealClick(clickableOption);
+      await new Promise(r => setTimeout(r, 800)); // 等待切换完成
+
+      // ✅ 最终验证
+      const updatedBtnText = targetBtn.textContent || '';
+      const isReallyFastMode = updatedBtnText.includes('快速') || targetBtn.querySelector('button')?.getAttribute('data-checked') !== 'true';
+
+      if (isReallyFastMode) {
+        console.log(`[AIClash ${PROVIDER}] [快速模式切换] ✅ 切换成功！当前模式：快速模式`);
+        return true;
+      } else {
+        console.error(`[AIClash ${PROVIDER}] [快速模式切换] ❌ 切换失败！点击后仍为思考模式`);
+        return false;
+      }
+    } else {
+      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 未找到快速模式选项`);
+      // 关闭菜单
+      simulateRealClick(document.body);
+      return false;
+    }
+  } catch (e) {
+    console.warn(`[AIClash ${PROVIDER}] [快速模式切换] 切换失败，异常:`, e);
+    return false;
+  }
+}
+
+async function executeDoubao(prompt, settings = {}) {
+  console.log(`[AIClash ${PROVIDER}] 开始执行任务...`, settings);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
@@ -188,9 +328,23 @@ async function executeDoubao(prompt) {
     return;
   }
 
-  // 切换到思考模式
-  sendStatus(PROVIDER, '正在切换思考模式...');
-  await switchToDeepThinking();
+  // 强制同步模式：确保页面模式和扩展开关完全一致
+  sendStatus(PROVIDER, '正在同步响应模式...');
+  if (settings.isDeepThinkingEnabled) {
+    // 需要切换到思考模式
+    const switchSuccess = await switchToDeepThinking();
+    if (!switchSuccess) {
+      sendError(PROVIDER, '开启思考模式失败，请手动检查页面是否正常');
+      return;
+    }
+  } else {
+    // 需要切换到快速模式
+    const switchSuccess = await switchToFastMode();
+    if (!switchSuccess) {
+      sendError(PROVIDER, '切换到快速模式失败，请手动检查页面是否正常');
+      return;
+    }
+  }
 
   sendStatus(PROVIDER, '正在发送消息...');
   (inputEl).focus();
