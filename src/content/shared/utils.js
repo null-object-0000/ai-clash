@@ -106,6 +106,9 @@ export function startDomObserver(
     if (ctx.observer) {
       console.log(`[AIClash ${provider}] DOM 观测超时，自动停止`);
       stopDomObserver(ctx);
+      // 超时后通知后台任务结束
+      sendError(provider, '等待响应超时，请检查网络或重试');
+      sendCompleted(provider);
     }
   }, 60000);
 }

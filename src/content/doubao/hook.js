@@ -28,7 +28,7 @@
     function emitChunk(text, isThink = false) {
         if (!text) return;
         _chunkCount++;
-        if (_chunkCount <= 5) console.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考内容)' : '');
+        console.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考内容)' : '(正式内容)');
         window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
     }
 
@@ -55,9 +55,9 @@
                         _thinkingBlockId = block.block_id; // 记录思考块ID
                         console.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
                     }
-                    // 识别思考内容：思考未完成 + 是思考块
+                    // 识别思考内容：思考未完成 + （是思考块本身，或父级是思考块）
                     const isThink = !_isThinkingFinished && (
-                                    isThinkBlock || block.type === 'thinking' || block.role === 'system' || block.is_thinking === true);
+                                    isThinkBlock || block.parent_id === _thinkingBlockId || block.type === 'thinking' || block.role === 'system' || block.is_thinking === true);
                     var tb = block.content && block.content.text_block;
                     if (tb && typeof tb.text === 'string' && tb.text) {
                         emitChunk(tb.text, isThink);
@@ -81,6 +81,7 @@
                             const isThinkFinish = cb.content?.thinking_block?.finish_title === '已完成思考' && cb.is_finish === true;
                             if (isThinkFinish) {
                                 _isThinkingFinished = true;
+                                _thinkingBlockId = null; // 清空思考块ID，避免后续内容被误判
                                 console.log('[AI Clash doubao] 思考已完成，后续为正式回复内容');
                                 continue; // 完成标记本身不需要输出文本
                             }

@@ -5,8 +5,6 @@
     <header
       class="flex items-center justify-between px-4 py-3 bg-white/70 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-10">
       <div class="flex items-center gap-2">
-      </div>
-      <div class="relative flex items-center gap-2">
         <button
           type="button"
           class="w-7 h-7 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
@@ -17,74 +15,10 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         </button>
-        <button
-          type="button"
-          class="w-7 h-7 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors flex items-center justify-center"
-          @click="isSettingsOpen = !isSettingsOpen"
-          aria-label="设置">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 9.5a2.5 2.5 0 100 5 2.5 2.5 0 000-5zm8.94 2.5a7.96 7.96 0 00-.16-1.6l2.02-1.58-1.9-3.3-2.4.97a8.12 8.12 0 00-2.76-1.6l-.36-2.58h-3.8l-.36 2.58a8.12 8.12 0 00-2.76 1.6l-2.4-.97-1.9 3.3 2.02 1.58a7.96 7.96 0 000 3.2l-2.02 1.58 1.9 3.3 2.4-.97a8.12 8.12 0 002.76 1.6l.36 2.58h3.8l.36-2.58a8.12 8.12 0 002.76-1.6l2.4.97 1.9-3.3-2.02-1.58c.11-.52.16-1.05.16-1.6z" />
-          </svg>
-        </button>
+      </div>
+      <div class="relative flex items-center gap-2">
         <div class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
           MoE 模式
-        </div>
-        <div v-if="isSettingsOpen"
-          class="absolute right-0 top-9 w-52 rounded-xl border border-slate-200 bg-white shadow-lg p-3 space-y-3 z-20">
-          <div class="text-[11px] font-semibold text-slate-500 tracking-wide">通道开关</div>
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] text-slate-700">DeepSeek</span>
-            <button
-              type="button"
-              @click="isDeepSeekEnabled = !isDeepSeekEnabled"
-              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-              :class="isDeepSeekEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-              <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                :class="isDeepSeekEnabled ? 'translate-x-4' : 'translate-x-1'">
-              </span>
-            </button>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] text-slate-700">豆包</span>
-            <button
-              type="button"
-              @click="isDoubaoEnabled = !isDoubaoEnabled"
-              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-              :class="isDoubaoEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-              <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                :class="isDoubaoEnabled ? 'translate-x-4' : 'translate-x-1'">
-              </span>
-            </button>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] text-slate-700">千问</span>
-            <button
-              type="button"
-              @click="isQianwenEnabled = !isQianwenEnabled"
-              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-              :class="isQianwenEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-              <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                :class="isQianwenEnabled ? 'translate-x-4' : 'translate-x-1'">
-              </span>
-            </button>
-          </div>
-          <div class="flex items-center justify-between">
-            <span class="text-[13px] text-slate-700">LongCat</span>
-            <button
-              type="button"
-              @click="isLongcatEnabled = !isLongcatEnabled"
-              class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-              :class="isLongcatEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-              <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                :class="isLongcatEnabled ? 'translate-x-4' : 'translate-x-1'">
-              </span>
-            </button>
-          </div>
         </div>
       </div>
     </header>
@@ -111,7 +45,7 @@
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  @click="isDeepSeekEnabled = !isDeepSeekEnabled"
+                  @click="handleToggleProvider('deepseek')"
                   class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                   :class="isDeepSeekEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
                   <span
@@ -128,14 +62,12 @@
                   class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
                   {{ showAdvancedSettings.deepseek ? '收起' : '设置' }}
                 </button>
-                <a
+                <button
                   v-if="deepseekMode === 'web'"
-                  href="https://chat.deepseek.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  @click="handleGoToProvider('deepseek')"
                   class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
                   前往
-                </a>
+                </button>
               </div>
             </div>
             <!-- 高级设置 -->
@@ -212,7 +144,7 @@
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  @click="isDoubaoEnabled = !isDoubaoEnabled"
+                  @click="handleToggleProvider('doubao')"
                   class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                   :class="isDoubaoEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
                   <span
@@ -229,14 +161,12 @@
                   class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
                   {{ showAdvancedSettings.doubao ? '收起' : '设置' }}
                 </button>
-                <a
+                <button
                   v-if="doubaoMode === 'web'"
-                  href="https://www.doubao.com/chat/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  @click="handleGoToProvider('doubao')"
                   class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
                   前往
-                </a>
+                </button>
               </div>
             </div>
             <!-- 高级设置 -->
@@ -271,7 +201,7 @@
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  @click="isQianwenEnabled = !isQianwenEnabled"
+                  @click="handleToggleProvider('qianwen')"
                   class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                   :class="isQianwenEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
                   <span
@@ -288,14 +218,12 @@
                   class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
                   {{ showAdvancedSettings.qianwen ? '收起' : '设置' }}
                 </button>
-                <a
+                <button
                   v-if="qianwenMode === 'web'"
-                  href="https://www.qianwen.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  @click="handleGoToProvider('qianwen')"
                   class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
                   前往
-                </a>
+                </button>
               </div>
             </div>
             <!-- 高级设置 -->
@@ -330,7 +258,7 @@
               <div class="flex items-center gap-2">
                 <button
                   type="button"
-                  @click="isLongcatEnabled = !isLongcatEnabled"
+                  @click="handleToggleProvider('longcat')"
                   class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
                   :class="isLongcatEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
                   <span
@@ -347,13 +275,12 @@
                   class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
                   {{ showAdvancedSettings.longcat ? '收起' : '设置' }}
                 </button>
-                <a
-                  href="https://longcat.chat/"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  v-if="longcatMode === 'web'"
+                  @click="handleGoToProvider('longcat')"
                   class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
                   前往
-                </a>
+                </button>
               </div>
             </div>
             <!-- 高级设置 -->
@@ -457,7 +384,9 @@
           :status="statusMap.doubao"
           :stage="stageMap.doubao"
           :response="responses.doubao"
+          :think-response="thinkResponses.doubao"
           :operation-status="operationStatus.doubao"
+          :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDoubaoOpen"
         />
 
@@ -470,7 +399,9 @@
           :status="statusMap.qianwen"
           :stage="stageMap.qianwen"
           :response="responses.qianwen"
+          :think-response="thinkResponses.qianwen"
           :operation-status="operationStatus.qianwen"
+          :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isQianwenOpen"
         />
 
@@ -483,7 +414,9 @@
           :status="statusMap.longcat"
           :stage="stageMap.longcat"
           :response="responses.longcat"
+          :think-response="thinkResponses.longcat"
           :operation-status="operationStatus.longcat"
+          :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isLongcatOpen"
         />
 
@@ -550,11 +483,10 @@ const inputStr = ref('');
 const currentQuestion = ref('');
 const hasAsked = ref(false);
 const isDeepThinkingEnabled = ref(true);
-const isDeepSeekEnabled = ref(true);
+const isDeepSeekEnabled = ref(false);
 const isDoubaoEnabled = ref(false);
 const isQianwenEnabled = ref(false);
 const isLongcatEnabled = ref(false);
-const isSettingsOpen = ref(false);
 // 每个通道独立的折叠状态
 const isDeepSeekOpen = ref(true);
 const isDoubaoOpen = ref(true);
@@ -587,10 +519,7 @@ const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 const API_CONFIG_KEY = 'aiclash.api.config';
 type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
-  isDeepSeekEnabled?: boolean;
-  isDoubaoEnabled?: boolean;
-  isQianwenEnabled?: boolean;
-  isLongcatEnabled?: boolean;
+  // 通道开关状态不再持久化保存
 };
 type ApiConfig = {
   mode?: 'web' | 'api';
@@ -599,15 +528,42 @@ type ApiConfig = {
   enabled?: boolean;
 };
 
+// 查询provider是否有有效绑定的tab
+async function checkProviderTabValid(providerId: string) {
+  try {
+    const result = await chrome.runtime?.sendMessage({
+      type: MSG_TYPES.CHECK_PROVIDER_TAB_VALID,
+      payload: { providerId }
+    });
+    return result?.valid ?? false;
+  } catch (err) {
+    return false;
+  }
+}
+
 function loadSettings() {
   // 加载基础设置
-  chrome.storage?.local.get([SETTINGS_KEY, API_CONFIG_KEY], (result) => {
+  chrome.storage?.local.get([SETTINGS_KEY, API_CONFIG_KEY], async (result) => {
     const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
     isDeepThinkingEnabled.value = saved.isDeepThinkingEnabled ?? true;
-    isDeepSeekEnabled.value = saved.isDeepSeekEnabled ?? true;
-    isDoubaoEnabled.value = saved.isDoubaoEnabled ?? false;
-    isQianwenEnabled.value = saved.isQianwenEnabled ?? false;
-    isLongcatEnabled.value = saved.isLongcatEnabled ?? false;
+    // 通道开关状态不持久化，每次打开都默认关闭
+    isDeepSeekEnabled.value = false;
+    isDoubaoEnabled.value = false;
+    isQianwenEnabled.value = false;
+    isLongcatEnabled.value = false;
+
+    // 检测是否有已绑定的有效Tab，有则自动开启对应通道
+    const [deepseekValid, doubaoValid, qianwenValid, longcatValid] = await Promise.all([
+      checkProviderTabValid('deepseek'),
+      checkProviderTabValid('doubao'),
+      checkProviderTabValid('qianwen'),
+      checkProviderTabValid('longcat')
+    ]);
+
+    isDeepSeekEnabled.value = deepseekValid;
+    isDoubaoEnabled.value = doubaoValid;
+    isQianwenEnabled.value = qianwenValid;
+    isLongcatEnabled.value = longcatValid;
 
     // 加载API配置
     const apiConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
@@ -627,14 +583,10 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  // 保存基础设置
+  // 只保存深度思考设置，不保存通道开关状态，每次打开侧边栏都需要手动开启
   chrome.storage?.local.set({
     [SETTINGS_KEY]: {
       isDeepThinkingEnabled: isDeepThinkingEnabled.value,
-      isDeepSeekEnabled: isDeepSeekEnabled.value,
-      isDoubaoEnabled: isDoubaoEnabled.value,
-      isQianwenEnabled: isQianwenEnabled.value,
-      isLongcatEnabled: isLongcatEnabled.value,
     }
   });
 }
@@ -667,6 +619,72 @@ async function testApiKey(providerId: string, apiKey: string) {
     apiKeyTestResult.value[providerId] = { success: false, message: '请求失败' };
   } finally {
     testingApiKey.value[providerId] = false;
+  }
+}
+
+// 打开或激活provider对应的tab
+async function handleGoToProvider(providerId: string, activate: boolean = true) {
+  try {
+    const result = await chrome.runtime?.sendMessage({
+      type: MSG_TYPES.OPEN_PROVIDER_TAB,
+      payload: { providerId, activate }
+    });
+    return result;
+  } catch (err) {
+    console.error('打开provider tab失败:', err);
+    return { success: false, error: String(err) };
+  }
+}
+
+// 处理provider开关切换
+async function handleToggleProvider(providerId: string) {
+  // 获取当前状态
+  const currentState =
+    providerId === 'deepseek' ? isDeepSeekEnabled.value :
+    providerId === 'doubao' ? isDoubaoEnabled.value :
+    providerId === 'qianwen' ? isQianwenEnabled.value :
+    providerId === 'longcat' ? isLongcatEnabled.value : false;
+
+  // 如果是关闭操作，直接关闭即可
+  if (currentState) {
+    if (providerId === 'deepseek') isDeepSeekEnabled.value = false;
+    else if (providerId === 'doubao') isDoubaoEnabled.value = false;
+    else if (providerId === 'qianwen') isQianwenEnabled.value = false;
+    else if (providerId === 'longcat') isLongcatEnabled.value = false;
+    return;
+  }
+
+  // 如果是开启操作，先判断模式
+  const mode =
+    providerId === 'deepseek' ? deepseekMode.value :
+    providerId === 'doubao' ? doubaoMode.value :
+    providerId === 'qianwen' ? qianwenMode.value :
+    providerId === 'longcat' ? longcatMode.value : 'web';
+
+  // API模式直接开启
+  if (mode === 'api') {
+    if (providerId === 'deepseek') isDeepSeekEnabled.value = true;
+    else if (providerId === 'doubao') isDoubaoEnabled.value = true;
+    else if (providerId === 'qianwen') isQianwenEnabled.value = true;
+    else if (providerId === 'longcat') isLongcatEnabled.value = true;
+    return;
+  }
+
+  // Web模式需要先确保Tab创建成功
+  try {
+    const result = await handleGoToProvider(providerId, false); // 开启通道时不激活Tab
+    if (result?.success) {
+      // Tab创建成功，开启开关
+      if (providerId === 'deepseek') isDeepSeekEnabled.value = true;
+      else if (providerId === 'doubao') isDoubaoEnabled.value = true;
+      else if (providerId === 'qianwen') isQianwenEnabled.value = true;
+      else if (providerId === 'longcat') isLongcatEnabled.value = true;
+    } else {
+      // Tab创建失败，提示用户
+      window.alert(`开启${providerId}失败：${result?.error || '无法创建页面'}`);
+    }
+  } catch (err) {
+    window.alert(`开启${providerId}失败：${String(err)}`);
   }
 }
 
@@ -986,34 +1004,52 @@ watch(isDeepThinkingEnabled, (enabled) => {
   saveSettings();
 });
 
-watch(isDeepSeekEnabled, () => {
-  saveSettings();
-});
-
-watch(isDoubaoEnabled, () => {
-  saveSettings();
-});
-
-watch(isQianwenEnabled, () => {
-  saveSettings();
-});
-
-watch(isLongcatEnabled, () => {
-  saveSettings();
-});
+// 通道开关状态不再持久化，不需要监听保存
 
 // API配置变化监听
-watch(deepseekMode, (value) => {
+watch(deepseekMode, async (value) => {
   saveApiConfig('deepseek', { mode: value });
+  // 如果切换到web模式且通道已经开启，需要确保Tab存在
+  if (value === 'web' && isDeepSeekEnabled.value) {
+    const result = await handleGoToProvider('deepseek', false); // 切换模式时不激活Tab
+    if (!result?.success) {
+      isDeepSeekEnabled.value = false;
+      window.alert(`DeepSeek切换到网页模式失败：${result?.error || '无法创建页面'}`);
+    }
+  }
 });
-watch(doubaoMode, (value) => {
+watch(doubaoMode, async (value) => {
   saveApiConfig('doubao', { mode: value });
+  // 如果切换到web模式且通道已经开启，需要确保Tab存在
+  if (value === 'web' && isDoubaoEnabled.value) {
+    const result = await handleGoToProvider('doubao', false); // 切换模式时不激活Tab
+    if (!result?.success) {
+      isDoubaoEnabled.value = false;
+      window.alert(`豆包切换到网页模式失败：${result?.error || '无法创建页面'}`);
+    }
+  }
 });
-watch(qianwenMode, (value) => {
+watch(qianwenMode, async (value) => {
   saveApiConfig('qianwen', { mode: value });
+  // 如果切换到web模式且通道已经开启，需要确保Tab存在
+  if (value === 'web' && isQianwenEnabled.value) {
+    const result = await handleGoToProvider('qianwen', false); // 切换模式时不激活Tab
+    if (!result?.success) {
+      isQianwenEnabled.value = false;
+      window.alert(`千问切换到网页模式失败：${result?.error || '无法创建页面'}`);
+    }
+  }
 });
-watch(longcatMode, (value) => {
+watch(longcatMode, async (value) => {
   saveApiConfig('longcat', { mode: value });
+  // 如果切换到web模式且通道已经开启，需要确保Tab存在
+  if (value === 'web' && isLongcatEnabled.value) {
+    const result = await handleGoToProvider('longcat', false); // 切换模式时不激活Tab
+    if (!result?.success) {
+      isLongcatEnabled.value = false;
+      window.alert(`LongCat切换到网页模式失败：${result?.error || '无法创建页面'}`);
+    }
+  }
 });
 
 watch(deepseekApiKey, (value) => {

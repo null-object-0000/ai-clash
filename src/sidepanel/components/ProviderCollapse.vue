@@ -32,8 +32,8 @@
 
     <div v-show="isOpen"
       class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
-      <!-- 思考内容折叠块 (仅 DeepSeek 且启用深度思考时显示) -->
-      <template v-if="providerId === 'deepseek' && isDeepThinkingEnabled">
+      <!-- 思考内容折叠块 (启用深度思考时显示) -->
+      <template v-if="isDeepThinkingEnabled">
         <div v-if="thinkResponse" class="mb-2">
           <button @click="isThinkBlockOpen = !isThinkBlockOpen"
             class="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1">

@@ -2,7 +2,42 @@ import { MSG_TYPES } from '../shared/messages.js';
 import { PROVIDERS, getProvider } from './providers.js';
 
 // 存储每个provider对应的tab id，记住我们自己创建的tab
-const providerTabMap = {};
+let providerTabMap = {};
+const TAB_MAP_STORAGE_KEY = 'aiclash.provider.tab.map';
+
+// 加载持久化的Tab映射，并清理无效条目
+async function loadProviderTabMap() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([TAB_MAP_STORAGE_KEY], async (result) => {
+      providerTabMap = result?.[TAB_MAP_STORAGE_KEY] || {};
+
+      // 清理无效的Tab映射
+      const validMap = {};
+      for (const providerId in providerTabMap) {
+        const tabId = providerTabMap[providerId];
+        const provider = getProvider(providerId);
+        if (provider && await isTabValid(tabId, provider)) {
+          validMap[providerId] = tabId;
+        }
+      }
+
+      // 如果有变化，更新映射并保存
+      if (Object.keys(validMap).length !== Object.keys(providerTabMap).length) {
+        providerTabMap = validMap;
+        await saveProviderTabMap();
+      }
+
+      resolve(providerTabMap);
+    });
+  });
+}
+
+// 保存Tab映射到持久化存储
+async function saveProviderTabMap() {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ [TAB_MAP_STORAGE_KEY]: providerTabMap }, resolve);
+  });
+}
 
 // API配置存储键名
 const API_CONFIG_KEY = 'aiclash.api.config';
@@ -299,6 +334,34 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    // ---- 打开或激活provider对应的tab ----
+    if (request.type === MSG_TYPES.OPEN_PROVIDER_TAB) {
+        const { providerId, activate } = request.payload;
+        openOrActivateProviderTab(providerId, activate ?? false).then(result => {
+            sendResponse(result);
+        }).catch(err => {
+            sendResponse({ success: false, error: err.message });
+        });
+        return true;
+    }
+
+    // ---- 查询provider是否有有效绑定的tab ----
+    if (request.type === MSG_TYPES.CHECK_PROVIDER_TAB_VALID) {
+        const { providerId } = request.payload;
+        const provider = getProvider(providerId);
+        if (!provider) {
+            sendResponse({ valid: false });
+            return true;
+        }
+        const rememberedTabId = providerTabMap[provider.id];
+        isTabValid(rememberedTabId, provider).then(valid => {
+            sendResponse({ valid });
+        }).catch(() => {
+            sendResponse({ valid: false });
+        });
+        return true;
+    }
+
     return false;
 });
 
@@ -377,90 +440,117 @@ async function routeToTab(provider, prompt, settings) {
         return;
     }
 
-    // 记住的tab无效，查询所有符合条件的tab
-    chrome.tabs.query({ url: provider.matchPattern }, async (tabs) => {
-        let targetTabId;
+    // 记住的tab无效，直接新建tab（不复用用户自行打开的tab）
+    // 发送状态更新，告诉用户正在打开页面
+    chrome.runtime.sendMessage({
+        type: MSG_TYPES.TASK_STATUS_UPDATE,
+        payload: {
+            provider: provider.id,
+            stage: 'opening',
+            text: `正在打开${provider.name}页面...`
+        }
+    });
 
-        if (tabs.length > 0 && tabs[0].id) {
-            // 有符合条件的tab，使用第一个，并记住它
-            targetTabId = tabs[0].id;
-            providerTabMap[provider.id] = targetTabId;
-            injectContentScriptAndSendMessage(targetTabId, provider, msg);
-        } else {
-            // 发送状态更新，告诉用户正在打开页面
+    // 新建tab，并记住它
+    chrome.tabs.create({ url: provider.startUrl, active: false }, async (newTab) => {
+        if (newTab.id) {
+            providerTabMap[provider.id] = newTab.id;
+            saveProviderTabMap(); // 保存映射
+        }
+
+        try {
+            // 先等待页面加载完成事件
+            await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    reject(new Error('页面加载超时'));
+                }, 30000);
+
+                function listener(tabId, info) {
+                    if (tabId === newTab.id && info.status === 'complete') {
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                }
+
+                chrome.tabs.onUpdated.addListener(listener);
+            });
+
+            // 发送状态更新，告诉用户正在等待页面准备就绪
             chrome.runtime.sendMessage({
                 type: MSG_TYPES.TASK_STATUS_UPDATE,
                 payload: {
                     provider: provider.id,
-                    stage: 'opening',
-                    text: `正在打开${provider.name}页面...`
+                    stage: 'loading',
+                    text: `正在等待${provider.name}页面加载完成...`
                 }
             });
 
-            // 没有符合条件的tab，新建一个，并记住它
-            chrome.tabs.create({ url: provider.startUrl, active: false }, async (newTab) => {
-                if (newTab.id) {
-                    providerTabMap[provider.id] = newTab.id;
-                }
+            // 等待页面真正准备就绪
+            const readyResult = await waitForPageReady(newTab.id, provider);
+            if (!readyResult.success) {
+                throw new Error(readyResult.error);
+            }
 
-                try {
-                    // 先等待页面加载完成事件
-                    await new Promise((resolve, reject) => {
-                        const timeoutId = setTimeout(() => {
-                            chrome.tabs.onUpdated.removeListener(listener);
-                            reject(new Error('页面加载超时'));
-                        }, 30000);
+            // 注入content script并发送消息
+            await injectContentScriptAndSendMessage(newTab.id, provider, msg);
 
-                        function listener(tabId, info) {
-                            if (tabId === newTab.id && info.status === 'complete') {
-                                chrome.tabs.onUpdated.removeListener(listener);
-                                clearTimeout(timeoutId);
-                                resolve();
-                            }
-                        }
-
-                        chrome.tabs.onUpdated.addListener(listener);
-                    });
-
-                    // 发送状态更新，告诉用户正在等待页面准备就绪
-                    chrome.runtime.sendMessage({
-                        type: MSG_TYPES.TASK_STATUS_UPDATE,
-                        payload: {
-                            provider: provider.id,
-                            stage: 'loading',
-                            text: `正在等待${provider.name}页面加载完成...`
-                        }
-                    });
-
-                    // 等待页面真正准备就绪
-                    const readyResult = await waitForPageReady(newTab.id, provider);
-                    if (!readyResult.success) {
-                        throw new Error(readyResult.error);
-                    }
-
-                    // 注入content script并发送消息
-                    await injectContentScriptAndSendMessage(newTab.id, provider, msg);
-
-                } catch (error) {
-                    // 发送错误消息
-                    chrome.runtime.sendMessage({
-                        type: MSG_TYPES.ERROR,
-                        payload: {
-                            provider: provider.id,
-                            error: error.message || `打开${provider.name}页面失败`
-                        }
-                    });
+        } catch (error) {
+            // 发送错误消息
+            chrome.runtime.sendMessage({
+                type: MSG_TYPES.ERROR,
+                payload: {
+                    provider: provider.id,
+                    error: error.message || `打开${provider.name}页面失败`
                 }
             });
         }
     });
 }
 
+// 打开或激活provider对应的tab（处理"前往"按钮请求）
+async function openOrActivateProviderTab(providerId, activate = false) {
+    const provider = getProvider(providerId);
+    if (!provider) {
+        return { success: false, error: '未知的provider' };
+    }
+
+    const rememberedTabId = providerTabMap[provider.id];
+
+    // 检查我们记住的tab是否有效
+    if (rememberedTabId && await isTabValid(rememberedTabId, provider)) {
+        // 如果需要激活才激活tab并聚焦窗口
+        if (activate) {
+            await chrome.tabs.update(rememberedTabId, { active: true });
+            const tab = await chrome.tabs.get(rememberedTabId);
+            await chrome.windows.update(tab.windowId, { focused: true });
+        }
+        return { success: true, tabId: rememberedTabId, action: activate ? 'activated' : 'validated' };
+    }
+
+    // 没有有效绑定的tab，新建一个
+    try {
+        const newTab = await chrome.tabs.create({ url: provider.startUrl, active: activate });
+        if (newTab.id) {
+            providerTabMap[provider.id] = newTab.id;
+            saveProviderTabMap(); // 保存映射
+        }
+        return { success: true, tabId: newTab.id, action: 'created' };
+    } catch (error) {
+        return { success: false, error: error.message || '创建tab失败' };
+    }
+}
+
+// 后台启动时加载持久化的Tab映射
+loadProviderTabMap();
+
 // 监听tab关闭事件，清除对应的映射
 chrome.tabs.onRemoved.addListener((tabId) => {
     for (const providerId in providerTabMap) {
         if (providerTabMap[providerId] === tabId) {
             delete providerTabMap[providerId];
+            saveProviderTabMap(); // 保存修改
             break;
         }
     }

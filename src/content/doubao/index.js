@@ -31,6 +31,26 @@ if (isContextValid()) {
 let responseContent = "";
 
 const domCtx = createDomObserverContext();
+let taskTimeout = null;
+
+// 监听URL变化（单页应用跳转），用户手动点击新对话时自动重置状态
+let lastUrl = location.href;
+let isTaskRunning = false; // 标记任务是否正在执行，执行期间忽略URL变化
+setInterval(() => {
+  if (location.href !== lastUrl) {
+    const oldUrl = lastUrl;
+    lastUrl = location.href; // 始终更新URL记录，避免任务结束后误判
+    if (!isTaskRunning) {
+      console.log(`[AIClash ${PROVIDER}] 检测到页面跳转（新对话），自动重置任务状态`);
+      stopDomObserver(domCtx);
+      if (taskTimeout) clearTimeout(taskTimeout);
+      sendCompleted(PROVIDER);
+      responseContent = "";
+    } else {
+      console.log(`[AIClash ${PROVIDER}] 任务执行中，忽略本次URL变化: ${oldUrl} → ${lastUrl}`);
+    }
+  }
+}, 1000);
 
 window.addEventListener('message', (event) => {
   if (event.source !== window) return;
@@ -50,6 +70,7 @@ window.addEventListener('message', (event) => {
   }
   else if (event.data.type === 'DOUBAO_HOOK_END') {
     console.log(`[AIClash ${PROVIDER}] content 收到 END`);
+    if (taskTimeout) clearTimeout(taskTimeout);
     stopDomObserver(domCtx);
     if (!responseContent) {
       safeSend({
@@ -58,6 +79,7 @@ window.addEventListener('message', (event) => {
       });
     }
     sendCompleted(PROVIDER);
+    isTaskRunning = false; // 标记任务结束
   }
 });
 
@@ -94,6 +116,9 @@ if (isContextValid()) {
     chrome.runtime.onMessage.addListener((request) => {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         responseContent = "";
+        // 重置所有状态，停止上一次任务的所有观测和超时
+        stopDomObserver(domCtx);
+        if (taskTimeout) clearTimeout(taskTimeout);
         executeDoubao(request.payload.prompt, request.payload.settings || {});
       }
     });
@@ -113,7 +138,7 @@ async function tryStartNewConversation() {
       const clickable = el.closest('[role="button"], button, a, [tabindex="0"]') || el;
       if (clickable) {
         (clickable).click();
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 1500)); // 等待新对话页面完全加载
         return true;
       }
     }
@@ -122,7 +147,7 @@ async function tryStartNewConversation() {
   const testIdBtns = document.querySelectorAll('[data-testid*="new"], [data-testid*="create"]');
   for (const btn of Array.from(testIdBtns)) {
     (btn).click();
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 1500)); // 等待新对话页面完全加载
     return true;
   }
 
@@ -311,6 +336,7 @@ async function switchToFastMode() {
 
 async function executeDoubao(prompt, settings = {}) {
   console.log(`[AIClash ${PROVIDER}] 开始执行任务...`, settings);
+  isTaskRunning = true; // 标记任务开始执行
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
@@ -327,7 +353,9 @@ async function executeDoubao(prompt, settings = {}) {
   const inputEl = await waitForAnyElement(inputSelectors);
 
   if (!inputEl) {
+    if (taskTimeout) clearTimeout(taskTimeout);
     sendError(PROVIDER, '未找到豆包输入框。请确认已登录 doubao.com。');
+    isTaskRunning = false; // 标记任务结束
     return;
   }
 
@@ -337,14 +365,18 @@ async function executeDoubao(prompt, settings = {}) {
     // 需要切换到思考模式
     const switchSuccess = await switchToDeepThinking();
     if (!switchSuccess) {
+      if (taskTimeout) clearTimeout(taskTimeout);
       sendError(PROVIDER, '开启思考模式失败，请手动检查页面是否正常');
+      isTaskRunning = false; // 标记任务结束
       return;
     }
   } else {
     // 需要切换到快速模式
     const switchSuccess = await switchToFastMode();
     if (!switchSuccess) {
+      if (taskTimeout) clearTimeout(taskTimeout);
       sendError(PROVIDER, '切换到快速模式失败，请手动检查页面是否正常');
+      isTaskRunning = false; // 标记任务结束
       return;
     }
   }
@@ -392,5 +424,13 @@ async function executeDoubao(prompt, settings = {}) {
 
     sendStatus(PROVIDER, '正在等待回复...');
     startDomObserver(domCtx, PROVIDER, pollDoubaoDom);
+    // 全局任务超时保护，90秒后强制结束，避免永远卡在等待回复状态
+    taskTimeout = setTimeout(() => {
+      console.log(`[AIClash ${PROVIDER}] 任务全局超时，强制结束`);
+      stopDomObserver(domCtx);
+      sendError(PROVIDER, '任务执行超时，请检查页面是否正常后重试');
+      sendCompleted(PROVIDER);
+      isTaskRunning = false; // 标记任务结束
+    }, 90000);
   }, 800);
 }

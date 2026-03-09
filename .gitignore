@@ -2,3 +2,4 @@ dist
 node_modules
 release/crx-*.zip
 .claude
+.claude.json
