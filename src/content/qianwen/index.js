@@ -90,10 +90,21 @@ function pollQianwenDom() {
 
 if (isContextValid()) {
   try {
-    chrome.runtime.onMessage.addListener((request) => {
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         responseContent = "";
-        executeQianwen(request.payload.prompt);
+        executeQianwen(request.payload.prompt, request.payload.options || {});
+      }
+      // 支持查询当前模式
+      else if (request.type === 'GET_QIANWEN_MODE') {
+        sendResponse({ mode: getDeepThinkMode() });
+      }
+      // 支持主动设置模式
+      else if (request.type === 'SET_QIANWEN_MODE') {
+        setDeepThinkMode(request.payload.enable).then(success => {
+          sendResponse({ success, mode: getDeepThinkMode() });
+        });
+        return true; // 异步响应
       }
     });
   } catch {
@@ -141,11 +152,55 @@ async function tryStartNewConversation() {
   return false;
 }
 
-async function executeQianwen(prompt) {
-  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`);
+/** 获取当前深度思考模式状态 */
+function getDeepThinkMode() {
+  const deepThinkBtn = document.querySelector('[data-log-params*="deepThink"]');
+  if (!deepThinkBtn) return 'unknown';
+  return deepThinkBtn.classList.contains('selected-WK762S') ? 'deepthink' : 'normal';
+}
+
+/** 设置千问深度思考模式 */
+async function setDeepThinkMode(enable = true) {
+  const deepThinkBtn = document.querySelector('[data-log-params*="deepThink"]');
+  if (!deepThinkBtn) return false;
+
+  const currentMode = getDeepThinkMode();
+  const isEnabled = currentMode === 'deepthink';
+
+  if (enable && !isEnabled) {
+    // 开启深度思考
+    deepThinkBtn.click();
+    await new Promise(r => setTimeout(r, 300));
+    console.log(`[AI Clash ${PROVIDER}] 已开启深度思考模式`);
+    return true;
+  } else if (!enable && isEnabled) {
+    // 关闭深度思考：点击内部的关闭叉号
+    const closeBtn = deepThinkBtn.querySelector('[data-icon-type="qwpcicon-close2"]');
+    if (closeBtn) {
+      closeBtn.click();
+      await new Promise(r => setTimeout(r, 300));
+      console.log(`[AI Clash ${PROVIDER}] 已关闭深度思考模式`);
+      return true;
+    }
+    // fallback：如果没有找到关闭按钮，直接点击按钮本身切换
+    deepThinkBtn.click();
+    await new Promise(r => setTimeout(r, 300));
+    return true;
+  }
+  return false;
+}
+
+async function executeQianwen(prompt, options = {}) {
+  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, options);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
+
+  // 根据用户设置调整深度思考模式
+  if (options.deepThink !== undefined) {
+    sendStatus(PROVIDER, `正在${options.deepThink ? '开启' : '关闭'}深度思考模式...`);
+    await setDeepThinkMode(options.deepThink);
+  }
 
   sendStatus(PROVIDER, '正在定位输入框...');
 

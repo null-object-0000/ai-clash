@@ -90,57 +90,16 @@
             </div>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
-              <div class="text-[12px] font-semibold text-slate-700">通道列表</div>
-              <button
-                type="button"
-                class="text-[11px] text-slate-500 transition-colors hover:text-slate-800"
-                @click="isHistoryPanelOpen = true">
-                查看历史
-              </button>
-            </div>
-
-            <div class="divide-y divide-slate-100">
-              <div
-                v-for="provider in PROVIDER_META"
-                :key="provider.id"
-                class="px-4 py-2.5">
-                <div class="flex items-center justify-between gap-3">
-                  <div class="min-w-0 flex items-center gap-2">
-                    <span class="text-[13px] font-medium text-slate-800">{{ provider.name }}</span>
-                    <span class="text-[11px] text-slate-500">{{ getProviderModeText(provider.id) }}模式</span>
-                  </div>
-
-                  <div class="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      type="button"
-                      class="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
-                      @click="openProviderSettings(provider.id)">
-                      设置
-                    </button>
-                    <button
-                      v-if="getModeValue(provider.id) === 'web'"
-                      type="button"
-                      class="inline-flex h-7 items-center justify-center rounded-full bg-indigo-50 px-2.5 text-[11px] font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
-                      @click="handleGoToProvider(provider.id)">
-                      前往
-                    </button>
-                    <button
-                      type="button"
-                      @click="handleToggleProvider(provider.id)"
-                      class="relative inline-flex h-6 w-10 items-center rounded-full transition-colors"
-                      :class="isProviderEnabled(provider.id) ? 'bg-indigo-500' : 'bg-slate-300'">
-                      <span
-                        class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                        :class="isProviderEnabled(provider.id) ? 'translate-x-5' : 'translate-x-1'">
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ChannelList
+            :provider-meta="PROVIDER_META"
+            :is-enabled="(id: string) => isProviderEnabled(id as ProviderId)"
+            :get-mode-text="(id: string) => getProviderModeText(id as ProviderId)"
+            :get-mode-value="(id: string) => getModeValue(id as ProviderId)"
+            @view-history="isHistoryPanelOpen = true"
+            @open-settings="(id) => openProviderSettings(id as ProviderId)"
+            @toggle="(id) => handleToggleProvider(id as ProviderId)"
+            @go="(id) => handleGoToProvider(id as ProviderId)"
+          />
         </div>
       </div>
 
@@ -234,119 +193,25 @@
 
     </main>
 
-    <div
+    <ChannelSettingsModal
       v-if="activeProviderSettings"
-      class="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center">
-      <button
-        type="button"
-        class="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
-        aria-label="关闭通道设置弹窗"
-        @click="closeProviderSettings">
-      </button>
-
-      <div
-        class="relative z-10 w-full max-w-[560px] overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_24px_80px_-36px_rgba(15,23,42,0.5)]">
-        <div class="border-b border-slate-200/80 px-5 py-4">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <div class="text-[18px] font-semibold tracking-[-0.02em] text-slate-900">{{ getProviderLabel(activeProviderSettings) }} 设置</div>
-              <p class="mt-1 text-[13px] leading-6 text-slate-500">这里调整当前通道的接入模式和详细参数。</p>
-            </div>
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-700"
-              @click="closeProviderSettings"
-              aria-label="关闭当前通道设置">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div class="max-h-[70vh] overflow-y-auto px-5 py-4 space-y-4">
-          <div class="space-y-2">
-            <div class="text-[12px] font-medium text-slate-700">接入模式</div>
-            <div class="flex flex-wrap gap-2">
-              <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-700">
-                <input
-                  type="radio"
-                  :name="`provider-mode-${activeProviderSettings}`"
-                  class="h-3.5 w-3.5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  :checked="getModeValue(activeProviderSettings) === 'web'"
-                  @change="setProviderMode(activeProviderSettings, 'web')" />
-                <span>网页模式</span>
-              </label>
-              <label
-                class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[12px]"
-                :class="supportsApi(activeProviderSettings)
-                  ? 'cursor-pointer border-slate-200 bg-slate-50 text-slate-700'
-                  : 'border-slate-100 bg-slate-50 text-slate-400'">
-                <input
-                  type="radio"
-                  :name="`provider-mode-${activeProviderSettings}`"
-                  class="h-3.5 w-3.5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  :disabled="!supportsApi(activeProviderSettings)"
-                  :checked="getModeValue(activeProviderSettings) === 'api'"
-                  @change="setProviderMode(activeProviderSettings, 'api')" />
-                <span>{{ supportsApi(activeProviderSettings) ? 'API模式' : 'API模式暂不支持' }}</span>
-              </label>
-            </div>
-          </div>
-
-          <div
-            v-if="supportsApi(activeProviderSettings) && getModeValue(activeProviderSettings) === 'api'"
-            class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-            <div class="space-y-2">
-              <label class="text-[12px] font-medium text-slate-700">API Key</label>
-              <div class="flex items-center gap-2">
-                <input
-                  :type="showApiKey[activeProviderSettings] ? 'text' : 'password'"
-                  :value="getApiKeyValue(activeProviderSettings)"
-                  @input="handleApiKeyInput(activeProviderSettings, $event)"
-                  placeholder="输入 API Key"
-                  class="min-h-11 flex-1 rounded-xl border border-slate-200 px-3 text-[13px] text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15" />
-                <button
-                  type="button"
-                  @click="showApiKey[activeProviderSettings] = !showApiKey[activeProviderSettings]"
-                  class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700">
-                  {{ showApiKey[activeProviderSettings] ? '隐藏' : '显示' }}
-                </button>
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                @click="testApiKey(activeProviderSettings, getApiKeyValue(activeProviderSettings))"
-                :disabled="testingApiKey[activeProviderSettings] || !getApiKeyValue(activeProviderSettings)"
-                class="inline-flex min-h-10 items-center justify-center rounded-full bg-indigo-50 px-3 text-[12px] font-medium text-indigo-600 transition-colors hover:bg-indigo-100 disabled:bg-slate-100 disabled:text-slate-400">
-                {{ testingApiKey[activeProviderSettings] ? '测试中...' : '测试 Key' }}
-              </button>
-              <span
-                v-if="apiKeyTestResult[activeProviderSettings]"
-                class="text-[11px]"
-                :class="apiKeyTestResult[activeProviderSettings].success ? 'text-emerald-600' : 'text-rose-600'">
-                {{ apiKeyTestResult[activeProviderSettings].message }}
-              </span>
-            </div>
-
-            <div class="space-y-2">
-              <label class="text-[12px] font-medium text-slate-700">模型</label>
-              <select
-                :value="getModelValue(activeProviderSettings)"
-                @change="handleModelChange(activeProviderSettings, $event)"
-                class="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15">
-                <option v-for="option in getModelOptions(activeProviderSettings)" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
+      :active-provider-id="activeProviderSettings"
+      :provider-label="getProviderLabel(activeProviderSettings as ProviderId)"
+      :mode="getModeValue(activeProviderSettings as ProviderId)"
+      :supports-api="supportsApi(activeProviderSettings as ProviderId)"
+      :api-key="getApiKeyValue(activeProviderSettings as ProviderId)"
+      :model="getModelValue(activeProviderSettings as ProviderId)"
+      :model-options="getModelOptions(activeProviderSettings as ProviderId)"
+      :show-api-key="showApiKey[activeProviderSettings] ?? false"
+      :testing="testingApiKey[activeProviderSettings] ?? false"
+      :api-key-test-result="apiKeyTestResult[activeProviderSettings] ?? null"
+      @close="closeProviderSettings"
+      @update:mode="(m) => setProviderMode(activeProviderSettings as ProviderId, m)"
+      @update:api-key="(v) => setProviderApiKey(activeProviderSettings as ProviderId, v)"
+      @update:model="(v) => setProviderModel(activeProviderSettings as ProviderId, v)"
+      @toggle-show-api-key="showApiKey[activeProviderSettings] = !showApiKey[activeProviderSettings]"
+      @test-api-key="testApiKey(activeProviderSettings as ProviderId, getApiKeyValue(activeProviderSettings as ProviderId))"
+    />
 
     <!-- 未选通道提示（内嵌样式，替代原生 alert） -->
     <div
@@ -415,6 +280,8 @@
 import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
 import { MSG_TYPES } from '../shared/messages.js';
 import ProviderCollapse from './components/ProviderCollapse.vue';
+import ChannelList from './components/ChannelList.vue';
+import ChannelSettingsModal from './components/ChannelSettingsModal.vue';
 
 const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat'] as const;
 type ProviderId = typeof PROVIDER_IDS[number];
