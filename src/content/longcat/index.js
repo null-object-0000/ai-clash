@@ -13,6 +13,7 @@ const PROVIDER = 'longcat';
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
 console.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
+window.__aiclash_content_script_ready = true;
 
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
@@ -223,7 +224,7 @@ async function executeLongcat(prompt) {
       const el = Array.from(document.querySelectorAll('button, [role="button"]')).find(
         (e) => {
           const t = e.textContent?.trim();
-          return t === '发送' || t === 'Send' || t === '发送消息' || t === '✈️' || t === '→';
+          return t === '发送' || t === 'Send' || t === '发送消息';
         }
       );
       if (el) sendBtn = el;

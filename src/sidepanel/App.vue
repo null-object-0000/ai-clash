@@ -15,11 +15,60 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
         </button>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1.5 h-7 px-2 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+          @click="isHistoryPanelOpen = !isHistoryPanelOpen"
+          aria-label="历史对话">
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.05 11A9 9 0 1112 21v-3" />
+          </svg>
+          <span class="text-[11px]">{{ historyList.length }}</span>
+        </button>
       </div>
       <div class="relative flex items-center gap-2">
         <div class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
           MoE 模式
         </div>
+      </div>
+
+      <div
+        v-if="isHistoryPanelOpen"
+        class="absolute left-4 right-4 top-[calc(100%+8px)] max-h-[320px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl p-2 space-y-1">
+        <div class="flex items-center justify-between px-2 pt-1 pb-2">
+          <div class="text-[12px] font-semibold text-slate-700">历史对话</div>
+          <button
+            type="button"
+            class="text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+            @click="isHistoryPanelOpen = false">
+            关闭
+          </button>
+        </div>
+
+        <div
+          v-if="!historyList.length"
+          class="px-3 py-6 text-center text-[12px] text-slate-400">
+          暂无历史对话
+        </div>
+
+        <button
+          v-for="item in historyList"
+          :key="item.id"
+          type="button"
+          class="w-full text-left rounded-xl border px-3 py-2.5 transition-colors"
+          :class="item.id === activeSessionId
+            ? 'border-indigo-200 bg-indigo-50/80'
+            : 'border-slate-200 bg-white hover:bg-slate-50'"
+          @click="restoreHistorySession(item)">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+              <div class="text-[12px] font-medium text-slate-700 truncate">{{ item.question }}</div>
+              <div class="mt-1 text-[10px] text-slate-400">{{ formatHistoryTime(item.createdAt) }}</div>
+            </div>
+            <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ getHistoryEnabledCount(item) }} 通道</div>
+          </div>
+        </button>
       </div>
     </header>
 
@@ -28,7 +77,7 @@
       <div v-if="!hasAsked" class="h-full flex flex-col items-center justify-center text-center space-y-3 mt-6">
         <div
           class="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-2">
-          <span class="text-3xl">✨</span>
+          <span class="text-xl font-semibold tracking-wide text-slate-700">AI</span>
         </div>
         <h2 class="text-lg font-semibold text-slate-700">混合专家引擎已就绪</h2>
         <p class="text-xs text-slate-400 max-w-[200px] leading-relaxed">
@@ -107,7 +156,7 @@
                     @click="showApiKey.deepseek = !showApiKey.deepseek"
                     class="text-[11px] text-slate-500 hover:text-slate-700 px-1.5 py-1 rounded-md hover:bg-slate-100 transition-colors"
                     :title="showApiKey.deepseek ? '隐藏' : '显示'">
-                    {{ showApiKey.deepseek ? '🙈' : '👁️' }}
+                    {{ showApiKey.deepseek ? '隐藏' : '显示' }}
                   </button>
                 </div>
                 <div class="flex items-center gap-2">
@@ -320,7 +369,7 @@
                     @click="showApiKey.longcat = !showApiKey.longcat"
                     class="text-[11px] text-slate-500 hover:text-slate-700 px-1.5 py-1 rounded-md hover:bg-slate-100 transition-colors"
                     :title="showApiKey.longcat ? '隐藏' : '显示'">
-                    {{ showApiKey.longcat ? '🙈' : '👁️' }}
+                    {{ showApiKey.longcat ? '隐藏' : '显示' }}
                   </button>
                 </div>
                 <div class="flex items-center gap-2">
@@ -371,6 +420,7 @@
           :response="responses.deepseek"
           :think-response="thinkResponses.deepseek"
           :operation-status="operationStatus.deepseek"
+          :raw-url="rawUrlMap.deepseek"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDeepSeekOpen"
         />
@@ -386,6 +436,7 @@
           :response="responses.doubao"
           :think-response="thinkResponses.doubao"
           :operation-status="operationStatus.doubao"
+          :raw-url="rawUrlMap.doubao"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDoubaoOpen"
         />
@@ -401,6 +452,7 @@
           :response="responses.qianwen"
           :think-response="thinkResponses.qianwen"
           :operation-status="operationStatus.qianwen"
+          :raw-url="rawUrlMap.qianwen"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isQianwenOpen"
         />
@@ -410,12 +462,13 @@
           v-if="isLongcatEnabled"
           provider-id="longcat"
           provider-name="LongCat"
-          theme-color="purple"
+          theme-color="violet"
           :status="statusMap.longcat"
           :stage="stageMap.longcat"
           :response="responses.longcat"
           :think-response="thinkResponses.longcat"
           :operation-status="operationStatus.longcat"
+          :raw-url="rawUrlMap.longcat"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isLongcatOpen"
         />
@@ -478,6 +531,41 @@ import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
 import { MSG_TYPES } from '../shared/messages.js';
 import ProviderCollapse from './components/ProviderCollapse.vue';
 
+const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat'] as const;
+type ProviderId = typeof PROVIDER_IDS[number];
+type ProviderMode = 'web' | 'api';
+type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
+type StageType = 'connecting' | 'thinking' | 'responding';
+
+type SidepanelSettings = {
+  isDeepThinkingEnabled?: boolean;
+};
+
+type ApiConfig = {
+  mode?: ProviderMode;
+  apiKey?: string;
+  model?: string;
+  enabled?: boolean;
+};
+
+type ProviderHistoryEntry = {
+  enabled: boolean;
+  mode: ProviderMode;
+  status: ProviderStatus;
+  stage: StageType;
+  response: string;
+  thinkResponse: string;
+  operationStatus: string;
+  rawUrl: string;
+};
+
+type ChatHistoryItem = {
+  id: string;
+  question: string;
+  createdAt: number;
+  providers: Record<ProviderId, ProviderHistoryEntry>;
+};
+
 // UI 状态控制
 const inputStr = ref('');
 const currentQuestion = ref('');
@@ -487,16 +575,14 @@ const isDeepSeekEnabled = ref(false);
 const isDoubaoEnabled = ref(false);
 const isQianwenEnabled = ref(false);
 const isLongcatEnabled = ref(false);
-// 每个通道独立的折叠状态
 const isDeepSeekOpen = ref(true);
 const isDoubaoOpen = ref(true);
 const isQianwenOpen = ref(true);
 const isLongcatOpen = ref(true);
-// API配置相关状态
-const deepseekMode = ref<'web' | 'api'>('web');
-const doubaoMode = ref<'web' | 'api'>('web');
-const qianwenMode = ref<'web' | 'api'>('web');
-const longcatMode = ref<'web' | 'api'>('web');
+const deepseekMode = ref<ProviderMode>('web');
+const doubaoMode = ref<ProviderMode>('web');
+const qianwenMode = ref<ProviderMode>('web');
+const longcatMode = ref<ProviderMode>('web');
 const deepseekApiKey = ref('');
 const doubaoApiKey = ref('');
 const qianwenApiKey = ref('');
@@ -505,30 +591,296 @@ const deepseekModel = ref('');
 const doubaoModel = ref('');
 const qianwenModel = ref('');
 const longcatModel = ref('');
-// API Key测试状态
 const testingApiKey = ref<Record<string, boolean>>({});
 const apiKeyTestResult = ref<Record<string, { success: boolean; message: string }>>({});
-// 是否显示API Key
 const showApiKey = ref<Record<string, boolean>>({});
-// 是否展开高级设置
 const showAdvancedSettings = ref<Record<string, boolean>>({});
+const historyList = ref<ChatHistoryItem[]>([]);
+const isHistoryPanelOpen = ref(false);
+const activeSessionId = ref('');
+
+const statusMap: Record<ProviderId, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
+const responses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const stageMap: Record<ProviderId, StageType> = reactive({ deepseek: 'connecting', doubao: 'connecting', qianwen: 'connecting', longcat: 'connecting' });
+const fullTextBuffer: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const thinkTextBuffer: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const displayedLength: Record<ProviderId, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0, longcat: 0 });
+const thinkDisplayedLength: Record<ProviderId, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0, longcat: 0 });
+const thinkResponses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const operationStatus: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const rawUrlMap: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 
 const chatContainer = ref<HTMLElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 const API_CONFIG_KEY = 'aiclash.api.config';
-type SidepanelSettings = {
-  isDeepThinkingEnabled?: boolean;
-  // 通道开关状态不再持久化保存
-};
-type ApiConfig = {
-  mode?: 'web' | 'api';
-  apiKey?: string;
-  model?: string;
-  enabled?: boolean;
-};
+const HISTORY_STORAGE_KEY = 'aiclash.chat.history';
+const MAX_HISTORY_COUNT = 30;
+const CHARS_PER_FRAME = 8;
 
-// 查询provider是否有有效绑定的tab
+let streamAnimationId: number | null = null;
+let historyPersistTimer: number | null = null;
+let pendingRawUrlOverrides: Partial<Record<ProviderId, string>> = {};
+
+function createSessionId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function formatHistoryTime(timestamp: number) {
+  return new Date(timestamp).toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function getProviderLabel(providerId: string) {
+  return providerId === 'deepseek' ? 'DeepSeek'
+    : providerId === 'doubao' ? '豆包'
+    : providerId === 'qianwen' ? '千问'
+    : providerId === 'longcat' ? 'LongCat'
+    : providerId;
+}
+
+function getProviderMode(providerId: ProviderId): ProviderMode {
+  return providerId === 'deepseek' ? deepseekMode.value
+    : providerId === 'doubao' ? doubaoMode.value
+    : providerId === 'qianwen' ? qianwenMode.value
+    : longcatMode.value;
+}
+
+function isProviderEnabled(providerId: ProviderId) {
+  return providerId === 'deepseek' ? isDeepSeekEnabled.value
+    : providerId === 'doubao' ? isDoubaoEnabled.value
+    : providerId === 'qianwen' ? isQianwenEnabled.value
+    : isLongcatEnabled.value;
+}
+
+function setProviderEnabled(providerId: ProviderId, enabled: boolean) {
+  if (providerId === 'deepseek') isDeepSeekEnabled.value = enabled;
+  else if (providerId === 'doubao') isDoubaoEnabled.value = enabled;
+  else if (providerId === 'qianwen') isQianwenEnabled.value = enabled;
+  else isLongcatEnabled.value = enabled;
+}
+
+function setProviderOpen(providerId: ProviderId, open: boolean) {
+  if (providerId === 'deepseek') isDeepSeekOpen.value = open;
+  else if (providerId === 'doubao') isDoubaoOpen.value = open;
+  else if (providerId === 'qianwen') isQianwenOpen.value = open;
+  else isLongcatOpen.value = open;
+}
+
+function getEnabledProviderIds() {
+  return PROVIDER_IDS.filter((providerId) => isProviderEnabled(providerId));
+}
+
+function getHistoryEnabledCount(item: ChatHistoryItem) {
+  return PROVIDER_IDS.filter((providerId) => item.providers[providerId]?.enabled).length;
+}
+
+function createDefaultHistoryEntry(providerId: ProviderId): ProviderHistoryEntry {
+  return {
+    enabled: false,
+    mode: getProviderMode(providerId),
+    status: 'idle',
+    stage: 'connecting',
+    response: '',
+    thinkResponse: '',
+    operationStatus: '',
+    rawUrl: ''
+  };
+}
+
+function saveSettings() {
+  chrome.storage?.local.set({
+    [SETTINGS_KEY]: {
+      isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+    }
+  });
+}
+
+function saveHistory() {
+  chrome.storage?.local.set({
+    [HISTORY_STORAGE_KEY]: historyList.value.slice(0, MAX_HISTORY_COUNT)
+  });
+}
+
+function upsertHistoryItem(item: ChatHistoryItem) {
+  const nextList = historyList.value.filter((historyItem) => historyItem.id !== item.id);
+  nextList.unshift(item);
+  historyList.value = nextList.slice(0, MAX_HISTORY_COUNT);
+  saveHistory();
+}
+
+function buildHistoryProviders(rawUrlOverrides: Partial<Record<ProviderId, string>> = {}) {
+  return PROVIDER_IDS.reduce((acc, providerId) => {
+    acc[providerId] = {
+      enabled: isProviderEnabled(providerId),
+      mode: getProviderMode(providerId),
+      status: statusMap[providerId],
+      stage: stageMap[providerId],
+      response: responses[providerId],
+      thinkResponse: thinkResponses[providerId],
+      operationStatus: operationStatus[providerId],
+      rawUrl: rawUrlOverrides[providerId] ?? rawUrlMap[providerId] ?? ''
+    };
+    return acc;
+  }, {} as Record<ProviderId, ProviderHistoryEntry>);
+}
+
+async function persistCurrentSession(rawUrlOverrides: Partial<Record<ProviderId, string>> = {}) {
+  if (!activeSessionId.value || !hasAsked.value || !currentQuestion.value.trim()) return;
+
+  const existing = historyList.value.find((item) => item.id === activeSessionId.value);
+  const mergedRawUrlOverrides = { ...pendingRawUrlOverrides, ...rawUrlOverrides };
+  pendingRawUrlOverrides = {};
+
+  upsertHistoryItem({
+    id: activeSessionId.value,
+    question: currentQuestion.value,
+    createdAt: existing?.createdAt ?? Date.now(),
+    providers: buildHistoryProviders(mergedRawUrlOverrides)
+  });
+}
+
+function schedulePersistCurrentSession(delay = 120, rawUrlOverrides: Partial<Record<ProviderId, string>> = {}) {
+  pendingRawUrlOverrides = { ...pendingRawUrlOverrides, ...rawUrlOverrides };
+  if (historyPersistTimer != null) window.clearTimeout(historyPersistTimer);
+  historyPersistTimer = window.setTimeout(() => {
+    historyPersistTimer = null;
+    void persistCurrentSession();
+  }, delay);
+}
+
+async function fetchProviderRawUrls(providerIds: ProviderId[]) {
+  if (!providerIds.length) return {} as Partial<Record<ProviderId, string>>;
+  try {
+    const result = await chrome.runtime?.sendMessage({
+      type: MSG_TYPES.GET_PROVIDER_RAW_URLS,
+      payload: { providerIds }
+    });
+    return (result?.urlMap || {}) as Partial<Record<ProviderId, string>>;
+  } catch {
+    return {} as Partial<Record<ProviderId, string>>;
+  }
+}
+
+async function syncProviderRawUrls(providerIds: ProviderId[]) {
+  if (!providerIds.length) return;
+
+  const apiOverrides = providerIds.reduce((acc, providerId) => {
+    if (getProviderMode(providerId) === 'api') acc[providerId] = 'api';
+    return acc;
+  }, {} as Partial<Record<ProviderId, string>>);
+
+  const webProviderIds = providerIds.filter((providerId) => getProviderMode(providerId) === 'web');
+  const webUrls = await fetchProviderRawUrls(webProviderIds);
+  const mergedUrls = { ...apiOverrides, ...webUrls };
+
+  for (const providerId of providerIds) {
+    rawUrlMap[providerId] = mergedUrls[providerId] ?? apiOverrides[providerId] ?? rawUrlMap[providerId] ?? '';
+  }
+
+  schedulePersistCurrentSession(0, mergedUrls);
+}
+
+function resetRawUrlMap() {
+  for (const providerId of PROVIDER_IDS) {
+    rawUrlMap[providerId] = '';
+  }
+}
+
+function clearThinkBuffers() {
+  for (const providerId of PROVIDER_IDS) {
+    thinkResponses[providerId] = '';
+    thinkTextBuffer[providerId] = '';
+    thinkDisplayedLength[providerId] = 0;
+  }
+}
+
+function resetTaskState() {
+  for (const providerId of PROVIDER_IDS) {
+    statusMap[providerId] = 'idle';
+    stageMap[providerId] = 'connecting';
+    responses[providerId] = '';
+    thinkResponses[providerId] = '';
+    fullTextBuffer[providerId] = '';
+    thinkTextBuffer[providerId] = '';
+    displayedLength[providerId] = 0;
+    thinkDisplayedLength[providerId] = 0;
+    operationStatus[providerId] = '';
+    rawUrlMap[providerId] = '';
+  }
+
+  if (streamAnimationId != null) {
+    cancelAnimationFrame(streamAnimationId);
+    streamAnimationId = null;
+  }
+}
+
+function applyHistorySession(item: ChatHistoryItem) {
+  activeSessionId.value = item.id;
+  currentQuestion.value = item.question;
+  hasAsked.value = true;
+  isHistoryPanelOpen.value = false;
+
+  if (streamAnimationId != null) {
+    cancelAnimationFrame(streamAnimationId);
+    streamAnimationId = null;
+  }
+
+  for (const providerId of PROVIDER_IDS) {
+    const providerState = item.providers[providerId] || createDefaultHistoryEntry(providerId);
+    setProviderEnabled(providerId, providerState.enabled);
+    setProviderOpen(providerId, providerState.enabled);
+    statusMap[providerId] = providerState.status;
+    stageMap[providerId] = providerState.stage;
+    responses[providerId] = providerState.response;
+    thinkResponses[providerId] = providerState.thinkResponse;
+    fullTextBuffer[providerId] = providerState.response;
+    thinkTextBuffer[providerId] = providerState.thinkResponse;
+    displayedLength[providerId] = providerState.response.length;
+    thinkDisplayedLength[providerId] = providerState.thinkResponse.length;
+    operationStatus[providerId] = providerState.operationStatus;
+    rawUrlMap[providerId] = providerState.rawUrl;
+  }
+
+  void scrollToBottom();
+}
+
+function restoreHistorySession(item: ChatHistoryItem) {
+  applyHistorySession(item);
+}
+
+function loadHistory() {
+  chrome.storage?.local.get([HISTORY_STORAGE_KEY], (result) => {
+    const savedHistory = Array.isArray(result?.[HISTORY_STORAGE_KEY]) ? result[HISTORY_STORAGE_KEY] : [];
+    historyList.value = savedHistory
+      .map((item: Partial<ChatHistoryItem>) => {
+        const providers = PROVIDER_IDS.reduce((acc, providerId) => {
+          acc[providerId] = {
+            ...createDefaultHistoryEntry(providerId),
+            ...(item.providers?.[providerId] || {})
+          };
+          return acc;
+        }, {} as Record<ProviderId, ProviderHistoryEntry>);
+
+        return {
+          id: item.id || createSessionId(),
+          question: item.question || '',
+          createdAt: item.createdAt || Date.now(),
+          providers
+        };
+      })
+      .filter((item: ChatHistoryItem) => item.question.trim())
+      .sort((a: ChatHistoryItem, b: ChatHistoryItem) => b.createdAt - a.createdAt)
+      .slice(0, MAX_HISTORY_COUNT);
+  });
+}
+
 async function checkProviderTabValid(providerId: string) {
   try {
     const result = await chrome.runtime?.sendMessage({
@@ -536,23 +888,20 @@ async function checkProviderTabValid(providerId: string) {
       payload: { providerId }
     });
     return result?.valid ?? false;
-  } catch (err) {
+  } catch {
     return false;
   }
 }
 
 function loadSettings() {
-  // 加载基础设置
   chrome.storage?.local.get([SETTINGS_KEY, API_CONFIG_KEY], async (result) => {
     const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
     isDeepThinkingEnabled.value = saved.isDeepThinkingEnabled ?? true;
-    // 通道开关状态不持久化，每次打开都默认关闭
     isDeepSeekEnabled.value = false;
     isDoubaoEnabled.value = false;
     isQianwenEnabled.value = false;
     isLongcatEnabled.value = false;
 
-    // 检测是否有已绑定的有效Tab，有则自动开启对应通道
     const [deepseekValid, doubaoValid, qianwenValid, longcatValid] = await Promise.all([
       checkProviderTabValid('deepseek'),
       checkProviderTabValid('doubao'),
@@ -565,7 +914,6 @@ function loadSettings() {
     isQianwenEnabled.value = qianwenValid;
     isLongcatEnabled.value = longcatValid;
 
-    // 加载API配置
     const apiConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
     deepseekMode.value = apiConfig.deepseek?.mode || 'web';
     doubaoMode.value = apiConfig.doubao?.mode || 'web';
@@ -582,16 +930,6 @@ function loadSettings() {
   });
 }
 
-function saveSettings() {
-  // 只保存深度思考设置，不保存通道开关状态，每次打开侧边栏都需要手动开启
-  chrome.storage?.local.set({
-    [SETTINGS_KEY]: {
-      isDeepThinkingEnabled: isDeepThinkingEnabled.value,
-    }
-  });
-}
-
-// 保存API配置
 function saveApiConfig(providerId: string, config: ApiConfig) {
   chrome.storage?.local.get([API_CONFIG_KEY], (result) => {
     const existingConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
@@ -606,7 +944,6 @@ function saveApiConfig(providerId: string, config: ApiConfig) {
   });
 }
 
-// 测试API Key
 async function testApiKey(providerId: string, apiKey: string) {
   testingApiKey.value[providerId] = true;
   try {
@@ -614,15 +951,17 @@ async function testApiKey(providerId: string, apiKey: string) {
       type: MSG_TYPES.TEST_API_KEY,
       payload: { providerId, apiKey }
     });
-    apiKeyTestResult.value[providerId] = result;
-  } catch (err) {
+    apiKeyTestResult.value[providerId] = {
+      success: !!result?.success,
+      message: result?.message || result?.error || '请求失败'
+    };
+  } catch {
     apiKeyTestResult.value[providerId] = { success: false, message: '请求失败' };
   } finally {
     testingApiKey.value[providerId] = false;
   }
 }
 
-// 打开或激活provider对应的tab
 async function handleGoToProvider(providerId: string, activate: boolean = true) {
   try {
     const result = await chrome.runtime?.sendMessage({
@@ -636,16 +975,13 @@ async function handleGoToProvider(providerId: string, activate: boolean = true) 
   }
 }
 
-// 处理provider开关切换
 async function handleToggleProvider(providerId: string) {
-  // 获取当前状态
-  const currentState =
-    providerId === 'deepseek' ? isDeepSeekEnabled.value :
-    providerId === 'doubao' ? isDoubaoEnabled.value :
-    providerId === 'qianwen' ? isQianwenEnabled.value :
-    providerId === 'longcat' ? isLongcatEnabled.value : false;
+  const currentState = providerId === 'deepseek' ? isDeepSeekEnabled.value
+    : providerId === 'doubao' ? isDoubaoEnabled.value
+    : providerId === 'qianwen' ? isQianwenEnabled.value
+    : providerId === 'longcat' ? isLongcatEnabled.value
+    : false;
 
-  // 如果是关闭操作，直接关闭即可
   if (currentState) {
     if (providerId === 'deepseek') isDeepSeekEnabled.value = false;
     else if (providerId === 'doubao') isDoubaoEnabled.value = false;
@@ -654,14 +990,12 @@ async function handleToggleProvider(providerId: string) {
     return;
   }
 
-  // 如果是开启操作，先判断模式
-  const mode =
-    providerId === 'deepseek' ? deepseekMode.value :
-    providerId === 'doubao' ? doubaoMode.value :
-    providerId === 'qianwen' ? qianwenMode.value :
-    providerId === 'longcat' ? longcatMode.value : 'web';
+  const mode = providerId === 'deepseek' ? deepseekMode.value
+    : providerId === 'doubao' ? doubaoMode.value
+    : providerId === 'qianwen' ? qianwenMode.value
+    : providerId === 'longcat' ? longcatMode.value
+    : 'web';
 
-  // API模式直接开启
   if (mode === 'api') {
     if (providerId === 'deepseek') isDeepSeekEnabled.value = true;
     else if (providerId === 'doubao') isDoubaoEnabled.value = true;
@@ -670,17 +1004,14 @@ async function handleToggleProvider(providerId: string) {
     return;
   }
 
-  // Web模式需要先确保Tab创建成功
   try {
-    const result = await handleGoToProvider(providerId, false); // 开启通道时不激活Tab
+    const result = await handleGoToProvider(providerId, false);
     if (result?.success) {
-      // Tab创建成功，开启开关
       if (providerId === 'deepseek') isDeepSeekEnabled.value = true;
       else if (providerId === 'doubao') isDoubaoEnabled.value = true;
       else if (providerId === 'qianwen') isQianwenEnabled.value = true;
       else if (providerId === 'longcat') isLongcatEnabled.value = true;
     } else {
-      // Tab创建失败，提示用户
       window.alert(`开启${providerId}失败：${result?.error || '无法创建页面'}`);
     }
   } catch (err) {
@@ -688,48 +1019,30 @@ async function handleToggleProvider(providerId: string) {
   }
 }
 
-// 业务数据控制
-type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
-type StageType = 'connecting' | 'thinking' | 'responding';
-
-const statusMap: Record<string, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
-const responses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
-// 操作阶段（在正式内容出现前展示，降低等待焦躁感）
-const stageMap: Record<string, StageType> = reactive({ deepseek: 'connecting', doubao: 'connecting', qianwen: 'connecting', longcat: 'connecting' });
-const fullTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
-const thinkTextBuffer: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
-const displayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0, longcat: 0 });
-const thinkDisplayedLength: Record<string, number> = reactive({ deepseek: 0, doubao: 0, qianwen: 0, longcat: 0 });
-const thinkResponses: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
-// 当前操作状态（显示在标题旁，如"正在定位输入框..."）
-const operationStatus: Record<string, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
-let streamAnimationId: number | null = null;
-const CHARS_PER_FRAME = 8;
-
-
 function tickStreamDisplay() {
   let anyPending = false;
-  for (const provider of Object.keys(fullTextBuffer)) {
-    // think buffer
-    const thinkFull = thinkTextBuffer[provider] || '';
-    let tLen = thinkDisplayedLength[provider] || 0;
-    if (tLen < thinkFull.length) {
-      tLen = Math.min(tLen + CHARS_PER_FRAME, thinkFull.length);
-      thinkDisplayedLength[provider] = tLen;
-      thinkResponses[provider] = thinkFull.slice(0, tLen);
+
+  for (const providerId of PROVIDER_IDS) {
+    const thinkFull = thinkTextBuffer[providerId] || '';
+    let thinkLength = thinkDisplayedLength[providerId] || 0;
+    if (thinkLength < thinkFull.length) {
+      thinkLength = Math.min(thinkLength + CHARS_PER_FRAME, thinkFull.length);
+      thinkDisplayedLength[providerId] = thinkLength;
+      thinkResponses[providerId] = thinkFull.slice(0, thinkLength);
       anyPending = true;
     }
-    // response buffer
-    const full = fullTextBuffer[provider] || '';
-    let len = displayedLength[provider] || 0;
-    if (len < full.length) {
-      len = Math.min(len + CHARS_PER_FRAME, full.length);
-      displayedLength[provider] = len;
-      responses[provider] = full.slice(0, len);
+
+    const full = fullTextBuffer[providerId] || '';
+    let responseLength = displayedLength[providerId] || 0;
+    if (responseLength < full.length) {
+      responseLength = Math.min(responseLength + CHARS_PER_FRAME, full.length);
+      displayedLength[providerId] = responseLength;
+      responses[providerId] = full.slice(0, responseLength);
       anyPending = true;
     }
   }
-  scrollToBottom();
+
+  void scrollToBottom();
   if (anyPending) {
     streamAnimationId = requestAnimationFrame(tickStreamDisplay);
   } else {
@@ -737,10 +1050,8 @@ function tickStreamDisplay() {
   }
 }
 
-// 计算是否有任何模型还在运行
 const isRunning = computed(() => Object.values(statusMap).includes('running'));
 
-// 自动滚动到底部
 const scrollToBottom = async () => {
   await nextTick();
   if (chatContainer.value) {
@@ -748,31 +1059,31 @@ const scrollToBottom = async () => {
   }
 };
 
-// 监听流式数据
 onMounted(() => {
   loadSettings();
+  loadHistory();
 
   chrome.runtime?.onMessage.addListener((request) => {
     const { provider } = request.payload || {};
 
     if (request.type === MSG_TYPES.CHUNK_RECEIVED) {
       const payload = request.payload;
-      const prov = provider;
-      
-      // 如果这是操作状态信息，覆盖更新操作状态（不累积）
+      const prov = provider as ProviderId;
+      if (!prov) return;
+
       if (payload.isStatus) {
         operationStatus[prov] = payload.text;
+        schedulePersistCurrentSession();
         return;
       }
-      
-      // 阶段立即更新，便于马上看到「已连接·正在思考」等
+
       if (payload.stage && (payload.stage !== 'thinking' || isDeepThinkingEnabled.value)) {
         stageMap[prov] = payload.stage;
+      } else if (payload.text && payload.text.length > 0) {
+        stageMap[prov] = 'responding';
       }
-      else if (payload.text && payload.text.length > 0) stageMap[prov] = 'responding';
-      // 缓冲与动画放到下一宏任务，避免大量 chunk 同帧只渲染最后一帧
+
       setTimeout(() => {
-        // 根据 isThink 标志分别追加到思考缓冲或回复缓冲
         if (payload.isThink) {
           if (!isDeepThinkingEnabled.value) return;
           thinkTextBuffer[prov] = (thinkTextBuffer[prov] || '') + payload.text;
@@ -780,20 +1091,26 @@ onMounted(() => {
           fullTextBuffer[prov] = (fullTextBuffer[prov] || '') + payload.text;
         }
         if (streamAnimationId == null) streamAnimationId = requestAnimationFrame(tickStreamDisplay);
+        schedulePersistCurrentSession();
       }, 0);
-    }
-    else if (request.type === MSG_TYPES.TASK_COMPLETED) {
-      statusMap[provider] = 'completed';
-      operationStatus[provider] = ''; // 任务完成后清空操作状态
-      if (provider === 'deepseek' && !(responses.deepseek || '').trim()) {
+    } else if (request.type === MSG_TYPES.TASK_STATUS_UPDATE) {
+      const payload = request.payload;
+      const prov = provider as ProviderId;
+      if (!prov) return;
+      statusMap[prov] = 'running';
+      operationStatus[prov] = payload.text || '';
+      schedulePersistCurrentSession();
+    } else if (request.type === MSG_TYPES.TASK_COMPLETED) {
+      const prov = provider as ProviderId;
+      if (!prov) return;
+      statusMap[prov] = 'completed';
+      operationStatus[prov] = '';
+      if (prov === 'deepseek' && !(responses.deepseek || '').trim()) {
         responses.deepseek = '（网页端已结束，但未抓取到流式内容，可能接口格式已变更）';
       }
-      // 不在这里强制补全全文，让打字机动画自然播完，保持流式观感
-      if (streamAnimationId != null) {
-        // 动画会在 displayedLength 追上 full 时自行停止，不取消
-      }
+      void syncProviderRawUrls([prov]);
+      schedulePersistCurrentSession();
       if (!isRunning.value) {
-        // 所有任务完成后，1.5秒后折叠所有通道面板（和原行为保持一致）
         setTimeout(() => {
           isDeepSeekOpen.value = false;
           isDoubaoOpen.value = false;
@@ -801,131 +1118,61 @@ onMounted(() => {
           isLongcatOpen.value = false;
         }, 1500);
       }
-    }
-    else if (request.type === MSG_TYPES.ERROR) {
-      statusMap[provider] = 'error';
-      operationStatus[provider] = ''; // 错误时清空操作状态
-      responses[provider] = `[系统报错] ${request.payload.message}`;
+    } else if (request.type === MSG_TYPES.ERROR) {
+      const prov = provider as ProviderId;
+      if (!prov) return;
+      statusMap[prov] = 'error';
+      operationStatus[prov] = '';
+      const message = request.payload.message || request.payload.error || '未知错误';
+      responses[prov] = `[系统报错] ${message}`;
+      fullTextBuffer[prov] = responses[prov];
+      displayedLength[prov] = responses[prov].length;
+      void syncProviderRawUrls([prov]);
+      schedulePersistCurrentSession();
     }
   });
 });
 
-// 新建对话
 const createNewChat = () => {
   if (isRunning.value) return;
 
   currentQuestion.value = '';
   hasAsked.value = false;
-  // 新建对话时展开所有启用的通道面板
+  activeSessionId.value = '';
+  isHistoryPanelOpen.value = false;
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
   isLongcatOpen.value = isLongcatEnabled.value;
-
-  // 重置所有状态
-  statusMap.deepseek = 'idle';
-  statusMap.doubao = 'idle';
-  statusMap.qianwen = 'idle';
-  statusMap.longcat = 'idle';
-  stageMap.deepseek = 'connecting';
-  stageMap.doubao = 'connecting';
-  stageMap.qianwen = 'connecting';
-  stageMap.longcat = 'connecting';
-  responses.deepseek = '';
-  responses.doubao = '';
-  responses.qianwen = '';
-  responses.longcat = '';
-  thinkResponses.deepseek = '';
-  thinkResponses.doubao = '';
-  thinkResponses.qianwen = '';
-  thinkResponses.longcat = '';
-  fullTextBuffer.deepseek = '';
-  fullTextBuffer.doubao = '';
-  fullTextBuffer.qianwen = '';
-  fullTextBuffer.longcat = '';
-  thinkTextBuffer.deepseek = '';
-  thinkTextBuffer.doubao = '';
-  thinkTextBuffer.qianwen = '';
-  thinkTextBuffer.longcat = '';
-  displayedLength.deepseek = 0;
-  displayedLength.doubao = 0;
-  displayedLength.qianwen = 0;
-  displayedLength.longcat = 0;
-  thinkDisplayedLength.deepseek = 0;
-  thinkDisplayedLength.doubao = 0;
-  thinkDisplayedLength.qianwen = 0;
-  thinkDisplayedLength.longcat = 0;
-  operationStatus.deepseek = '';
-  operationStatus.doubao = '';
-  operationStatus.qianwen = '';
-  operationStatus.longcat = '';
-  if (streamAnimationId != null) {
-    cancelAnimationFrame(streamAnimationId);
-    streamAnimationId = null;
-  }
-
+  resetTaskState();
   inputStr.value = '';
-  // 恢复输入框高度
   if (textareaRef.value) textareaRef.value.style.height = 'auto';
 };
 
-// 提交问题
 const submit = () => {
-  if (!inputStr.value.trim() || isRunning.value) return;
+  const prompt = inputStr.value.trim();
+  if (!prompt || isRunning.value) return;
   if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value && !isQianwenEnabled.value && !isLongcatEnabled.value) {
     window.alert('请在设置中至少开启一个通道。');
     return;
   }
 
-  currentQuestion.value = inputStr.value;
+  currentQuestion.value = prompt;
   hasAsked.value = true;
-  // 发送新问题时，强行展开所有启用的通道面板让用户看到正在拉取
+  activeSessionId.value = createSessionId();
+  isHistoryPanelOpen.value = false;
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
   isLongcatOpen.value = isLongcatEnabled.value;
+  resetTaskState();
 
-  // 重置状态
-  statusMap.deepseek = 'idle';
-  statusMap.doubao = 'idle';
-  statusMap.qianwen = 'idle';
-  statusMap.longcat = 'idle';
-  stageMap.deepseek = 'connecting';
-  stageMap.doubao = 'connecting';
-  stageMap.qianwen = 'connecting';
-  stageMap.longcat = 'connecting';
-  responses.deepseek = '';
-  responses.doubao = '';
-  responses.qianwen = '';
-  responses.longcat = '';
-  thinkResponses.deepseek = '';
-  thinkResponses.doubao = '';
-  thinkResponses.qianwen = '';
-  thinkResponses.longcat = '';
-  fullTextBuffer.deepseek = '';
-  fullTextBuffer.doubao = '';
-  fullTextBuffer.qianwen = '';
-  fullTextBuffer.longcat = '';
-  thinkTextBuffer.deepseek = '';
-  thinkTextBuffer.doubao = '';
-  thinkTextBuffer.qianwen = '';
-  thinkTextBuffer.longcat = '';
-  displayedLength.deepseek = 0;
-  displayedLength.doubao = 0;
-  displayedLength.qianwen = 0;
-  displayedLength.longcat = 0;
-  thinkDisplayedLength.deepseek = 0;
-  thinkDisplayedLength.doubao = 0;
-  thinkDisplayedLength.qianwen = 0;
-  thinkDisplayedLength.longcat = 0;
-  operationStatus.deepseek = '';
-  operationStatus.doubao = '';
-  operationStatus.qianwen = '';
-  operationStatus.longcat = '';
-  if (streamAnimationId != null) {
-    cancelAnimationFrame(streamAnimationId);
-    streamAnimationId = null;
+  for (const providerId of getEnabledProviderIds()) {
+    rawUrlMap[providerId] = getProviderMode(providerId) === 'api' ? 'api' : '';
   }
+
+  schedulePersistCurrentSession(0);
+  void syncProviderRawUrls(getEnabledProviderIds());
 
   if (isDeepSeekEnabled.value) {
     statusMap.deepseek = 'running';
@@ -933,7 +1180,7 @@ const submit = () => {
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
         provider: 'deepseek',
-        prompt: inputStr.value.trim(),
+        prompt,
         mode: deepseekMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
@@ -948,7 +1195,7 @@ const submit = () => {
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
         provider: 'doubao',
-        prompt: inputStr.value.trim(),
+        prompt,
         mode: doubaoMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
@@ -963,7 +1210,7 @@ const submit = () => {
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
         provider: 'qianwen',
-        prompt: inputStr.value.trim(),
+        prompt,
         mode: qianwenMode.value,
         settings: {}
       }
@@ -976,7 +1223,7 @@ const submit = () => {
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
         provider: 'longcat',
-        prompt: inputStr.value.trim(),
+        prompt,
         mode: longcatMode.value,
         settings: {}
       }
@@ -984,99 +1231,75 @@ const submit = () => {
   }
 
   inputStr.value = '';
-  // 恢复输入框高度
   if (textareaRef.value) textareaRef.value.style.height = 'auto';
 };
 
-// 输入框自适应高度
 const autoResize = (e: Event) => {
   const el = e.target as HTMLTextAreaElement;
   el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 128) + 'px'; // 最大 128px
+  el.style.height = Math.min(el.scrollHeight, 128) + 'px';
 };
 
 watch(isDeepThinkingEnabled, (enabled) => {
   if (!enabled) {
-    thinkResponses.deepseek = '';
-    thinkTextBuffer.deepseek = '';
-    thinkDisplayedLength.deepseek = 0;
+    clearThinkBuffers();
+    schedulePersistCurrentSession();
   }
   saveSettings();
 });
 
-// 通道开关状态不再持久化，不需要监听保存
-
-// API配置变化监听
 watch(deepseekMode, async (value) => {
   saveApiConfig('deepseek', { mode: value });
-  // 如果切换到web模式且通道已经开启，需要确保Tab存在
   if (value === 'web' && isDeepSeekEnabled.value) {
-    const result = await handleGoToProvider('deepseek', false); // 切换模式时不激活Tab
+    const result = await handleGoToProvider('deepseek', false);
     if (!result?.success) {
       isDeepSeekEnabled.value = false;
-      window.alert(`DeepSeek切换到网页模式失败：${result?.error || '无法创建页面'}`);
+      window.alert(`${getProviderLabel('deepseek')}切换到网页模式失败：${result?.error || '无法创建页面'}`);
     }
   }
 });
+
 watch(doubaoMode, async (value) => {
   saveApiConfig('doubao', { mode: value });
-  // 如果切换到web模式且通道已经开启，需要确保Tab存在
   if (value === 'web' && isDoubaoEnabled.value) {
-    const result = await handleGoToProvider('doubao', false); // 切换模式时不激活Tab
+    const result = await handleGoToProvider('doubao', false);
     if (!result?.success) {
       isDoubaoEnabled.value = false;
       window.alert(`豆包切换到网页模式失败：${result?.error || '无法创建页面'}`);
     }
   }
 });
+
 watch(qianwenMode, async (value) => {
   saveApiConfig('qianwen', { mode: value });
-  // 如果切换到web模式且通道已经开启，需要确保Tab存在
   if (value === 'web' && isQianwenEnabled.value) {
-    const result = await handleGoToProvider('qianwen', false); // 切换模式时不激活Tab
+    const result = await handleGoToProvider('qianwen', false);
     if (!result?.success) {
       isQianwenEnabled.value = false;
       window.alert(`千问切换到网页模式失败：${result?.error || '无法创建页面'}`);
     }
   }
 });
+
 watch(longcatMode, async (value) => {
   saveApiConfig('longcat', { mode: value });
-  // 如果切换到web模式且通道已经开启，需要确保Tab存在
   if (value === 'web' && isLongcatEnabled.value) {
-    const result = await handleGoToProvider('longcat', false); // 切换模式时不激活Tab
+    const result = await handleGoToProvider('longcat', false);
     if (!result?.success) {
       isLongcatEnabled.value = false;
-      window.alert(`LongCat切换到网页模式失败：${result?.error || '无法创建页面'}`);
+      window.alert(`${getProviderLabel('longcat')}切换到网页模式失败：${result?.error || '无法创建页面'}`);
     }
   }
 });
 
-watch(deepseekApiKey, (value) => {
-  saveApiConfig('deepseek', { apiKey: value });
-});
-watch(doubaoApiKey, (value) => {
-  saveApiConfig('doubao', { apiKey: value });
-});
-watch(qianwenApiKey, (value) => {
-  saveApiConfig('qianwen', { apiKey: value });
-});
-watch(longcatApiKey, (value) => {
-  saveApiConfig('longcat', { apiKey: value });
-});
-
-watch(deepseekModel, (value) => {
-  saveApiConfig('deepseek', { model: value });
-});
-watch(doubaoModel, (value) => {
-  saveApiConfig('doubao', { model: value });
-});
-watch(qianwenModel, (value) => {
-  saveApiConfig('qianwen', { model: value });
-});
-watch(longcatModel, (value) => {
-  saveApiConfig('longcat', { model: value });
-});
+watch(deepseekApiKey, (value) => saveApiConfig('deepseek', { apiKey: value }));
+watch(doubaoApiKey, (value) => saveApiConfig('doubao', { apiKey: value }));
+watch(qianwenApiKey, (value) => saveApiConfig('qianwen', { apiKey: value }));
+watch(longcatApiKey, (value) => saveApiConfig('longcat', { apiKey: value }));
+watch(deepseekModel, (value) => saveApiConfig('deepseek', { model: value }));
+watch(doubaoModel, (value) => saveApiConfig('doubao', { model: value }));
+watch(qianwenModel, (value) => saveApiConfig('qianwen', { model: value }));
+watch(longcatModel, (value) => saveApiConfig('longcat', { model: value }));
 </script>
 
 <style scoped>

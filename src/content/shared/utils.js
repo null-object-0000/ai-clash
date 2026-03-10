@@ -59,12 +59,20 @@ export async function waitForAnyElement(selectors, timeout = 8000) {
 // ============================================================================
 
 export function createDomObserverContext() {
-  return { hookDataReceived: false, observer: null, timer: null, lastObservedText: '' };
+  return {
+    hookDataReceived: false,
+    observer: null,
+    timer: null,
+    timeoutId: null,
+    runId: 0,
+    lastObservedText: ''
+  };
 }
 
 export function stopDomObserver(ctx) {
   if (ctx.observer) { ctx.observer.disconnect(); ctx.observer = null; }
   if (ctx.timer) { clearInterval(ctx.timer); ctx.timer = null; }
+  if (ctx.timeoutId) { clearTimeout(ctx.timeoutId); ctx.timeoutId = null; }
   ctx.lastObservedText = '';
 }
 
@@ -80,6 +88,8 @@ export function startDomObserver(
   pollFn,
 ) {
   stopDomObserver(ctx);
+  ctx.runId += 1;
+  const currentRunId = ctx.runId;
   ctx.hookDataReceived = false;
   ctx.lastObservedText = '';
 
@@ -102,8 +112,8 @@ export function startDomObserver(
   ctx.timer = setInterval(doPoll, 200);
 
   // 超时保护
-  setTimeout(() => {
-    if (ctx.observer) {
+  ctx.timeoutId = setTimeout(() => {
+    if (ctx.runId === currentRunId && ctx.observer) {
       console.log(`[AIClash ${provider}] DOM 观测超时，自动停止`);
       stopDomObserver(ctx);
       // 超时后通知后台任务结束

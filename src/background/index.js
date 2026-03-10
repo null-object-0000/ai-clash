@@ -58,6 +58,16 @@ async function saveApiConfig(config) {
   });
 }
 
+function sendProviderError(providerId, message) {
+  chrome.runtime.sendMessage({
+    type: MSG_TYPES.ERROR,
+    payload: {
+      provider: providerId,
+      message,
+    }
+  });
+}
+
 // 处理API模式请求
 async function handleApiRequest(provider, prompt, settings = {}) {
   const apiConfig = provider.apiConfig;
@@ -160,13 +170,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
 
   } catch (error) {
     clearTimeout(timeoutId);
-    chrome.runtime.sendMessage({
-      type: MSG_TYPES.ERROR,
-      payload: {
-        provider: provider.id,
-        error: error.message || 'API请求失败'
-      }
-    });
+    sendProviderError(provider.id, error.message || 'API请求失败');
   }
 }
 
@@ -204,8 +208,8 @@ async function testApiKey(providerId, apiKey) {
     }
 
     // 快速读取一下响应头就关闭，不用等完整响应
-    reader = response.body.getReader();
-    reader.cancel();
+    const reader = response.body?.getReader();
+    await reader?.cancel();
 
     return { success: true, message: 'API Key有效' };
 
@@ -272,22 +276,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { provider: providerId, prompt, settings, mode } = request.payload;
         const provider = getProvider(providerId);
         if (provider) {
-            // 如果指定了API模式，或者用户配置为API模式
-            if (mode === 'api' || (provider.apiConfig?.enabled && !mode)) {
-                // 先加载用户配置确认模式
-                loadApiConfig().then(userConfig => {
-                    const providerConfig = userConfig[providerId] || {};
-                    if (providerConfig.mode === 'api' && providerConfig.apiKey) {
-                        handleApiRequest(provider, prompt, settings);
-                    } else {
-                        // 默认走Web模式
-                        routeToTab(provider, prompt, settings);
+            loadApiConfig().then(userConfig => {
+                const providerConfig = userConfig[providerId] || {};
+                const effectiveMode = mode ?? providerConfig.mode ?? 'web';
+
+                if (effectiveMode === 'api') {
+                    if (!provider.apiConfig?.enabled) {
+                        sendProviderError(provider.id, `${provider.name} 暂不支持API模式`);
+                        return;
                     }
-                });
-            } else {
-                // 走Web模式
+
+                    if (!providerConfig.apiKey) {
+                        sendProviderError(provider.id, `请先配置 ${provider.name} 的API Key`);
+                        return;
+                    }
+
+                    handleApiRequest(provider, prompt, settings).catch((error) => {
+                        sendProviderError(provider.id, error.message || 'API请求失败');
+                    });
+                    return;
+                }
+
                 routeToTab(provider, prompt, settings);
-            }
+            }).catch((error) => {
+                sendProviderError(providerId, error.message || '任务派发失败');
+            });
         }
         sendResponse({ status: 'routed' });
         return true;
@@ -362,6 +375,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.type === MSG_TYPES.GET_PROVIDER_RAW_URLS) {
+        const providerIds = request.payload?.providerIds || [];
+        getProviderRawUrls(providerIds).then((urlMap) => {
+            sendResponse({ success: true, urlMap });
+        }).catch((err) => {
+            sendResponse({ success: false, error: err.message, urlMap: {} });
+        });
+        return true;
+    }
+
     return false;
 });
 
@@ -397,23 +420,55 @@ async function isTabValid(tabId, provider) {
     }
 }
 
+async function getProviderRawUrls(providerIds = []) {
+    const urlMap = {};
+    const targetProviderIds = providerIds.length ? providerIds : Object.keys(providerTabMap);
+
+    for (const providerId of targetProviderIds) {
+        const provider = getProvider(providerId);
+        if (!provider) {
+            urlMap[providerId] = '';
+            continue;
+        }
+
+        const tabId = providerTabMap[providerId];
+        if (!tabId) {
+            urlMap[providerId] = '';
+            continue;
+        }
+
+        try {
+            const tab = await chrome.tabs.get(tabId);
+            urlMap[providerId] = tab.url || '';
+        } catch {
+            urlMap[providerId] = '';
+        }
+    }
+
+    return urlMap;
+}
+
 // 等待页面准备就绪的辅助函数
 async function waitForPageReady(tabId, provider, maxWaitTime = 30000) {
     const startTime = Date.now();
     const checkInterval = 500; // 每500ms检查一次
+    const pageReadySelectors = provider.id === 'longcat'
+        ? ['.tiptap.ProseMirror', '[contenteditable="true"]', 'textarea', 'input[type="text"]']
+        : ['textarea', 'input[type="text"]', '[contenteditable="true"]'];
 
     while (Date.now() - startTime < maxWaitTime) {
         try {
             // 检查页面是否加载完成，并且content script已经就绪
             const result = await chrome.scripting.executeScript({
                 target: { tabId },
-                func: () => {
+                func: (selectors) => {
                     // 检查页面是否已经加载完成
                     if (document.readyState !== 'complete') return false;
                     // 检查是否有我们的content script注入的标记，或者页面关键元素存在
                     return !!window.__aiclash_content_script_ready ||
-                           document.querySelector('textarea, input[type="text"]') !== null;
-                }
+                           selectors.some((selector) => document.querySelector(selector) !== null);
+                },
+                args: [pageReadySelectors],
             });
 
             if (result?.[0]?.result) {
@@ -498,13 +553,7 @@ async function routeToTab(provider, prompt, settings) {
 
         } catch (error) {
             // 发送错误消息
-            chrome.runtime.sendMessage({
-                type: MSG_TYPES.ERROR,
-                payload: {
-                    provider: provider.id,
-                    error: error.message || `打开${provider.name}页面失败`
-                }
-            });
+            sendProviderError(provider.id, error.message || `打开${provider.name}页面失败`);
         }
     });
 }

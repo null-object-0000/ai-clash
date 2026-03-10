@@ -9,10 +9,12 @@ export const MSG_TYPES = {
     TEST_API_KEY: 'TEST_API_KEY',
     OPEN_PROVIDER_TAB: 'OPEN_PROVIDER_TAB', // 请求打开或激活provider对应的tab
     CHECK_PROVIDER_TAB_VALID: 'CHECK_PROVIDER_TAB_VALID', // 查询provider是否有有效绑定的tab
+    GET_PROVIDER_RAW_URLS: 'GET_PROVIDER_RAW_URLS', // 获取各通道当前原始链接
 
     // Background -> UI
     OPEN_PROVIDER_TAB_RESPONSE: 'OPEN_PROVIDER_TAB_RESPONSE', // 打开/激活tab操作响应
     CHECK_PROVIDER_TAB_VALID_RESPONSE: 'CHECK_PROVIDER_TAB_VALID_RESPONSE', // 查询tab有效性响应
+    GET_PROVIDER_RAW_URLS_RESPONSE: 'GET_PROVIDER_RAW_URLS_RESPONSE', // 获取原始链接响应
 
     // Background -> Content Script
     EXECUTE_PROMPT: 'EXECUTE_PROMPT',
