@@ -164,6 +164,7 @@
           :think-response="thinkResponses.deepseek"
           :operation-status="operationStatus.deepseek"
           :raw-url="rawUrlMap.deepseek"
+          :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDeepSeekOpen"
         />
@@ -180,6 +181,7 @@
           :think-response="thinkResponses.doubao"
           :operation-status="operationStatus.doubao"
           :raw-url="rawUrlMap.doubao"
+          :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDoubaoOpen"
         />
@@ -196,6 +198,7 @@
           :think-response="thinkResponses.qianwen"
           :operation-status="operationStatus.qianwen"
           :raw-url="rawUrlMap.qianwen"
+          :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isQianwenOpen"
         />
@@ -212,6 +215,7 @@
           :think-response="thinkResponses.longcat"
           :operation-status="operationStatus.longcat"
           :raw-url="rawUrlMap.longcat"
+          :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isLongcatOpen"
         />
@@ -486,6 +490,8 @@ const isHistoryPanelOpen = ref(false);
 const activeSessionId = ref('');
 const activeProviderSettings = ref<ProviderId | ''>('');
 const showNoChannelTip = ref(false);
+/** 当前展示的会话是否来自历史恢复（历史会话点原文打开新标签，新会话点原文激活已有 tab） */
+const isCurrentSessionFromHistory = ref(false);
 
 const statusMap: Record<ProviderId, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
 const responses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
@@ -800,6 +806,7 @@ function applyHistorySession(item: ChatHistoryItem) {
   currentQuestion.value = item.question;
   hasAsked.value = true;
   isHistoryPanelOpen.value = false;
+  isCurrentSessionFromHistory.value = true;
 
   if (streamAnimationId != null) {
     cancelAnimationFrame(streamAnimationId);
@@ -1113,6 +1120,7 @@ const createNewChat = () => {
   currentQuestion.value = '';
   hasAsked.value = false;
   activeSessionId.value = '';
+  isCurrentSessionFromHistory.value = false;
   isHistoryPanelOpen.value = false;
   activeProviderSettings.value = '';
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
@@ -1135,6 +1143,7 @@ const submit = () => {
   currentQuestion.value = prompt;
   hasAsked.value = true;
   activeSessionId.value = createSessionId();
+  isCurrentSessionFromHistory.value = false;
   isHistoryPanelOpen.value = false;
   activeProviderSettings.value = '';
   isDeepSeekOpen.value = isDeepSeekEnabled.value;

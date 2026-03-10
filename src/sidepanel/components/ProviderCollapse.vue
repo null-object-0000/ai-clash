@@ -38,11 +38,11 @@
         <a
           v-if="rawUrl && rawUrl !== 'api'"
           :href="rawUrl"
-          target="_blank"
+          :target="isFromHistory ? '_blank' : undefined"
           rel="noopener noreferrer"
           class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[10px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
-          @click.stop
-          title="在浏览器中打开对话页">
+          @click.stop="onOriginalClick"
+          :title="isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'">
           <svg class="w-3 h-3 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
@@ -114,6 +114,8 @@ const props = defineProps<{
   thinkResponse?: string;
   operationStatus?: string;
   rawUrl?: string;
+  /** 是否来自历史会话：历史会话点原文打开新标签，新会话则激活已有 tab */
+  isFromHistory?: boolean;
   isDeepThinkingEnabled?: boolean;
   defaultOpen?: boolean;
 }>();
@@ -173,6 +175,34 @@ const renderedContent = computed(() => {
 watch(() => props.defaultOpen, (value) => {
   isOpen.value = value ?? true;
 });
+
+function onOriginalClick(e: MouseEvent) {
+  if (props.isFromHistory) return; // 历史会话：不拦截，用 href + target="_blank" 打开新标签
+  e.preventDefault();
+  if (props.rawUrl && typeof chrome !== 'undefined' && chrome.tabs) {
+    activateOrOpenTab(props.rawUrl);
+  }
+}
+
+function activateOrOpenTab(url: string) {
+  try {
+    const u = new URL(url);
+    const pattern = u.origin + '/*';
+    chrome.tabs.query({ url: pattern }, (tabs) => {
+      const tab = tabs.find((t) => t.url === url);
+      if (tab?.id != null) {
+        chrome.tabs.update(tab.id, { active: true });
+        if (tab.windowId != null) {
+          chrome.windows.update(tab.windowId, { focused: true });
+        }
+      } else {
+        chrome.tabs.create({ url });
+      }
+    });
+  } catch {
+    chrome.tabs.create({ url });
+  }
+}
 
 // Markdown 渲染方法
 const renderMarkdown = (text: string) => {
