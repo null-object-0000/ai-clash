@@ -57,7 +57,7 @@
     </button>
 
     <div v-show="isOpen"
-      class="p-4 border-t border-slate-100 bg-white max-h-[350px] overflow-y-auto text-[13px]">
+      class="p-4 border-t border-slate-100 bg-white max-h-[380px] overflow-y-auto text-[13px]">
       <!-- 思考内容折叠块 (启用深度思考时显示) -->
       <template v-if="isDeepThinkingEnabled">
         <div v-if="thinkResponse" class="mb-2">
@@ -72,7 +72,7 @@
               class="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle"></span>
           </button>
           <div v-show="isThinkBlockOpen"
-            class="pl-3 border-l border-slate-200 text-slate-400 leading-relaxed whitespace-pre-wrap font-mono text-[11px] break-words italic">
+            class="pl-3 border-l border-slate-200 text-slate-500 leading-6 whitespace-pre-wrap text-[12px] break-words">
             {{ thinkResponse }}
           </div>
         </div>
@@ -84,7 +84,7 @@
       </template>
 
       <!-- 正式回复 -->
-      <div class="text-slate-600 leading-relaxed prose prose-sm max-w-none font-mono text-[12px] break-words"
+      <div class="response-content text-slate-700 prose prose-sm max-w-none text-[13.5px] leading-7 break-words"
         :class="themeClasses.prose">
         <span v-html="renderedContent"></span>
         <span v-if="status === 'running' && stage === 'responding'"
@@ -207,5 +207,34 @@ const renderMarkdown = (text: string) => {
 .overflow-y-auto::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 4px;
+}
+
+.response-content {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.response-content :deep(p),
+.response-content :deep(ul),
+.response-content :deep(ol),
+.response-content :deep(blockquote) {
+  margin-top: 0.7rem;
+  margin-bottom: 0.7rem;
+}
+
+.response-content :deep(h1),
+.response-content :deep(h2),
+.response-content :deep(h3) {
+  margin-top: 1rem;
+  margin-bottom: 0.6rem;
+  line-height: 1.45;
+}
+
+.response-content :deep(li) {
+  margin: 0.3rem 0;
+}
+
+.response-content :deep(code) {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
+  font-size: 0.9em;
 }
 </style>

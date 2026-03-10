@@ -1,13 +1,13 @@
 <template>
   <div
-    class="flex flex-col h-screen bg-slate-50 font-sans text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900">
+    class="app-shell flex flex-col h-screen bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900">
 
     <header
-      class="flex items-center justify-between px-4 py-3 bg-white/70 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-10">
+      class="flex items-center justify-between px-4 py-3 bg-white/75 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-10">
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="w-7 h-7 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
+          class="inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 px-2 text-slate-500 shadow-sm hover:text-slate-700 hover:border-slate-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           @click="createNewChat"
           :disabled="!hasAsked || isRunning"
           aria-label="新建对话">
@@ -17,7 +17,7 @@
         </button>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 h-7 px-2 rounded-full border border-slate-200 bg-white/80 text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-colors"
+          class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm hover:text-slate-700 hover:border-slate-300 transition-colors"
           @click="isHistoryPanelOpen = !isHistoryPanelOpen"
           aria-label="历史对话">
           <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -72,328 +72,78 @@
       </div>
     </header>
 
-    <main class="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth" ref="chatContainer">
+    <main class="flex-1 overflow-y-auto px-4 py-5 space-y-6 scroll-smooth" ref="chatContainer">
 
-      <div v-if="!hasAsked" class="h-full flex flex-col items-center justify-center text-center space-y-3 mt-6">
-        <div
-          class="w-16 h-16 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center mb-2">
-          <span class="text-xl font-semibold tracking-wide text-slate-700">AI</span>
-        </div>
-        <h2 class="text-lg font-semibold text-slate-700">混合专家引擎已就绪</h2>
-        <p class="text-xs text-slate-400 max-w-[200px] leading-relaxed">
-          输入您的问题，我将在后台同时调用多个头部模型为您交叉比对。
-        </p>
-
-        <!-- 渠道设置卡片 -->
-        <div class="w-full max-w-[260px] mt-6 bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
-          <div class="text-[11px] font-semibold text-slate-500 tracking-wide text-left">通道设置</div>
-
-          <!-- DeepSeek -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  @click="handleToggleProvider('deepseek')"
-                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                  :class="isDeepSeekEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-                  <span
-                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                    :class="isDeepSeekEnabled ? 'translate-x-4' : 'translate-x-1'">
-                  </span>
-                </button>
-                <span class="text-[13px] text-slate-700">DeepSeek</span>
+      <div v-if="!hasAsked" class="min-h-full flex items-start justify-center pt-2">
+        <div class="w-full max-w-[360px] mx-auto space-y-3">
+          <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <h2 class="text-[18px] leading-7 font-semibold tracking-[-0.02em] text-slate-900">开始新对话</h2>
+                <p class="mt-1 text-[12px] leading-6 text-slate-500">
+                  先选择要参与的通道。单个通道的详细参数，点对应的“设置”再调。
+                </p>
               </div>
-              <div class="flex items-center gap-1">
-                <button
-                  type="button"
-                  @click="showAdvancedSettings.deepseek = !showAdvancedSettings.deepseek"
-                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
-                  {{ showAdvancedSettings.deepseek ? '收起' : '设置' }}
-                </button>
-                <button
-                  v-if="deepseekMode === 'web'"
-                  @click="handleGoToProvider('deepseek')"
-                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                  前往
-                </button>
-              </div>
-            </div>
-            <!-- 高级设置 -->
-            <div v-if="showAdvancedSettings.deepseek" class="pl-11 space-y-2 pb-1">
-              <div class="flex items-center gap-3">
-                <span class="text-[11px] text-slate-500">接入模式:</span>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="web"
-                    v-model="deepseekMode"
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-700">网页模式</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="api"
-                    v-model="deepseekMode"
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-700">API模式</span>
-                </label>
-              </div>
-              <!-- API模式配置 -->
-              <div v-if="deepseekMode === 'api'" class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <input
-                    :type="showApiKey.deepseek ? 'text' : 'password'"
-                    v-model="deepseekApiKey"
-                    placeholder="输入API Key"
-                    class="flex-1 px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  <button
-                    type="button"
-                    @click="showApiKey.deepseek = !showApiKey.deepseek"
-                    class="text-[11px] text-slate-500 hover:text-slate-700 px-1.5 py-1 rounded-md hover:bg-slate-100 transition-colors"
-                    :title="showApiKey.deepseek ? '隐藏' : '显示'">
-                    {{ showApiKey.deepseek ? '隐藏' : '显示' }}
-                  </button>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    @click="testApiKey('deepseek', deepseekApiKey)"
-                    :disabled="testingApiKey.deepseek || !deepseekApiKey"
-                    class="text-[11px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors">
-                    {{ testingApiKey.deepseek ? '测试中...' : '测试Key' }}
-                  </button>
-                  <span
-                    v-if="apiKeyTestResult.deepseek"
-                    class="text-[10px]"
-                    :class="apiKeyTestResult.deepseek.success ? 'text-green-600' : 'text-red-600'">
-                    {{ apiKeyTestResult.deepseek.message }}
-                  </span>
-                </div>
-                <div>
-                  <select
-                    v-model="deepseekModel"
-                    class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">默认模型 (deepseek-chat)</option>
-                    <option value="deepseek-chat">deepseek-chat</option>
-                    <option value="deepseek-reasoner">deepseek-reasoner</option>
-                  </select>
-                </div>
+              <div class="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                {{ getEnabledProviderIds().length }}/{{ PROVIDER_META.length }}
               </div>
             </div>
           </div>
 
-          <!-- 豆包 -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  @click="handleToggleProvider('doubao')"
-                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                  :class="isDoubaoEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-                  <span
-                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                    :class="isDoubaoEnabled ? 'translate-x-4' : 'translate-x-1'">
-                  </span>
-                </button>
-                <span class="text-[13px] text-slate-700">豆包</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <button
-                  type="button"
-                  @click="showAdvancedSettings.doubao = !showAdvancedSettings.doubao"
-                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
-                  {{ showAdvancedSettings.doubao ? '收起' : '设置' }}
-                </button>
-                <button
-                  v-if="doubaoMode === 'web'"
-                  @click="handleGoToProvider('doubao')"
-                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                  前往
-                </button>
-              </div>
+          <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
+              <div class="text-[12px] font-semibold text-slate-700">通道列表</div>
+              <button
+                type="button"
+                class="text-[11px] text-slate-500 transition-colors hover:text-slate-800"
+                @click="isHistoryPanelOpen = true">
+                查看历史
+              </button>
             </div>
-            <!-- 高级设置 -->
-            <div v-if="showAdvancedSettings.doubao" class="pl-11 space-y-2 pb-1">
-              <div class="flex items-center gap-3">
-                <span class="text-[11px] text-slate-500">接入模式:</span>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="web"
-                    v-model="doubaoMode"
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-700">网页模式</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer opacity-50">
-                  <input
-                    type="radio"
-                    value="api"
-                    disabled
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-500">API模式 (暂不支持)</span>
-                </label>
-              </div>
-            </div>
-          </div>
 
-          <!-- 千问 -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  @click="handleToggleProvider('qianwen')"
-                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                  :class="isQianwenEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-                  <span
-                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                    :class="isQianwenEnabled ? 'translate-x-4' : 'translate-x-1'">
-                  </span>
-                </button>
-                <span class="text-[13px] text-slate-700">千问</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <button
-                  type="button"
-                  @click="showAdvancedSettings.qianwen = !showAdvancedSettings.qianwen"
-                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
-                  {{ showAdvancedSettings.qianwen ? '收起' : '设置' }}
-                </button>
-                <button
-                  v-if="qianwenMode === 'web'"
-                  @click="handleGoToProvider('qianwen')"
-                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                  前往
-                </button>
-              </div>
-            </div>
-            <!-- 高级设置 -->
-            <div v-if="showAdvancedSettings.qianwen" class="pl-11 space-y-2 pb-1">
-              <div class="flex items-center gap-3">
-                <span class="text-[11px] text-slate-500">接入模式:</span>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="web"
-                    v-model="qianwenMode"
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-700">网页模式</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer opacity-50">
-                  <input
-                    type="radio"
-                    value="api"
-                    disabled
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-500">API模式 (暂不支持)</span>
-                </label>
-              </div>
-            </div>
-          </div>
+            <div class="divide-y divide-slate-100">
+              <div
+                v-for="provider in PROVIDER_META"
+                :key="provider.id"
+                class="px-4 py-2.5">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="min-w-0 flex items-center gap-2">
+                    <span class="text-[13px] font-medium text-slate-800">{{ provider.name }}</span>
+                    <span class="text-[11px] text-slate-500">{{ getProviderModeText(provider.id) }}模式</span>
+                    <span
+                      class="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                      :class="isProviderEnabled(provider.id)
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-slate-100 text-slate-500'">
+                      {{ isProviderEnabled(provider.id) ? '开' : '关' }}
+                    </span>
+                  </div>
 
-          <!-- LongCat -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  @click="handleToggleProvider('longcat')"
-                  class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
-                  :class="isLongcatEnabled ? 'bg-indigo-500/90' : 'bg-slate-200'">
-                  <span
-                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
-                    :class="isLongcatEnabled ? 'translate-x-4' : 'translate-x-1'">
-                  </span>
-                </button>
-                <span class="text-[13px] text-slate-700">LongCat</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <button
-                  type="button"
-                  @click="showAdvancedSettings.longcat = !showAdvancedSettings.longcat"
-                  class="text-[11px] text-slate-500 hover:text-slate-700 px-2 py-0.5 rounded-md hover:bg-slate-100 transition-colors">
-                  {{ showAdvancedSettings.longcat ? '收起' : '设置' }}
-                </button>
-                <button
-                  v-if="longcatMode === 'web'"
-                  @click="handleGoToProvider('longcat')"
-                  class="text-[11px] text-indigo-500 hover:text-indigo-600 font-medium px-2 py-0.5 rounded-md bg-indigo-50 hover:bg-indigo-100 transition-colors">
-                  前往
-                </button>
-              </div>
-            </div>
-            <!-- 高级设置 -->
-            <div v-if="showAdvancedSettings.longcat" class="pl-11 space-y-2 pb-1">
-              <div class="flex items-center gap-3">
-                <span class="text-[11px] text-slate-500">接入模式:</span>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="web"
-                    v-model="longcatMode"
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-700">网页模式</span>
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="api"
-                    v-model="longcatMode"
-                    class="w-3 h-3 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span class="text-[11px] text-slate-700">API模式</span>
-                </label>
-              </div>
-              <!-- API模式配置 -->
-              <div v-if="longcatMode === 'api'" class="space-y-2">
-                <div class="flex items-center gap-2">
-                  <input
-                    :type="showApiKey.longcat ? 'text' : 'password'"
-                    v-model="longcatApiKey"
-                    placeholder="输入API Key"
-                    class="flex-1 px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
-                  <button
-                    type="button"
-                    @click="showApiKey.longcat = !showApiKey.longcat"
-                    class="text-[11px] text-slate-500 hover:text-slate-700 px-1.5 py-1 rounded-md hover:bg-slate-100 transition-colors"
-                    :title="showApiKey.longcat ? '隐藏' : '显示'">
-                    {{ showApiKey.longcat ? '隐藏' : '显示' }}
-                  </button>
-                </div>
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    @click="testApiKey('longcat', longcatApiKey)"
-                    :disabled="testingApiKey.longcat || !longcatApiKey"
-                    class="text-[11px] px-2 py-1 rounded-md bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:bg-slate-100 disabled:text-slate-400 transition-colors">
-                    {{ testingApiKey.longcat ? '测试中...' : '测试Key' }}
-                  </button>
-                  <span
-                    v-if="apiKeyTestResult.longcat"
-                    class="text-[10px]"
-                    :class="apiKeyTestResult.longcat.success ? 'text-green-600' : 'text-red-600'">
-                    {{ apiKeyTestResult.longcat.message }}
-                  </span>
-                </div>
-                <div>
-                  <select
-                    v-model="longcatModel"
-                    class="w-full px-2 py-1 text-[11px] border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="">默认模型 (longcat-chat)</option>
-                    <option value="longcat-chat">longcat-chat</option>
-                  </select>
+                  <div class="flex items-center gap-2 flex-shrink-0">
+                    <button
+                      type="button"
+                      class="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                      @click="openProviderSettings(provider.id)">
+                      设置
+                    </button>
+                    <button
+                      v-if="getModeValue(provider.id) === 'web'"
+                      type="button"
+                      class="inline-flex h-7 items-center justify-center rounded-full bg-indigo-50 px-2.5 text-[11px] font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
+                      @click="handleGoToProvider(provider.id)">
+                      前往
+                    </button>
+                    <button
+                      type="button"
+                      @click="handleToggleProvider(provider.id)"
+                      class="relative inline-flex h-6 w-10 items-center rounded-full transition-colors"
+                      :class="isProviderEnabled(provider.id) ? 'bg-indigo-500' : 'bg-slate-300'">
+                      <span
+                        class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform"
+                        :class="isProviderEnabled(provider.id) ? 'translate-x-5' : 'translate-x-1'">
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -404,7 +154,7 @@
       <template v-else>
         <div class="flex justify-end">
           <div
-            class="bg-slate-800 text-white text-[14px] px-4 py-2.5 rounded-2xl rounded-tr-sm max-w-[85%] shadow-md leading-relaxed break-words">
+            class="bg-slate-900 text-white text-[15px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] shadow-md leading-7 break-words tracking-[0.01em]">
             {{ currentQuestion }}
           </div>
         </div>
@@ -487,6 +237,134 @@
 
     </main>
 
+    <div
+      v-if="activeProviderSettings"
+      class="fixed inset-0 z-40 flex items-end justify-center p-3 sm:items-center">
+      <button
+        type="button"
+        class="absolute inset-0 bg-slate-900/35 backdrop-blur-[2px]"
+        aria-label="关闭通道设置弹窗"
+        @click="closeProviderSettings">
+      </button>
+
+      <div
+        class="relative z-10 w-full max-w-[560px] overflow-hidden rounded-[28px] border border-slate-200/80 bg-white shadow-[0_24px_80px_-36px_rgba(15,23,42,0.5)]">
+        <div class="border-b border-slate-200/80 px-5 py-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <div class="text-[18px] font-semibold tracking-[-0.02em] text-slate-900">{{ getProviderLabel(activeProviderSettings) }} 设置</div>
+              <p class="mt-1 text-[13px] leading-6 text-slate-500">这里调整当前通道的接入模式和详细参数。</p>
+            </div>
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-700"
+              @click="closeProviderSettings"
+              aria-label="关闭当前通道设置">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="max-h-[70vh] overflow-y-auto px-5 py-4 space-y-4">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+            <div class="flex items-center gap-2">
+              <span class="text-[15px] font-semibold text-slate-900">{{ getProviderLabel(activeProviderSettings) }}</span>
+              <span
+                class="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                :class="isProviderEnabled(activeProviderSettings)
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-slate-200 text-slate-500'">
+                {{ isProviderEnabled(activeProviderSettings) ? '已开启' : '未开启' }}
+              </span>
+            </div>
+            <p class="mt-1 text-[12px] leading-6 text-slate-500">当前模式：{{ getProviderModeText(activeProviderSettings) }}模式</p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-[12px] font-medium text-slate-700">接入模式</div>
+            <div class="flex flex-wrap gap-2">
+              <label class="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[12px] text-slate-700">
+                <input
+                  type="radio"
+                  :name="`provider-mode-${activeProviderSettings}`"
+                  class="h-3.5 w-3.5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  :checked="getModeValue(activeProviderSettings) === 'web'"
+                  @change="setProviderMode(activeProviderSettings, 'web')" />
+                <span>网页模式</span>
+              </label>
+              <label
+                class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[12px]"
+                :class="supportsApi(activeProviderSettings)
+                  ? 'cursor-pointer border-slate-200 bg-slate-50 text-slate-700'
+                  : 'border-slate-100 bg-slate-50 text-slate-400'">
+                <input
+                  type="radio"
+                  :name="`provider-mode-${activeProviderSettings}`"
+                  class="h-3.5 w-3.5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
+                  :disabled="!supportsApi(activeProviderSettings)"
+                  :checked="getModeValue(activeProviderSettings) === 'api'"
+                  @change="setProviderMode(activeProviderSettings, 'api')" />
+                <span>{{ supportsApi(activeProviderSettings) ? 'API模式' : 'API模式暂不支持' }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div
+            v-if="supportsApi(activeProviderSettings) && getModeValue(activeProviderSettings) === 'api'"
+            class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+            <div class="space-y-2">
+              <label class="text-[12px] font-medium text-slate-700">API Key</label>
+              <div class="flex items-center gap-2">
+                <input
+                  :type="showApiKey[activeProviderSettings] ? 'text' : 'password'"
+                  :value="getApiKeyValue(activeProviderSettings)"
+                  @input="handleApiKeyInput(activeProviderSettings, $event)"
+                  placeholder="输入 API Key"
+                  class="min-h-11 flex-1 rounded-xl border border-slate-200 px-3 text-[13px] text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15" />
+                <button
+                  type="button"
+                  @click="showApiKey[activeProviderSettings] = !showApiKey[activeProviderSettings]"
+                  class="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 text-[12px] font-medium text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700">
+                  {{ showApiKey[activeProviderSettings] ? '隐藏' : '显示' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                @click="testApiKey(activeProviderSettings, getApiKeyValue(activeProviderSettings))"
+                :disabled="testingApiKey[activeProviderSettings] || !getApiKeyValue(activeProviderSettings)"
+                class="inline-flex min-h-10 items-center justify-center rounded-full bg-indigo-50 px-3 text-[12px] font-medium text-indigo-600 transition-colors hover:bg-indigo-100 disabled:bg-slate-100 disabled:text-slate-400">
+                {{ testingApiKey[activeProviderSettings] ? '测试中...' : '测试 Key' }}
+              </button>
+              <span
+                v-if="apiKeyTestResult[activeProviderSettings]"
+                class="text-[11px]"
+                :class="apiKeyTestResult[activeProviderSettings].success ? 'text-emerald-600' : 'text-rose-600'">
+                {{ apiKeyTestResult[activeProviderSettings].message }}
+              </span>
+            </div>
+
+            <div class="space-y-2">
+              <label class="text-[12px] font-medium text-slate-700">模型</label>
+              <select
+                :value="getModelValue(activeProviderSettings)"
+                @change="handleModelChange(activeProviderSettings, $event)"
+                class="min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-[13px] text-slate-800 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/15">
+                <option v-for="option in getModelOptions(activeProviderSettings)" :key="option.value" :value="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
     <div class="p-4 bg-white border-t border-slate-200/60 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] z-10">
       <div class="flex items-center gap-1.5 mb-1.5">
         <button
@@ -506,7 +384,7 @@
       <div
         class="relative flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
         <textarea v-model="inputStr" @keydown.enter.prevent="submit" placeholder="输入问题，按 Enter 发送..."
-          class="w-full bg-transparent p-3 pr-2 text-[14px] text-slate-800 placeholder-slate-400 focus:outline-none resize-none max-h-32 min-h-[44px]"
+          class="w-full bg-transparent p-3 pr-2 text-[15px] leading-7 text-slate-800 placeholder-slate-400 focus:outline-none resize-none max-h-32 min-h-[48px]"
           rows="1" @input="autoResize" ref="textareaRef"></textarea>
 
         <div class="p-1.5 mb-0.5 pr-2 flex-shrink-0">
@@ -536,6 +414,12 @@ type ProviderId = typeof PROVIDER_IDS[number];
 type ProviderMode = 'web' | 'api';
 type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
 type StageType = 'connecting' | 'thinking' | 'responding';
+const PROVIDER_META = [
+  { id: 'deepseek', name: 'DeepSeek', supportsApi: true },
+  { id: 'doubao', name: '豆包', supportsApi: false },
+  { id: 'qianwen', name: '千问', supportsApi: false },
+  { id: 'longcat', name: 'LongCat', supportsApi: true },
+] as const;
 
 type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
@@ -594,10 +478,10 @@ const longcatModel = ref('');
 const testingApiKey = ref<Record<string, boolean>>({});
 const apiKeyTestResult = ref<Record<string, { success: boolean; message: string }>>({});
 const showApiKey = ref<Record<string, boolean>>({});
-const showAdvancedSettings = ref<Record<string, boolean>>({});
 const historyList = ref<ChatHistoryItem[]>([]);
 const isHistoryPanelOpen = ref(false);
 const activeSessionId = ref('');
+const activeProviderSettings = ref<ProviderId | ''>('');
 
 const statusMap: Record<ProviderId, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
 const responses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
@@ -637,12 +521,21 @@ function formatHistoryTime(timestamp: number) {
   });
 }
 
+function supportsApi(providerId: ProviderId) {
+  return providerId === 'deepseek' || providerId === 'longcat';
+}
+
 function getProviderLabel(providerId: string) {
   return providerId === 'deepseek' ? 'DeepSeek'
     : providerId === 'doubao' ? '豆包'
     : providerId === 'qianwen' ? '千问'
     : providerId === 'longcat' ? 'LongCat'
     : providerId;
+}
+
+function getProviderModeText(providerId: ProviderId) {
+  const mode = getProviderMode(providerId);
+  return mode === 'api' ? 'API' : '网页';
 }
 
 function getProviderMode(providerId: ProviderId): ProviderMode {
@@ -652,11 +545,88 @@ function getProviderMode(providerId: ProviderId): ProviderMode {
     : longcatMode.value;
 }
 
+function getModeValue(providerId: ProviderId) {
+  return getProviderMode(providerId);
+}
+
+function setProviderMode(providerId: ProviderId, mode: ProviderMode) {
+  if (providerId === 'deepseek') deepseekMode.value = mode;
+  else if (providerId === 'doubao') doubaoMode.value = mode;
+  else if (providerId === 'qianwen') qianwenMode.value = mode;
+  else longcatMode.value = mode;
+}
+
+function getApiKeyValue(providerId: ProviderId) {
+  return providerId === 'deepseek' ? deepseekApiKey.value
+    : providerId === 'doubao' ? doubaoApiKey.value
+    : providerId === 'qianwen' ? qianwenApiKey.value
+    : longcatApiKey.value;
+}
+
+function setProviderApiKey(providerId: ProviderId, value: string) {
+  if (providerId === 'deepseek') deepseekApiKey.value = value;
+  else if (providerId === 'doubao') doubaoApiKey.value = value;
+  else if (providerId === 'qianwen') qianwenApiKey.value = value;
+  else longcatApiKey.value = value;
+}
+
+function getModelValue(providerId: ProviderId) {
+  return providerId === 'deepseek' ? deepseekModel.value
+    : providerId === 'doubao' ? doubaoModel.value
+    : providerId === 'qianwen' ? qianwenModel.value
+    : longcatModel.value;
+}
+
+function setProviderModel(providerId: ProviderId, value: string) {
+  if (providerId === 'deepseek') deepseekModel.value = value;
+  else if (providerId === 'doubao') doubaoModel.value = value;
+  else if (providerId === 'qianwen') qianwenModel.value = value;
+  else longcatModel.value = value;
+}
+
+function getModelOptions(providerId: ProviderId) {
+  if (providerId === 'deepseek') {
+    return [
+      { value: '', label: '默认模型 (deepseek-chat)' },
+      { value: 'deepseek-chat', label: 'deepseek-chat' },
+      { value: 'deepseek-reasoner', label: 'deepseek-reasoner' }
+    ];
+  }
+
+  if (providerId === 'longcat') {
+    return [
+      { value: '', label: '默认模型 (longcat-chat)' },
+      { value: 'longcat-chat', label: 'longcat-chat' }
+    ];
+  }
+
+  return [{ value: '', label: '默认模型' }];
+}
+
 function isProviderEnabled(providerId: ProviderId) {
   return providerId === 'deepseek' ? isDeepSeekEnabled.value
     : providerId === 'doubao' ? isDoubaoEnabled.value
     : providerId === 'qianwen' ? isQianwenEnabled.value
     : isLongcatEnabled.value;
+}
+
+function openProviderSettings(providerId: ProviderId) {
+  activeProviderSettings.value = providerId;
+  isHistoryPanelOpen.value = false;
+}
+
+function closeProviderSettings() {
+  activeProviderSettings.value = '';
+}
+
+function handleApiKeyInput(providerId: ProviderId, event: Event) {
+  const target = event.target as HTMLInputElement;
+  setProviderApiKey(providerId, target.value);
+}
+
+function handleModelChange(providerId: ProviderId, event: Event) {
+  const target = event.target as HTMLSelectElement;
+  setProviderModel(providerId, target.value);
 }
 
 function setProviderEnabled(providerId: ProviderId, enabled: boolean) {
@@ -1140,6 +1110,7 @@ const createNewChat = () => {
   hasAsked.value = false;
   activeSessionId.value = '';
   isHistoryPanelOpen.value = false;
+  activeProviderSettings.value = '';
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
@@ -1161,6 +1132,7 @@ const submit = () => {
   hasAsked.value = true;
   activeSessionId.value = createSessionId();
   isHistoryPanelOpen.value = false;
+  activeProviderSettings.value = '';
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
@@ -1303,6 +1275,10 @@ watch(longcatModel, (value) => saveApiConfig('longcat', { model: value }));
 </script>
 
 <style scoped>
+.app-shell {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
 /* 给思考框里面的滚动条做下瘦身，不然在侧边栏太臃肿 */
 .overflow-y-auto::-webkit-scrollbar {
   width: 4px;
