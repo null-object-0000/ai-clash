@@ -40,14 +40,18 @@
           :href="rawUrl"
           target="_blank"
           rel="noopener noreferrer"
-          class="text-[10px] text-slate-400 hover:text-indigo-500 transition-colors"
-          @click.stop>
-          原始链接
+          class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[10px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
+          @click.stop
+          title="在浏览器中打开对话页">
+          <svg class="w-3 h-3 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          <span>原文</span>
         </a>
         <span
           v-else-if="rawUrl === 'api'"
-          class="text-[10px] text-slate-400">
-          API模式
+          class="rounded-full border border-slate-100 bg-slate-50/80 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+          API
         </span>
       </div>
       <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"

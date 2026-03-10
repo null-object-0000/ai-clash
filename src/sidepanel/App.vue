@@ -261,20 +261,6 @@
         </div>
 
         <div class="max-h-[70vh] overflow-y-auto px-5 py-4 space-y-4">
-          <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-            <div class="flex items-center gap-2">
-              <span class="text-[15px] font-semibold text-slate-900">{{ getProviderLabel(activeProviderSettings) }}</span>
-              <span
-                class="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                :class="isProviderEnabled(activeProviderSettings)
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-200 text-slate-500'">
-                {{ isProviderEnabled(activeProviderSettings) ? '已开启' : '未开启' }}
-              </span>
-            </div>
-            <p class="mt-1 text-[12px] leading-6 text-slate-500">当前模式：{{ getProviderModeText(activeProviderSettings) }}模式</p>
-          </div>
-
           <div class="space-y-2">
             <div class="text-[12px] font-medium text-slate-700">接入模式</div>
             <div class="flex flex-wrap gap-2">
