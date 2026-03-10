@@ -110,13 +110,6 @@
                   <div class="min-w-0 flex items-center gap-2">
                     <span class="text-[13px] font-medium text-slate-800">{{ provider.name }}</span>
                     <span class="text-[11px] text-slate-500">{{ getProviderModeText(provider.id) }}模式</span>
-                    <span
-                      class="rounded-full px-2 py-0.5 text-[10px] font-medium"
-                      :class="isProviderEnabled(provider.id)
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-slate-100 text-slate-500'">
-                      {{ isProviderEnabled(provider.id) ? '开' : '关' }}
-                    </span>
                   </div>
 
                   <div class="flex items-center gap-2 flex-shrink-0">
@@ -365,6 +358,30 @@
       </div>
     </div>
 
+    <!-- 未选通道提示（内嵌样式，替代原生 alert） -->
+    <div
+      v-if="showNoChannelTip"
+      class="fixed inset-0 z-30 flex items-center justify-center p-4">
+      <button
+        type="button"
+        class="absolute inset-0 bg-slate-900/25 backdrop-blur-[2px]"
+        aria-label="关闭提示"
+        @click="showNoChannelTip = false">
+      </button>
+      <div
+        class="relative z-10 w-full max-w-[320px] rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.25)]">
+        <p class="text-[14px] leading-6 text-slate-700">请在通道列表中至少开启一个通道后再发送。</p>
+        <div class="mt-4 flex justify-end">
+          <button
+            type="button"
+            @click="showNoChannelTip = false"
+            class="inline-flex h-9 items-center justify-center rounded-full bg-indigo-600 px-4 text-[13px] font-medium text-white transition-colors hover:bg-indigo-700">
+            确定
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="p-4 bg-white border-t border-slate-200/60 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] z-10">
       <div class="flex items-center gap-1.5 mb-1.5">
         <button
@@ -482,6 +499,7 @@ const historyList = ref<ChatHistoryItem[]>([]);
 const isHistoryPanelOpen = ref(false);
 const activeSessionId = ref('');
 const activeProviderSettings = ref<ProviderId | ''>('');
+const showNoChannelTip = ref(false);
 
 const statusMap: Record<ProviderId, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
 const responses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
@@ -1124,7 +1142,7 @@ const submit = () => {
   const prompt = inputStr.value.trim();
   if (!prompt || isRunning.value) return;
   if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value && !isQianwenEnabled.value && !isLongcatEnabled.value) {
-    window.alert('请在设置中至少开启一个通道。');
+    showNoChannelTip.value = true;
     return;
   }
 
