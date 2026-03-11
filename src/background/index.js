@@ -108,10 +108,20 @@ async function handleApiRequest(provider, prompt, settings = {}) {
     ? { thinking: { type: 'enabled' } }
     : undefined;
 
+  // 构建消息数组：若有多轮历史则拼接，否则单条
+  const conversationHistory = settings.conversationHistory || [];
+  const messages = [
+    ...conversationHistory.flatMap(turn => [
+      { role: 'user', content: turn.question },
+      { role: 'assistant', content: turn.response },
+    ]),
+    { role: 'user', content: prompt },
+  ];
+
   try {
     const stream = await client.chat.completions.create({
       model,
-      messages: [{ role: 'user', content: prompt }],
+      messages,
       stream: true,
       temperature: settings.temperature ?? 0.7,
       max_tokens: maxTokens,
@@ -175,6 +185,117 @@ async function testApiKey(providerId, apiKey) {
       return { success: false, error: '请求超时' };
     }
     return { success: false, error: error.message || '请求失败' };
+  }
+}
+
+// 归纳总结的系统提示词（参考 Dify "裁判总结层" 节点）
+const SUMMARY_SYSTEM_PROMPT = `你是一个高级决策汇总系统。你的任务是分析多位顶尖专家（LLM）对同一个问题的独立回答，综合他们的观点，给出一份最全面、准确、结构清晰的最终答案。
+
+请按照以下步骤进行处理：
+
+1. 事实核查与去重：对比多份回答，剔除事实性错误和幻觉信息，提取所有互补的核心观点。**请特别注意区分"事实错误"与"观点分歧"：若多位专家在主观判断、策略选择、风险评估或未来预测上存在不同意见，请务必将这些分歧保留，并作为核心信息进行整理。**
+
+2. 逻辑重构：不要简单地把多段话拼凑在一起，而是要像写一篇高质量的深度报告一样，重新组织逻辑框架。既要提炼出大家公认的"最大公约数"，也要清晰地呈现出不同路线的碰撞。
+
+3. 最终输出：使用 Markdown 排版（加粗、列表等），确保语言流畅，直击痛点。
+
+请严格按照以下 Markdown 格式输出最终答案：
+
+### 💡 核心共识提炼
+
+（简明扼要地总结这N位专家的核心共识，以及所有专家都认同的最关键的确定性信息）
+
+### ⚡ 核心分歧与争议点
+
+（重点提炼专家们在哪些具体方面存在不同甚至完全对立的观点。请列出具体的争议点，并客观剖析各方观点的核心论据及其背后的合理性）
+
+### 🧠 多维深度分析
+
+（按照不同的视角，如：战略创新、风险批判、落地执行、长短期视角等，分类梳理专家的观点，将共识与分歧融入多维度的探讨中进行深度对比）
+
+### ✅ 最终结论与可行性方案
+
+（基于上述共识与分歧的分析，给出具有高可操作性的最终建议。对于存在争议的部分，请提供"If-Then"的情景化应对策略，即：在何种条件下应采纳哪种专家的意见）`;
+
+/**
+ * 处理归纳总结请求：收集各通道回答，调用指定 API 进行汇总分析
+ * @param {string} question - 用户原始问题
+ * @param {Array<{providerId: string, name: string, text: string}>} responses - 各通道回答
+ * @param {{providerId: string, model: string}} summaryConfig - 归纳总结配置
+ */
+async function handleSummaryRequest(question, responses, summaryConfig) {
+  const { providerId, model } = summaryConfig;
+  const provider = getProvider(providerId);
+  if (!provider || !provider.apiConfig?.enabled) {
+    throw new Error('归纳总结 API 配置无效，请在设置中选择有效通道');
+  }
+
+  const userConfig = await loadApiConfig();
+  const apiKey = userConfig[providerId]?.apiKey;
+  if (!apiKey) {
+    throw new Error(`请先配置 ${provider.name} 的 API Key`);
+  }
+
+  const validResponses = responses.filter(r => r.text && r.text.trim());
+  if (!validResponses.length) {
+    throw new Error('没有有效的 AI 回答可供总结');
+  }
+
+  chrome.runtime.sendMessage({
+    type: MSG_TYPES.TASK_STATUS_UPDATE,
+    payload: { provider: '_summary', text: '正在归纳总结各通道回答...' }
+  });
+
+  const client = createOpenAIClient(provider.apiConfig, apiKey);
+  const effectiveModel = model || provider.apiConfig.defaultModel;
+  const maxTokens = provider.apiConfig.modelDefaultMaxTokens?.[effectiveModel] ?? 8192;
+
+  const responseParts = validResponses
+    .map(r => `【${r.name} 的回答】\n${r.text}`)
+    .join('\n\n');
+
+  const userContent = `【用户原始问题】\n${question}\n\n${responseParts}`;
+
+  try {
+    const stream = await client.chat.completions.create({
+      model: effectiveModel,
+      messages: [
+        { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+        { role: 'user', content: userContent },
+      ],
+      stream: true,
+      temperature: 0.3,
+      max_tokens: maxTokens,
+    });
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta ?? {};
+
+      if (delta.reasoning_content) {
+        chrome.runtime.sendMessage({
+          type: MSG_TYPES.CHUNK_RECEIVED,
+          payload: { provider: '_summary', text: delta.reasoning_content, stage: 'thinking', isThink: true }
+        });
+      }
+
+      if (delta.content) {
+        chrome.runtime.sendMessage({
+          type: MSG_TYPES.CHUNK_RECEIVED,
+          payload: { provider: '_summary', text: delta.content, stage: 'responding', isThink: false }
+        });
+      }
+    }
+
+    chrome.runtime.sendMessage({
+      type: MSG_TYPES.TASK_COMPLETED,
+      payload: { provider: '_summary' }
+    });
+
+  } catch (error) {
+    chrome.runtime.sendMessage({
+      type: MSG_TYPES.ERROR,
+      payload: { provider: '_summary', message: error.message || '归纳总结请求失败' }
+    });
   }
 }
 
@@ -260,6 +381,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
         }
         sendResponse({ status: 'routed' });
+        return true;
+    }
+
+    // ---- 归纳总结 ----
+    if (request.type === MSG_TYPES.DISPATCH_SUMMARY) {
+        const { question, responses, summaryConfig } = request.payload;
+        handleSummaryRequest(question, responses, summaryConfig).catch((error) => {
+            chrome.runtime.sendMessage({
+                type: MSG_TYPES.ERROR,
+                payload: { provider: '_summary', message: error.message || '归纳总结失败' }
+            });
+        });
+        sendResponse({ status: 'dispatched' });
         return true;
     }
 

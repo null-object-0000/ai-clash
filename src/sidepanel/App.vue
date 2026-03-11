@@ -28,7 +28,16 @@
         </button>
       </div>
       <div class="relative flex items-center gap-2">
-        <div class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+        <!-- 多轮对话模式时显示绿色标签，否则显示 MoE 模式 -->
+        <div
+          v-if="isMultiTurnSession && hasAsked"
+          class="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 transition-colors">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          多轮对话
+        </div>
+        <div
+          v-else
+          class="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
           MoE 模式
         </div>
       </div>
@@ -38,12 +47,21 @@
         class="absolute left-4 right-4 top-[calc(100%+8px)] max-h-[320px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl p-2 space-y-1">
         <div class="flex items-center justify-between px-2 pt-1 pb-2">
           <div class="text-[12px] font-semibold text-slate-700">历史对话</div>
-          <button
-            type="button"
-            class="text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
-            @click="isHistoryPanelOpen = false">
-            关闭
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              v-if="historyList.length"
+              type="button"
+              class="text-[11px] text-red-400 hover:text-red-600 transition-colors"
+              @click="clearAllHistory">
+              清除全部
+            </button>
+            <button
+              type="button"
+              class="text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+              @click="isHistoryPanelOpen = false">
+              关闭
+            </button>
+          </div>
         </div>
 
         <div
@@ -52,23 +70,35 @@
           暂无历史对话
         </div>
 
-        <button
+        <div
           v-for="item in historyList"
           :key="item.id"
-          type="button"
-          class="w-full text-left rounded-xl border px-3 py-2.5 transition-colors"
+          class="group relative rounded-xl border transition-colors"
           :class="item.id === activeSessionId
             ? 'border-indigo-200 bg-indigo-50/80'
-            : 'border-slate-200 bg-white hover:bg-slate-50'"
-          @click="restoreHistorySession(item)">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0 flex-1">
-              <div class="text-[12px] font-medium text-slate-700 truncate">{{ item.question }}</div>
-              <div class="mt-1 text-[10px] text-slate-400">{{ formatHistoryTime(item.createdAt) }}</div>
+            : 'border-slate-200 bg-white hover:bg-slate-50'">
+          <button
+            type="button"
+            class="w-full text-left px-3 py-2.5 pr-8"
+            @click="restoreHistorySession(item)">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <div class="text-[12px] font-medium text-slate-700 truncate">{{ item.question }}</div>
+                <div class="mt-1 text-[10px] text-slate-400">{{ formatHistoryTime(item.createdAt) }}</div>
+              </div>
+              <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ getHistoryEnabledCount(item) }} 通道</div>
             </div>
-            <div class="text-[10px] text-slate-400 whitespace-nowrap">{{ getHistoryEnabledCount(item) }} 通道</div>
-          </div>
-        </button>
+          </button>
+          <button
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-slate-300 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
+            @click.stop="deleteHistoryItem(item.id)"
+            aria-label="删除此记录">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
     </header>
 
@@ -88,6 +118,22 @@
                 {{ getEnabledProviderIds().length }}/{{ PROVIDER_META.length }}
               </div>
             </div>
+            <!-- 单通道 / 多通道模式动态提示 -->
+            <div class="mt-2.5 pt-2.5 border-t border-slate-100">
+              <div v-if="getEnabledProviderIds().length === 1" class="flex items-center gap-1.5 text-[11px] text-emerald-600">
+                <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
+                </svg>
+                单通道模式 · 支持多轮对话，可连续追问
+              </div>
+              <div v-else-if="getEnabledProviderIds().length >= 2" class="flex items-center gap-1.5 text-[11px] text-indigo-500">
+                <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                MoE 对比模式 · {{ getEnabledProviderIds().length }} 个通道并行回答
+              </div>
+              <div v-else class="text-[11px] text-slate-400">请至少选择一个通道</div>
+            </div>
           </div>
 
           <ChannelList
@@ -104,9 +150,39 @@
       </div>
 
       <template v-else>
+        <!-- 多轮对话：历史轮次（仅单通道模式下出现） -->
+        <template v-if="conversationTurns.length > 0">
+          <template v-for="(turn, idx) in conversationTurns" :key="idx">
+            <div class="flex justify-end">
+              <div
+                class="bg-slate-700 text-white text-[13px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] shadow-sm leading-7 break-words tracking-[0.01em] opacity-80">
+                {{ turn.question }}
+              </div>
+            </div>
+            <ProviderCollapse
+              :provider-id="turn.providerId"
+              :provider-name="getProviderLabel(turn.providerId)"
+              :theme-color="getProviderThemeColor(turn.providerId)"
+              status="completed"
+              stage="responding"
+              :response="turn.response"
+              :think-response="turn.thinkResponse"
+              :raw-url="turn.rawUrl"
+              :is-from-history="true"
+              :is-deep-thinking-enabled="isDeepThinkingEnabled"
+              :default-open="false"
+            />
+          </template>
+          <div class="flex items-center gap-2 my-1 opacity-40">
+            <div class="flex-1 border-t border-dashed border-slate-300"></div>
+            <span class="text-[10px] text-slate-400 whitespace-nowrap">继续对话</span>
+            <div class="flex-1 border-t border-dashed border-slate-300"></div>
+          </div>
+        </template>
+
         <div class="flex justify-end">
           <div
-            class="bg-slate-900 text-white text-[15px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] shadow-md leading-7 break-words tracking-[0.01em]">
+            class="bg-slate-900 text-white text-[13px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] shadow-md leading-7 break-words tracking-[0.01em]">
             {{ currentQuestion }}
           </div>
         </div>
@@ -179,16 +255,15 @@
           :default-open="isLongcatOpen"
         />
 
-        <div v-if="!isRunning && hasAsked"
-          class="relative bg-white p-4 rounded-xl shadow-sm border border-indigo-100 ring-1 ring-indigo-50">
-          <div
-            class="absolute -top-2.5 left-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm tracking-wider">
-            最终研判结论
-          </div>
-          <div class="mt-2 text-[14px] text-slate-700 leading-relaxed prose prose-sm max-w-none">
-            这是基于多个模型给出的综合优化建议。MVP 阶段暂未接大模型总结 API，您可以先在这里查看聚合后的排版效果。
-          </div>
-        </div>
+        <!-- 归纳总结面板：仅在开启归纳总结且已提问时显示 -->
+        <SummaryPanel
+          v-if="isSummaryEnabled && hasAsked"
+          :status="summaryStatus"
+          :stage="summaryStage"
+          :response="summaryResponse"
+          :think-response="summaryThinkResponse"
+          :operation-status="summaryOperationStatus"
+        />
       </template>
 
     </main>
@@ -253,6 +328,100 @@
           </svg>
           <span>深度思考</span>
         </button>
+
+        <!-- 归纳总结开关 + 设置入口 -->
+        <div class="relative flex items-center gap-0.5">
+          <button
+            type="button"
+            @click="toggleSummaryEnabled"
+            class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+            :class="isSummaryEnabled && !summaryBlockReason()
+              ? 'bg-purple-50 border-purple-200 text-purple-600'
+              : !summaryBlockReason()
+                ? 'bg-white border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500'
+                : 'bg-white border-slate-200 text-slate-300 cursor-default'"
+            :title="summaryBlockReason() ?? ''">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            <span>归纳总结</span>
+          </button>
+
+          <!-- 设置按钮 -->
+          <button
+            type="button"
+            @click="isSummarySettingsOpen = !isSummarySettingsOpen"
+            class="inline-flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-600"
+            :class="isSummarySettingsOpen ? 'border-purple-200 bg-purple-50 text-purple-500' : ''"
+            aria-label="归纳总结设置">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+
+          <!-- 多轮对话提示标签（归纳总结按钮旁，仅单通道激活会话时显示） -->
+          <div
+            v-if="isMultiTurnSession && hasAsked && !isSummarySettingsOpen"
+            class="flex items-center gap-1 ml-1 text-[10px] text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5 select-none"
+            title="当前为单通道模式，发送下一条消息即可自动续聊">
+            <svg class="w-2.5 h-2.5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
+            </svg>
+            <span>多轮对话中</span>
+          </div>
+
+          <!-- 归纳总结设置浮层 -->
+          <div
+            v-if="isSummarySettingsOpen"
+            class="absolute bottom-full left-0 mb-2 w-[260px] rounded-2xl border border-slate-200 bg-white shadow-xl p-3 space-y-3 z-20">
+            <div class="flex items-center justify-between">
+              <div class="text-[12px] font-semibold text-slate-800">归纳总结设置</div>
+              <button
+                type="button"
+                @click="isSummarySettingsOpen = false"
+                class="text-slate-400 hover:text-slate-600 transition-colors">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div v-if="getSummaryProviderOptions().length === 0"
+              class="text-[11px] text-amber-600 bg-amber-50 rounded-xl px-3 py-2 leading-5">
+              请先在通道设置中为 DeepSeek 或 LongCat 配置 API Key，才能使用归纳总结功能。
+            </div>
+
+            <template v-else>
+              <div class="space-y-1.5">
+                <label class="text-[11px] font-medium text-slate-600">汇总通道</label>
+                <select
+                  v-model="summaryProviderId"
+                  class="w-full min-h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-[12px] text-slate-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/15">
+                  <option value="">请选择通道</option>
+                  <option v-for="opt in getSummaryProviderOptions()" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="space-y-1.5" v-if="summaryProviderId">
+                <label class="text-[11px] font-medium text-slate-600">汇总模型</label>
+                <select
+                  v-model="summaryModel"
+                  class="w-full min-h-9 rounded-xl border border-slate-200 bg-white px-2.5 text-[12px] text-slate-800 focus:border-purple-400 focus:outline-none focus:ring-2 focus:ring-purple-400/15">
+                  <option v-for="opt in getSummaryModelOptions()" :key="opt.value" :value="opt.value">
+                    {{ opt.label }}
+                  </option>
+                </select>
+              </div>
+
+              <p class="text-[10px] text-slate-400 leading-4">
+                将复用已配置的 API Key，等所有通道回答完毕后自动发起汇总请求。
+              </p>
+            </template>
+          </div>
+        </div>
       </div>
       <div
         class="relative flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-400 transition-all">
@@ -271,7 +440,10 @@
         </div>
       </div>
       <div class="text-center mt-2">
-        <span class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 · 千问 · LongCat（网页模式/API模式双接入）</span>
+        <span v-if="isMultiTurnSession && hasAsked" class="text-[10px] text-emerald-500">
+          单通道多轮对话模式 · 直接输入下一条消息即可继续
+        </span>
+        <span v-else class="text-[10px] text-slate-400">目前支持：DeepSeek · 豆包 · 千问 · LongCat（网页模式/API模式双接入）</span>
       </div>
     </div>
   </div>
@@ -283,6 +455,7 @@ import { MSG_TYPES } from '../shared/messages.js';
 import ProviderCollapse from './components/ProviderCollapse.vue';
 import ChannelList from './components/ChannelList.vue';
 import ChannelSettingsModal from './components/ChannelSettingsModal.vue';
+import SummaryPanel from './components/SummaryPanel.vue';
 
 const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat'] as const;
 type ProviderId = typeof PROVIDER_IDS[number];
@@ -298,6 +471,12 @@ const PROVIDER_META = [
 
 type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
+  isSummaryEnabled?: boolean;
+};
+
+type SummaryConfig = {
+  providerId?: string;
+  model?: string;
 };
 
 type ApiConfig = {
@@ -324,6 +503,15 @@ type ChatHistoryItem = {
   createdAt: number;
   providers: Record<ProviderId, ProviderHistoryEntry>;
 };
+
+// 多轮对话：已完成的历史轮次（内存中，不持久化）
+interface CompletedTurn {
+  question: string;
+  providerId: ProviderId;
+  response: string;
+  thinkResponse: string;
+  rawUrl: string;
+}
 
 // UI 状态控制
 const inputStr = ref('');
@@ -360,6 +548,10 @@ const activeProviderSettings = ref<ProviderId | ''>('');
 const showNoChannelTip = ref(false);
 /** 当前展示的会话是否来自历史恢复（历史会话点原文打开新标签，新会话点原文激活已有 tab） */
 const isCurrentSessionFromHistory = ref(false);
+/** 多轮对话：已完成的历史轮次（仅单通道模式下生效） */
+const conversationTurns = ref<CompletedTurn[]>([]);
+/** 当前会话是否以单通道模式启动（用于判断是否继续多轮对话） */
+const isMultiTurnSession = ref(false);
 
 const statusMap: Record<ProviderId, ProviderStatus> = reactive({ deepseek: 'idle', doubao: 'idle', qianwen: 'idle', longcat: 'idle' });
 const responses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
@@ -372,10 +564,27 @@ const thinkResponses: Record<ProviderId, string> = reactive({ deepseek: '', doub
 const operationStatus: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 const rawUrlMap: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 
+// 归纳总结状态
+const isSummaryEnabled = ref(false);
+const summaryProviderId = ref('');
+const summaryModel = ref('');
+const isSummarySettingsOpen = ref(false);
+const summaryStatus = ref<'idle' | 'running' | 'completed' | 'error'>('idle');
+const summaryStage = ref<'thinking' | 'responding'>('responding');
+const summaryResponse = ref('');
+const summaryThinkResponse = ref('');
+const summaryFullBuffer = ref('');
+const summaryThinkBuffer = ref('');
+const summaryDisplayedLength = ref(0);
+const summaryThinkDisplayedLength = ref(0);
+const summaryOperationStatus = ref('');
+let summaryTriggered = false;
+
 const chatContainer = ref<HTMLElement | null>(null);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 const API_CONFIG_KEY = 'aiclash.api.config';
+const SUMMARY_CONFIG_KEY = 'aiclash.summary.config';
 const HISTORY_STORAGE_KEY = 'aiclash.chat.history';
 const MAX_HISTORY_COUNT = 30;
 const CHARS_PER_FRAME = 8;
@@ -403,12 +612,112 @@ function supportsApi(providerId: ProviderId) {
   return providerId === 'deepseek' || providerId === 'longcat';
 }
 
+function isSummaryConfigValid() {
+  const pid = summaryProviderId.value as ProviderId;
+  if (!pid || !PROVIDER_IDS.includes(pid)) return false;
+  return supportsApi(pid) && !!getApiKeyValue(pid).trim();
+}
+
+function getSummaryProviderOptions() {
+  return PROVIDER_META
+    .filter(p => p.supportsApi && getApiKeyValue(p.id as ProviderId).trim())
+    .map(p => ({ value: p.id, label: p.name }));
+}
+
+function getSummaryModelOptions() {
+  if (!summaryProviderId.value) return [];
+  return getModelOptions(summaryProviderId.value as ProviderId);
+}
+
+function summaryBlockReason(): string | null {
+  if (!isSummaryConfigValid()) return '请先配置归纳总结通道';
+  if (getEnabledProviderIds().length < 2) return '请选择 2 个或以上通道';
+  return null;
+}
+
+function toggleSummaryEnabled() {
+  if (!isSummaryConfigValid()) {
+    isSummarySettingsOpen.value = true;
+    return;
+  }
+  if (getEnabledProviderIds().length < 2) return;
+  isSummaryEnabled.value = !isSummaryEnabled.value;
+}
+
+function loadSummaryConfig() {
+  chrome.storage?.local.get([SUMMARY_CONFIG_KEY], (result) => {
+    const saved = (result?.[SUMMARY_CONFIG_KEY] || {}) as SummaryConfig;
+    summaryProviderId.value = saved.providerId || '';
+    summaryModel.value = saved.model || '';
+  });
+}
+
+function saveSummaryConfig() {
+  chrome.storage?.local.set({
+    [SUMMARY_CONFIG_KEY]: {
+      providerId: summaryProviderId.value,
+      model: summaryModel.value,
+    }
+  });
+}
+
+function resetSummaryState() {
+  summaryStatus.value = 'idle';
+  summaryStage.value = 'responding';
+  summaryResponse.value = '';
+  summaryThinkResponse.value = '';
+  summaryFullBuffer.value = '';
+  summaryThinkBuffer.value = '';
+  summaryDisplayedLength.value = 0;
+  summaryThinkDisplayedLength.value = 0;
+  summaryOperationStatus.value = '';
+  summaryTriggered = false;
+}
+
+async function triggerSummary() {
+  if (summaryTriggered) return;
+  if (!isSummaryEnabled.value || !isSummaryConfigValid()) return;
+
+  const providerNames: Record<ProviderId, string> = {
+    deepseek: 'DeepSeek', doubao: '豆包', qianwen: '千问', longcat: 'LongCat'
+  };
+
+  const responses = getEnabledProviderIds()
+    .filter(id => (statusMap[id] === 'completed' || statusMap[id] === 'error') && fullTextBuffer[id]?.trim())
+    .map(id => ({ providerId: id, name: providerNames[id], text: fullTextBuffer[id] }));
+
+  if (responses.length < 2) return;
+
+  summaryTriggered = true;
+  summaryStatus.value = 'running';
+  summaryOperationStatus.value = '';
+
+  chrome.runtime?.sendMessage({
+    type: MSG_TYPES.DISPATCH_SUMMARY,
+    payload: {
+      question: currentQuestion.value,
+      responses,
+      summaryConfig: {
+        providerId: summaryProviderId.value,
+        model: summaryModel.value,
+      },
+    }
+  });
+}
+
 function getProviderLabel(providerId: string) {
   return providerId === 'deepseek' ? 'DeepSeek'
     : providerId === 'doubao' ? '豆包'
     : providerId === 'qianwen' ? '千问'
     : providerId === 'longcat' ? 'LongCat'
     : providerId;
+}
+
+function getProviderThemeColor(providerId: ProviderId): 'blue' | 'amber' | 'emerald' | 'violet' {
+  return providerId === 'deepseek' ? 'blue'
+    : providerId === 'doubao' ? 'amber'
+    : providerId === 'qianwen' ? 'emerald'
+    : 'violet';
 }
 
 function getProviderModeText(providerId: ProviderId) {
@@ -428,6 +737,7 @@ function getModeValue(providerId: ProviderId) {
 }
 
 function setProviderMode(providerId: ProviderId, mode: ProviderMode) {
+  if (mode === 'api' && !getApiKeyValue(providerId).trim()) return;
   if (providerId === 'deepseek') deepseekMode.value = mode;
   else if (providerId === 'doubao') doubaoMode.value = mode;
   else if (providerId === 'qianwen') qianwenMode.value = mode;
@@ -549,6 +859,7 @@ function saveSettings() {
   chrome.storage?.local.set({
     [SETTINGS_KEY]: {
       isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+      isSummaryEnabled: isSummaryEnabled.value,
     }
   });
 }
@@ -564,6 +875,17 @@ function upsertHistoryItem(item: ChatHistoryItem) {
   nextList.unshift(item);
   historyList.value = nextList.slice(0, MAX_HISTORY_COUNT);
   saveHistory();
+}
+
+function deleteHistoryItem(id: string) {
+  historyList.value = historyList.value.filter((item) => item.id !== id);
+  saveHistory();
+}
+
+function clearAllHistory() {
+  historyList.value = [];
+  saveHistory();
+  isHistoryPanelOpen.value = false;
 }
 
 function buildHistoryProviders(rawUrlOverrides: Partial<Record<ProviderId, string>> = {}) {
@@ -666,6 +988,8 @@ function resetTaskState() {
     rawUrlMap[providerId] = '';
   }
 
+  resetSummaryState();
+
   if (streamAnimationId != null) {
     cancelAnimationFrame(streamAnimationId);
     streamAnimationId = null;
@@ -678,6 +1002,8 @@ function applyHistorySession(item: ChatHistoryItem) {
   hasAsked.value = true;
   isHistoryPanelOpen.value = false;
   isCurrentSessionFromHistory.value = true;
+  conversationTurns.value = [];
+  isMultiTurnSession.value = false;
 
   if (streamAnimationId != null) {
     cancelAnimationFrame(streamAnimationId);
@@ -749,6 +1075,7 @@ function loadSettings() {
   chrome.storage?.local.get([SETTINGS_KEY, API_CONFIG_KEY], async (result) => {
     const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
     isDeepThinkingEnabled.value = saved.isDeepThinkingEnabled ?? true;
+    isSummaryEnabled.value = saved.isSummaryEnabled ?? false;
     isDeepSeekEnabled.value = false;
     isDoubaoEnabled.value = false;
     isQianwenEnabled.value = false;
@@ -894,6 +1221,24 @@ function tickStreamDisplay() {
     }
   }
 
+  // 归纳总结动画
+  const sThinkFull = summaryThinkBuffer.value;
+  let sThinkLen = summaryThinkDisplayedLength.value;
+  if (sThinkLen < sThinkFull.length) {
+    sThinkLen = Math.min(sThinkLen + CHARS_PER_FRAME, sThinkFull.length);
+    summaryThinkDisplayedLength.value = sThinkLen;
+    summaryThinkResponse.value = sThinkFull.slice(0, sThinkLen);
+    anyPending = true;
+  }
+  const sFull = summaryFullBuffer.value;
+  let sLen = summaryDisplayedLength.value;
+  if (sLen < sFull.length) {
+    sLen = Math.min(sLen + CHARS_PER_FRAME, sFull.length);
+    summaryDisplayedLength.value = sLen;
+    summaryResponse.value = sFull.slice(0, sLen);
+    anyPending = true;
+  }
+
   void scrollToBottom();
   if (anyPending) {
     streamAnimationId = requestAnimationFrame(tickStreamDisplay);
@@ -914,12 +1259,32 @@ const scrollToBottom = async () => {
 onMounted(() => {
   loadSettings();
   loadHistory();
+  loadSummaryConfig();
 
   chrome.runtime?.onMessage.addListener((request) => {
     const { provider } = request.payload || {};
 
     if (request.type === MSG_TYPES.CHUNK_RECEIVED) {
       const payload = request.payload;
+
+      // 归纳总结通道
+      if (provider === '_summary') {
+        if (payload.isStatus) {
+          summaryOperationStatus.value = payload.text;
+          return;
+        }
+        if (payload.stage) summaryStage.value = payload.stage;
+        setTimeout(() => {
+          if (payload.isThink) {
+            summaryThinkBuffer.value += payload.text;
+          } else {
+            summaryFullBuffer.value += payload.text;
+          }
+          if (streamAnimationId == null) streamAnimationId = requestAnimationFrame(tickStreamDisplay);
+        }, 0);
+        return;
+      }
+
       const prov = provider as ProviderId;
       if (!prov) return;
 
@@ -945,14 +1310,31 @@ onMounted(() => {
         if (streamAnimationId == null) streamAnimationId = requestAnimationFrame(tickStreamDisplay);
         schedulePersistCurrentSession();
       }, 0);
+
     } else if (request.type === MSG_TYPES.TASK_STATUS_UPDATE) {
       const payload = request.payload;
+
+      // 归纳总结通道
+      if (provider === '_summary') {
+        summaryStatus.value = 'running';
+        summaryOperationStatus.value = payload.text || '';
+        return;
+      }
+
       const prov = provider as ProviderId;
       if (!prov) return;
       statusMap[prov] = 'running';
       operationStatus[prov] = payload.text || '';
       schedulePersistCurrentSession();
+
     } else if (request.type === MSG_TYPES.TASK_COMPLETED) {
+      // 归纳总结通道
+      if (provider === '_summary') {
+        summaryStatus.value = 'completed';
+        summaryOperationStatus.value = '';
+        return;
+      }
+
       const prov = provider as ProviderId;
       if (!prov) return;
       statusMap[prov] = 'completed';
@@ -969,8 +1351,24 @@ onMounted(() => {
           isQianwenOpen.value = false;
           isLongcatOpen.value = false;
         }, 1500);
+        // 所有通道完成后触发归纳总结
+        if (isSummaryEnabled.value && hasAsked.value && !isCurrentSessionFromHistory.value) {
+          void triggerSummary();
+        }
       }
+
     } else if (request.type === MSG_TYPES.ERROR) {
+      // 归纳总结通道
+      if (provider === '_summary') {
+        summaryStatus.value = 'error';
+        summaryOperationStatus.value = '';
+        const errMsg = request.payload.message || request.payload.error || '未知错误';
+        summaryFullBuffer.value = `[归纳总结出错] ${errMsg}`;
+        summaryDisplayedLength.value = summaryFullBuffer.value.length;
+        summaryResponse.value = summaryFullBuffer.value;
+        return;
+      }
+
       const prov = provider as ProviderId;
       if (!prov) return;
       statusMap[prov] = 'error';
@@ -981,6 +1379,10 @@ onMounted(() => {
       displayedLength[prov] = responses[prov].length;
       void syncProviderRawUrls([prov]);
       schedulePersistCurrentSession();
+      // 出错的通道也可能是最后一个完成的，检查是否触发总结
+      if (!isRunning.value && isSummaryEnabled.value && hasAsked.value && !isCurrentSessionFromHistory.value) {
+        void triggerSummary();
+      }
     }
   });
 });
@@ -994,6 +1396,8 @@ const createNewChat = () => {
   isCurrentSessionFromHistory.value = false;
   isHistoryPanelOpen.value = false;
   activeProviderSettings.value = '';
+  conversationTurns.value = [];
+  isMultiTurnSession.value = false;
   isDeepSeekOpen.value = isDeepSeekEnabled.value;
   isDoubaoOpen.value = isDoubaoEnabled.value;
   isQianwenOpen.value = isQianwenEnabled.value;
@@ -1006,14 +1410,43 @@ const createNewChat = () => {
 const submit = () => {
   const prompt = inputStr.value.trim();
   if (!prompt || isRunning.value) return;
-  if (!isDeepSeekEnabled.value && !isDoubaoEnabled.value && !isQianwenEnabled.value && !isLongcatEnabled.value) {
+
+  const enabledIds = getEnabledProviderIds();
+  if (!enabledIds.length) {
     showNoChannelTip.value = true;
     return;
   }
 
+  const isSingleChannel = enabledIds.length === 1;
+  // 多轮对话续接条件：当前会话以单通道启动、已有回答、非历史恢复
+  const isMultiTurnContinuation = isMultiTurnSession.value && isSingleChannel && hasAsked.value && !isCurrentSessionFromHistory.value;
+
+  if (isMultiTurnContinuation) {
+    // 保存当前已完成的轮次
+    const singleProviderId = enabledIds[0];
+    conversationTurns.value.push({
+      question: currentQuestion.value,
+      providerId: singleProviderId,
+      response: fullTextBuffer[singleProviderId] || responses[singleProviderId] || '',
+      thinkResponse: thinkTextBuffer[singleProviderId] || '',
+      rawUrl: rawUrlMap[singleProviderId] || '',
+    });
+  } else {
+    // 全新会话：清空历史轮次，生成新会话 ID
+    conversationTurns.value = [];
+    activeSessionId.value = createSessionId();
+    isMultiTurnSession.value = isSingleChannel;
+  }
+
   currentQuestion.value = prompt;
   hasAsked.value = true;
-  activeSessionId.value = createSessionId();
+  if (isMultiTurnContinuation) {
+    // 多轮模式下更新历史记录（仍用同一 session ID）
+    schedulePersistCurrentSession(0);
+  } else {
+    schedulePersistCurrentSession(0);
+  }
+
   isCurrentSessionFromHistory.value = false;
   isHistoryPanelOpen.value = false;
   activeProviderSettings.value = '';
@@ -1023,12 +1456,16 @@ const submit = () => {
   isLongcatOpen.value = isLongcatEnabled.value;
   resetTaskState();
 
-  for (const providerId of getEnabledProviderIds()) {
+  for (const providerId of enabledIds) {
     rawUrlMap[providerId] = getProviderMode(providerId) === 'api' ? 'api' : '';
   }
 
-  schedulePersistCurrentSession(0);
-  void syncProviderRawUrls(getEnabledProviderIds());
+  void syncProviderRawUrls(enabledIds);
+
+  // API 模式下的多轮对话历史（仅单通道时有效）
+  const conversationHistory = (isSingleChannel && conversationTurns.value.length > 0)
+    ? conversationTurns.value.map(t => ({ question: t.question, response: t.response }))
+    : [];
 
   if (isDeepSeekEnabled.value) {
     statusMap.deepseek = 'running';
@@ -1040,6 +1477,7 @@ const submit = () => {
         mode: deepseekMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+          conversationHistory,
         }
       }
     });
@@ -1055,6 +1493,7 @@ const submit = () => {
         mode: doubaoMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+          conversationHistory,
         }
       }
     });
@@ -1070,6 +1509,7 @@ const submit = () => {
         mode: qianwenMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+          conversationHistory,
         }
       }
     });
@@ -1085,6 +1525,7 @@ const submit = () => {
         mode: longcatMode.value,
         settings: {
           isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+          conversationHistory,
         }
       }
     });
@@ -1151,6 +1592,10 @@ watch(longcatMode, async (value) => {
     }
   }
 });
+
+watch(isSummaryEnabled, () => saveSettings());
+watch(summaryProviderId, () => saveSummaryConfig());
+watch(summaryModel, () => saveSummaryConfig());
 
 watch(deepseekApiKey, (value) => saveApiConfig('deepseek', { apiKey: value }));
 watch(doubaoApiKey, (value) => saveApiConfig('doubao', { apiKey: value }));

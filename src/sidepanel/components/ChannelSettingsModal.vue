@@ -44,24 +44,28 @@
             </label>
             <label
               class="inline-flex items-center gap-2 rounded-full border px-3 py-2 text-[12px]"
-              :class="supportsApi
-                ? 'cursor-pointer border-slate-200 bg-slate-50 text-slate-700'
-                : 'border-slate-100 bg-slate-50 text-slate-400'">
+              :class="!supportsApi || !apiKey.trim()
+                ? 'cursor-not-allowed border-slate-100 bg-slate-50 text-slate-400'
+                : 'cursor-pointer border-slate-200 bg-slate-50 text-slate-700'">
               <input
                 type="radio"
                 :name="`provider-mode-${activeProviderId}`"
                 class="h-3.5 w-3.5 text-indigo-600 border-slate-300 focus:ring-indigo-500"
-                :disabled="!supportsApi"
+                :disabled="!supportsApi || !apiKey.trim()"
                 :checked="mode === 'api'"
                 @change="$emit('update:mode', 'api')" />
-              <span>{{ supportsApi ? 'API模式' : 'API模式暂不支持' }}</span>
+              <span>{{ !supportsApi ? 'API模式暂不支持' : !apiKey.trim() ? 'API模式（需先填写 Key）' : 'API模式' }}</span>
             </label>
           </div>
         </div>
 
         <div
-          v-if="supportsApi && mode === 'api'"
+          v-if="supportsApi"
           class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <div class="flex items-center justify-between">
+            <div class="text-[12px] font-semibold text-slate-700">API 配置</div>
+            <div class="text-[11px] text-slate-400">可用于接入模式及总结功能</div>
+          </div>
           <div class="space-y-2">
             <div class="flex items-center justify-between">
               <label class="text-[12px] font-medium text-slate-700">API Key</label>

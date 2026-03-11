@@ -23,17 +23,17 @@
 
           <div class="flex items-center gap-2 flex-shrink-0">
             <button
-              type="button"
-              class="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
-              @click="$emit('open-settings', provider.id)">
-              设置
-            </button>
-            <button
               v-if="getModeValue(provider.id) === 'web'"
               type="button"
               class="inline-flex h-7 items-center justify-center rounded-full bg-indigo-50 px-2.5 text-[11px] font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
               @click="$emit('go', provider.id)">
               前往
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+              @click="$emit('open-settings', provider.id)">
+              设置
             </button>
             <button
               type="button"

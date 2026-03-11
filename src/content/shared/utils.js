@@ -93,6 +93,20 @@ export function startDomObserver(
   ctx.hookDataReceived = false;
   ctx.lastObservedText = '';
 
+  const scheduleTimeout = () => {
+    if (ctx.timeoutId) { clearTimeout(ctx.timeoutId); ctx.timeoutId = null; }
+    ctx.timeoutId = setTimeout(() => {
+      // hook 已接管流式输出，不干涉
+      if (ctx.hookDataReceived) return;
+      if (ctx.runId === currentRunId && ctx.observer) {
+        console.log(`[AIClash ${provider}] DOM 观测超时，自动停止`);
+        stopDomObserver(ctx);
+        sendError(provider, '等待响应超时，请检查网络或重试');
+        sendCompleted(provider);
+      }
+    }, 60000);
+  };
+
   const doPoll = () => {
     if (ctx.hookDataReceived) return;
     const currentText = pollFn();
@@ -104,6 +118,8 @@ export function startDomObserver(
         type: MSG_TYPES.CHUNK_RECEIVED,
         payload: { provider, text: newText, stage: 'responding', isThink: false }
       });
+      // DOM 有新内容，重置超时计时器，避免长篇响应被误杀
+      scheduleTimeout();
     }
   };
 
@@ -111,16 +127,8 @@ export function startDomObserver(
   ctx.observer.observe(document.body, { childList: true, subtree: true, characterData: true });
   ctx.timer = setInterval(doPoll, 200);
 
-  // 超时保护
-  ctx.timeoutId = setTimeout(() => {
-    if (ctx.runId === currentRunId && ctx.observer) {
-      console.log(`[AIClash ${provider}] DOM 观测超时，自动停止`);
-      stopDomObserver(ctx);
-      // 超时后通知后台任务结束
-      sendError(provider, '等待响应超时，请检查网络或重试');
-      sendCompleted(provider);
-    }
-  }, 60000);
+  // 启动超时保护
+  scheduleTimeout();
 }
 
 // ============================================================================

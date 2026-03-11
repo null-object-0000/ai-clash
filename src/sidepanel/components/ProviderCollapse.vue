@@ -26,7 +26,7 @@
         <span v-else class="text-slate-300 ml-1">
           <span class="inline-flex rounded-full h-3 w-3 bg-slate-300"></span>
         </span>
-        <span class="text-[13px] font-medium" :class="themeClasses.text">
+        <span class="text-[12px] font-medium" :class="themeClasses.text">
           {{ providerName }} {{ statusText }}
         </span>
         <span v-if="operationStatus"
@@ -40,7 +40,7 @@
           :href="rawUrl"
           :target="isFromHistory ? '_blank' : undefined"
           rel="noopener noreferrer"
-          class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[10px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
+          class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
           @click.stop="onOriginalClick"
           :title="isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'">
           <svg class="w-3 h-3 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -50,7 +50,7 @@
         </a>
         <span
           v-else-if="rawUrl === 'api'"
-          class="rounded-full border border-slate-100 bg-slate-50/80 px-2 py-0.5 text-[10px] font-medium text-slate-400">
+          class="rounded-full border border-slate-100 bg-slate-50/80 px-2 py-0.5 text-[11px] font-medium text-slate-400">
           API
         </span>
       </div>
