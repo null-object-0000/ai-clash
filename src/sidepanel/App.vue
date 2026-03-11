@@ -202,6 +202,7 @@
           :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDeepSeekOpen"
+          :stats="statsMap.deepseek"
         />
 
         <!-- 豆包 折叠面板 -->
@@ -219,6 +220,7 @@
           :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isDoubaoOpen"
+          :stats="statsMap.doubao"
         />
 
         <!-- 千问 折叠面板 -->
@@ -236,6 +238,7 @@
           :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isQianwenOpen"
+          :stats="statsMap.qianwen"
         />
 
         <!-- LongCat 折叠面板 -->
@@ -253,16 +256,18 @@
           :is-from-history="isCurrentSessionFromHistory"
           :is-deep-thinking-enabled="isDeepThinkingEnabled"
           :default-open="isLongcatOpen"
+          :stats="statsMap.longcat"
         />
 
-        <!-- 归纳总结面板：仅在开启归纳总结且已提问时显示 -->
+        <!-- 归纳总结面板：开启时或历史有汇总内容时显示 -->
         <SummaryPanel
-          v-if="isSummaryEnabled && hasAsked"
+          v-if="hasAsked && (isSummaryEnabled || summaryStatus !== 'idle')"
           :status="summaryStatus"
           :stage="summaryStage"
           :response="summaryResponse"
           :think-response="summaryThinkResponse"
           :operation-status="summaryOperationStatus"
+          :stats="summaryStats"
         />
       </template>
 
@@ -512,6 +517,21 @@ type ProviderHistoryEntry = {
   thinkResponse: string;
   operationStatus: string;
   rawUrl: string;
+  stats: ProviderStats | null;
+};
+
+type ProviderStats = {
+  ttff: number;
+  totalTime: number;
+  charCount: number;
+  charsPerSec: number;
+};
+
+type SummaryHistoryEntry = {
+  status: 'idle' | 'running' | 'completed' | 'error';
+  response: string;
+  thinkResponse: string;
+  stats: ProviderStats | null;
 };
 
 type ChatHistoryItem = {
@@ -519,6 +539,7 @@ type ChatHistoryItem = {
   question: string;
   createdAt: number;
   providers: Record<ProviderId, ProviderHistoryEntry>;
+  summary: SummaryHistoryEntry | null;
 };
 
 // 多轮对话：已完成的历史轮次（内存中，不持久化）
@@ -580,6 +601,15 @@ const thinkDisplayedLength: Record<ProviderId, number> = reactive({ deepseek: 0,
 const thinkResponses: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 const operationStatus: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
 const rawUrlMap: Record<ProviderId, string> = reactive({ deepseek: '', doubao: '', qianwen: '', longcat: '' });
+const statsMap: Record<ProviderId, ProviderStats | null> = reactive({ deepseek: null, doubao: null, qianwen: null, longcat: null });
+
+// 内部计时数据（非响应式，仅用于计算）
+const timingData: Record<ProviderId, { startTime: number; firstContentTime: number }> = {
+  deepseek: { startTime: 0, firstContentTime: 0 },
+  doubao: { startTime: 0, firstContentTime: 0 },
+  qianwen: { startTime: 0, firstContentTime: 0 },
+  longcat: { startTime: 0, firstContentTime: 0 },
+};
 
 // 归纳总结状态
 const isSummaryEnabled = ref(false);
@@ -595,7 +625,9 @@ const summaryThinkBuffer = ref('');
 const summaryDisplayedLength = ref(0);
 const summaryThinkDisplayedLength = ref(0);
 const summaryOperationStatus = ref('');
+const summaryStats = ref<ProviderStats | null>(null);
 let summaryTriggered = false;
+let summaryTimingData = { startTime: 0, firstContentTime: 0 };
 
 const chatContainer = ref<HTMLElement | null>(null);
 const userHasScrolled = ref(false);
@@ -693,7 +725,9 @@ function resetSummaryState() {
   summaryDisplayedLength.value = 0;
   summaryThinkDisplayedLength.value = 0;
   summaryOperationStatus.value = '';
+  summaryStats.value = null;
   summaryTriggered = false;
+  summaryTimingData = { startTime: 0, firstContentTime: 0 };
 }
 
 async function triggerSummary() {
@@ -713,6 +747,7 @@ async function triggerSummary() {
   summaryTriggered = true;
   summaryStatus.value = 'running';
   summaryOperationStatus.value = '';
+  summaryTimingData.startTime = Date.now();
 
   chrome.runtime?.sendMessage({
     type: MSG_TYPES.DISPATCH_SUMMARY,
@@ -895,7 +930,8 @@ function createDefaultHistoryEntry(providerId: ProviderId): ProviderHistoryEntry
     response: '',
     thinkResponse: '',
     operationStatus: '',
-    rawUrl: ''
+    rawUrl: '',
+    stats: null,
   };
 }
 
@@ -942,10 +978,21 @@ function buildHistoryProviders(rawUrlOverrides: Partial<Record<ProviderId, strin
       response: responses[providerId],
       thinkResponse: thinkResponses[providerId],
       operationStatus: operationStatus[providerId],
-      rawUrl: rawUrlOverrides[providerId] ?? rawUrlMap[providerId] ?? ''
+      rawUrl: rawUrlOverrides[providerId] ?? rawUrlMap[providerId] ?? '',
+      stats: statsMap[providerId] ?? null,
     };
     return acc;
   }, {} as Record<ProviderId, ProviderHistoryEntry>);
+}
+
+function buildSummaryHistoryEntry(): SummaryHistoryEntry | null {
+  if (summaryStatus.value === 'idle') return null;
+  return {
+    status: summaryStatus.value,
+    response: summaryFullBuffer.value || '',
+    thinkResponse: summaryThinkBuffer.value || '',
+    stats: summaryStats.value,
+  };
 }
 
 async function persistCurrentSession(rawUrlOverrides: Partial<Record<ProviderId, string>> = {}) {
@@ -959,7 +1006,8 @@ async function persistCurrentSession(rawUrlOverrides: Partial<Record<ProviderId,
     id: activeSessionId.value,
     question: currentQuestion.value,
     createdAt: existing?.createdAt ?? Date.now(),
-    providers: buildHistoryProviders(mergedRawUrlOverrides)
+    providers: buildHistoryProviders(mergedRawUrlOverrides),
+    summary: buildSummaryHistoryEntry(),
   });
 }
 
@@ -1030,6 +1078,8 @@ function resetTaskState() {
     thinkDisplayedLength[providerId] = 0;
     operationStatus[providerId] = '';
     rawUrlMap[providerId] = '';
+    statsMap[providerId] = null;
+    timingData[providerId] = { startTime: 0, firstContentTime: 0 };
   }
 
   resetSummaryState();
@@ -1057,7 +1107,7 @@ function applyHistorySession(item: ChatHistoryItem) {
   for (const providerId of PROVIDER_IDS) {
     const providerState = item.providers[providerId] || createDefaultHistoryEntry(providerId);
     setProviderEnabled(providerId, providerState.enabled);
-    setProviderOpen(providerId, providerState.enabled);
+    setProviderOpen(providerId, false); // 历史会话默认折叠所有面板
     statusMap[providerId] = providerState.status;
     stageMap[providerId] = providerState.stage;
     responses[providerId] = providerState.response;
@@ -1068,6 +1118,25 @@ function applyHistorySession(item: ChatHistoryItem) {
     thinkDisplayedLength[providerId] = providerState.thinkResponse.length;
     operationStatus[providerId] = providerState.operationStatus;
     rawUrlMap[providerId] = providerState.rawUrl;
+    statsMap[providerId] = providerState.stats ?? null;
+  }
+
+  // 恢复归纳总结状态
+  const summaryEntry = item.summary;
+  if (summaryEntry) {
+    summaryStatus.value = summaryEntry.status;
+    summaryStage.value = 'responding';
+    summaryResponse.value = summaryEntry.response;
+    summaryThinkResponse.value = summaryEntry.thinkResponse;
+    summaryFullBuffer.value = summaryEntry.response;
+    summaryThinkBuffer.value = summaryEntry.thinkResponse;
+    summaryDisplayedLength.value = summaryEntry.response.length;
+    summaryThinkDisplayedLength.value = summaryEntry.thinkResponse.length;
+    summaryOperationStatus.value = '';
+    summaryStats.value = summaryEntry.stats ?? null;
+    summaryTriggered = true; // 防止重复触发
+  } else {
+    resetSummaryState();
   }
 
   void scrollToBottom();
@@ -1094,7 +1163,8 @@ function loadHistory() {
           id: item.id || createSessionId(),
           question: item.question || '',
           createdAt: item.createdAt || Date.now(),
-          providers
+          providers,
+          summary: (item.summary as SummaryHistoryEntry) ?? null,
         };
       })
       .filter((item: ChatHistoryItem) => item.question.trim())
@@ -1333,6 +1403,9 @@ onMounted(() => {
           return;
         }
         if (payload.stage) summaryStage.value = payload.stage;
+        if (!payload.isThink && payload.text && !summaryTimingData.firstContentTime) {
+          summaryTimingData.firstContentTime = Date.now();
+        }
         setTimeout(() => {
           if (payload.isThink) {
             summaryThinkBuffer.value += payload.text;
@@ -1351,6 +1424,11 @@ onMounted(() => {
         operationStatus[prov] = payload.text;
         schedulePersistCurrentSession();
         return;
+      }
+
+      // 记录首次正文 chunk 到达时间（用于 TTFF 计算）
+      if (!payload.isThink && payload.text && !timingData[prov].firstContentTime) {
+        timingData[prov].firstContentTime = Date.now();
       }
 
       if (payload.stage && (payload.stage !== 'thinking' || isDeepThinkingEnabled.value)) {
@@ -1391,6 +1469,16 @@ onMounted(() => {
       if (provider === '_summary') {
         summaryStatus.value = 'completed';
         summaryOperationStatus.value = '';
+        if (summaryTimingData.startTime > 0 && summaryTimingData.firstContentTime > 0) {
+          const completedAt = Date.now();
+          const charCount = summaryFullBuffer.value?.length || 0;
+          const ttff = summaryTimingData.firstContentTime - summaryTimingData.startTime;
+          const totalTime = completedAt - summaryTimingData.startTime;
+          const outputSecs = (completedAt - summaryTimingData.firstContentTime) / 1000;
+          const charsPerSec = outputSecs > 0.1 ? Math.round(charCount / outputSecs) : 0;
+          summaryStats.value = { ttff, totalTime, charCount, charsPerSec };
+        }
+        schedulePersistCurrentSession();
         return;
       }
 
@@ -1398,6 +1486,19 @@ onMounted(() => {
       if (!prov) return;
       statusMap[prov] = 'completed';
       operationStatus[prov] = '';
+
+      // 计算本次性能统计
+      const timing = timingData[prov];
+      if (timing.startTime > 0 && timing.firstContentTime > 0) {
+        const completedAt = Date.now();
+        const charCount = fullTextBuffer[prov]?.length || 0;
+        const ttff = timing.firstContentTime - timing.startTime;
+        const totalTime = completedAt - timing.startTime;
+        const outputSecs = (completedAt - timing.firstContentTime) / 1000;
+        const charsPerSec = outputSecs > 0.1 ? Math.round(charCount / outputSecs) : 0;
+        statsMap[prov] = { ttff, totalTime, charCount, charsPerSec };
+      }
+
       if (prov === 'deepseek' && !(responses.deepseek || '').trim()) {
         responses.deepseek = '（网页端已结束，但未抓取到流式内容，可能接口格式已变更）';
       }
@@ -1530,6 +1631,7 @@ const submit = () => {
 
   if (isDeepSeekEnabled.value) {
     statusMap.deepseek = 'running';
+    timingData.deepseek.startTime = Date.now();
     chrome.runtime?.sendMessage({
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
@@ -1546,6 +1648,7 @@ const submit = () => {
 
   if (isDoubaoEnabled.value) {
     statusMap.doubao = 'running';
+    timingData.doubao.startTime = Date.now();
     chrome.runtime?.sendMessage({
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
@@ -1562,6 +1665,7 @@ const submit = () => {
 
   if (isQianwenEnabled.value) {
     statusMap.qianwen = 'running';
+    timingData.qianwen.startTime = Date.now();
     chrome.runtime?.sendMessage({
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {
@@ -1578,6 +1682,7 @@ const submit = () => {
 
   if (isLongcatEnabled.value) {
     statusMap.longcat = 'running';
+    timingData.longcat.startTime = Date.now();
     chrome.runtime?.sendMessage({
       type: MSG_TYPES.DISPATCH_TASK,
       payload: {

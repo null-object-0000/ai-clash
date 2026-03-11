@@ -27,6 +27,9 @@
         <span v-if="operationStatus" class="animate-pulse">{{ operationStatus }}</span>
         <span v-else-if="status === 'running' && stage === 'thinking'">正在思考...</span>
         <span v-else-if="status === 'running'">正在输出...</span>
+        <span v-else-if="stats && status === 'completed'">
+          首字 {{ (stats.ttff / 1000).toFixed(1) }}s · 总耗时 {{ (stats.totalTime / 1000).toFixed(1) }}s · {{ stats.charCount.toLocaleString('zh-CN') }}字 · {{ stats.charsPerSec }}字/s
+        </span>
         <span v-else-if="status === 'completed'">已完成</span>
       </div>
     </div>
@@ -80,12 +83,20 @@ import { ref, computed } from 'vue';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 
+type ProviderStats = {
+  ttff: number;
+  totalTime: number;
+  charCount: number;
+  charsPerSec: number;
+};
+
 const props = defineProps<{
   status: 'idle' | 'running' | 'completed' | 'error';
   stage: 'thinking' | 'responding';
   response: string;
   thinkResponse?: string;
   operationStatus?: string;
+  stats?: ProviderStats | null;
 }>();
 
 const isThinkBlockOpen = ref(true);

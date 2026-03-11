@@ -2,39 +2,43 @@
   <div class="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
     <button @click="isOpen = !isOpen"
       class="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-      <div class="flex items-center gap-2.5">
-        <span v-if="status === 'running'" class="relative flex h-3 w-3 ml-1">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span v-if="status === 'running'" class="relative flex h-3 w-3 ml-1 flex-shrink-0">
           <span
             class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
             :class="themeClasses.ping"></span>
           <span class="relative inline-flex rounded-full h-3 w-3" :class="themeClasses.dot"></span>
         </span>
-        <span v-else-if="status === 'completed'" class="text-emerald-500 ml-1">
+        <span v-else-if="status === 'completed'" class="text-emerald-500 ml-1 flex-shrink-0">
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd"
               d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
               clip-rule="evenodd"></path>
           </svg>
         </span>
-        <span v-else-if="status === 'error'" class="text-rose-500 ml-1">
+        <span v-else-if="status === 'error'" class="text-rose-500 ml-1 flex-shrink-0">
           <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
             <path fill-rule="evenodd"
               d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 10-1.5 0v4.5a.75.75 0 001.5 0V6.5zm0 7a.75.75 0 10-1.5 0v.5a.75.75 0 001.5 0V13.5z"
               clip-rule="evenodd"></path>
           </svg>
         </span>
-        <span v-else class="text-slate-300 ml-1">
+        <span v-else class="text-slate-300 ml-1 flex-shrink-0">
           <span class="inline-flex rounded-full h-3 w-3 bg-slate-300"></span>
         </span>
-        <span class="text-[12px] font-medium" :class="themeClasses.text">
+        <span class="text-[12px] font-medium flex-shrink-0" :class="themeClasses.text">
           {{ providerName }} {{ statusText }}
         </span>
         <span v-if="operationStatus"
-          class="text-[10px] font-normal text-amber-500 animate-pulse">{{ operationStatus }}</span>
+          class="text-[10px] font-normal text-amber-500 animate-pulse truncate">{{ operationStatus }}</span>
         <span v-else-if="status === 'running'"
-          class="text-[10px] font-normal text-slate-400 animate-pulse">{{ stageLabel }}</span>
+          class="text-[10px] font-normal text-slate-400 animate-pulse truncate">{{ stageLabel }}</span>
+        <span v-else-if="stats && status === 'completed'"
+          class="text-[10px] font-normal text-slate-400 truncate">
+          首字 {{ (stats.ttff / 1000).toFixed(1) }}s · 总耗时 {{ (stats.totalTime / 1000).toFixed(1) }}s · {{ stats.charCount.toLocaleString('zh-CN') }}字 · {{ stats.charsPerSec }}字/s
+        </span>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-shrink-0">
         <a
           v-if="rawUrl && rawUrl !== 'api'"
           :href="rawUrl"
@@ -53,11 +57,11 @@
           class="rounded-full border border-slate-100 bg-slate-50/80 px-2 py-0.5 text-[11px] font-medium text-slate-400">
           API
         </span>
+        <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
+          :class="{ 'rotate-180': isOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+        </svg>
       </div>
-      <svg class="w-4 h-4 text-slate-400 transition-transform duration-200"
-        :class="{ 'rotate-180': isOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-      </svg>
     </button>
 
     <div v-show="isOpen"
@@ -104,6 +108,13 @@ import { ref, computed, watch } from 'vue';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 
+type ProviderStats = {
+  ttff: number;
+  totalTime: number;
+  charCount: number;
+  charsPerSec: number;
+};
+
 const props = defineProps<{
   providerId: string;
   providerName: string;
@@ -118,6 +129,7 @@ const props = defineProps<{
   isFromHistory?: boolean;
   isDeepThinkingEnabled?: boolean;
   defaultOpen?: boolean;
+  stats?: ProviderStats | null;
 }>();
 
 const isOpen = ref(props.defaultOpen ?? true);
