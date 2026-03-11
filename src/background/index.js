@@ -500,19 +500,45 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
         // 先尝试直接发送消息
         await chrome.tabs.sendMessage(tabId, msg);
     } catch {
-        // 如果发送失败，说明content script未注入，先手动注入对应provider的content script
-        await chrome.scripting.executeScript({
-            target: { tabId },
-            files: [provider.contentScriptFile],
-        });
-        // 注入完成后等待一小段时间让content script初始化
-        setTimeout(async () => {
-            try {
-                await chrome.tabs.sendMessage(tabId, msg);
-            } catch (err) {
-                console.error(`Failed to send message to ${provider.id} after injection:`, err);
+        // 发送失败，说明 content script 已失效（常见于扩展重新加载后旧 Tab 的孤儿上下文）
+        // 不能用 executeScript({ files }) 重注入——那会以普通脚本执行 ES Module 文件，导致 import 报错
+        // 正确做法：重载该 Tab，让 manifest 声明的 content script 自动重新注入
+        console.log(`[AIClash] ${provider.id} content script 未响应，正在重载页面以重新注入...`);
+
+        chrome.runtime.sendMessage({
+            type: MSG_TYPES.TASK_STATUS_UPDATE,
+            payload: { provider: provider.id, stage: 'loading', text: `正在重新加载${provider.name}页面...` }
+        }).catch(() => {});
+
+        try {
+            await new Promise((resolve, reject) => {
+                const timeoutId = setTimeout(() => {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    reject(new Error('页面重载超时'));
+                }, 30000);
+
+                function listener(updatedTabId, info) {
+                    if (updatedTabId === tabId && info.status === 'complete') {
+                        chrome.tabs.onUpdated.removeListener(listener);
+                        clearTimeout(timeoutId);
+                        resolve();
+                    }
+                }
+
+                chrome.tabs.onUpdated.addListener(listener);
+                chrome.tabs.reload(tabId);
+            });
+
+            const readyResult = await waitForPageReady(tabId, provider);
+            if (!readyResult.success) {
+                throw new Error(readyResult.error || 'content script 未就绪');
             }
-        }, 500);
+
+            await chrome.tabs.sendMessage(tabId, msg);
+        } catch (err) {
+            console.error(`Failed to send message to ${provider.id} after reload:`, err);
+            sendProviderError(provider.id, `${provider.name} 页面重载后仍无法连接：${err.message}`);
+        }
     }
 }
 

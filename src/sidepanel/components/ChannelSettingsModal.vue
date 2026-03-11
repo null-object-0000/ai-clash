@@ -66,6 +66,14 @@
             <div class="text-[12px] font-semibold text-slate-700">API 配置</div>
             <div class="text-[11px] text-slate-400">可用于接入模式及总结功能</div>
           </div>
+          <div
+            v-if="apiNote"
+            class="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+            <svg class="h-3.5 w-3.5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
+            </svg>
+            <span>{{ apiNote }}</span>
+          </div>
           <div class="space-y-2">
             <div class="flex items-center justify-between">
               <label class="text-[12px] font-medium text-slate-700">API Key</label>
@@ -143,7 +151,8 @@ defineProps<{
   testing: boolean;
   apiKeyTestResult: { success: boolean; message: string } | null;
   apiKeyLink?: string;
-}>();
+  apiNote?: string;
+}>(); 
 
 defineEmits<{
   (e: 'close'): void;

@@ -280,7 +280,8 @@
       :show-api-key="showApiKey[activeProviderSettings] ?? false"
       :testing="testingApiKey[activeProviderSettings] ?? false"
       :api-key-test-result="apiKeyTestResult[activeProviderSettings] ?? null"
-      :api-key-link="activeProviderSettings === 'longcat' ? 'https://longcat.chat/platform/api_keys' : activeProviderSettings === 'deepseek' ? 'https://platform.deepseek.com/api_keys' : undefined"
+      :api-key-link="getProviderMeta(activeProviderSettings as ProviderId)?.apiKeyLink"
+      :api-note="getProviderMeta(activeProviderSettings as ProviderId)?.apiNote"
       @close="closeProviderSettings"
       @update:mode="(m) => setProviderMode(activeProviderSettings as ProviderId, m)"
       @update:api-key="(v) => setProviderApiKey(activeProviderSettings as ProviderId, v)"
@@ -463,10 +464,26 @@ type ProviderMode = 'web' | 'api';
 type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
 type StageType = 'connecting' | 'thinking' | 'responding';
 const PROVIDER_META = [
-  { id: 'deepseek', name: 'DeepSeek', supportsApi: true },
-  { id: 'doubao', name: '豆包', supportsApi: false },
-  { id: 'qianwen', name: '千问', supportsApi: false },
-  { id: 'longcat', name: 'LongCat', supportsApi: true },
+  {
+    id: 'deepseek', name: 'DeepSeek', supportsApi: true,
+    apiKeyLink: 'https://platform.deepseek.com/api_keys',
+    apiNote: undefined,
+  },
+  {
+    id: 'doubao', name: '豆包', supportsApi: true,
+    apiKeyLink: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+    apiNote: '暂仅支持火山方舟 Coding Plan 模式',
+  },
+  {
+    id: 'qianwen', name: '千问', supportsApi: true,
+    apiKeyLink: 'https://bailian.console.aliyun.com/cn-beijing/?tab=coding-plan#/efm/detail',
+    apiNote: '暂仅支持阿里云百炼 Coding Plan 模式',
+  },
+  {
+    id: 'longcat', name: 'LongCat', supportsApi: true,
+    apiKeyLink: 'https://longcat.chat/platform/api_keys',
+    apiNote: undefined,
+  },
 ] as const;
 
 type SidepanelSettings = {
@@ -581,6 +598,7 @@ const summaryOperationStatus = ref('');
 let summaryTriggered = false;
 
 const chatContainer = ref<HTMLElement | null>(null);
+const userHasScrolled = ref(false);
 const textareaRef = ref<HTMLTextAreaElement | null>(null);
 const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 const API_CONFIG_KEY = 'aiclash.api.config';
@@ -608,8 +626,12 @@ function formatHistoryTime(timestamp: number) {
   });
 }
 
+function getProviderMeta(providerId: ProviderId) {
+  return PROVIDER_META.find(p => p.id === providerId);
+}
+
 function supportsApi(providerId: ProviderId) {
-  return providerId === 'deepseek' || providerId === 'longcat';
+  return getProviderMeta(providerId)?.supportsApi ?? false;
 }
 
 function isSummaryConfigValid() {
@@ -788,6 +810,28 @@ function getModelOptions(providerId: ProviderId) {
       { value: 'LongCat-Flash-Chat', label: 'LongCat-Flash-Chat（通用对话）' },
       { value: 'LongCat-Flash-Thinking', label: 'LongCat-Flash-Thinking（深度思考）' },
       { value: 'LongCat-Flash-Thinking-2601', label: 'LongCat-Flash-Thinking-2601（升级版深度思考）' },
+    ];
+  }
+
+  if (providerId === 'doubao') {
+    return [
+      { value: '', label: '默认模型 (ark-code-latest)' },
+      { value: 'ark-code-latest', label: 'ark-code-latest（Coding Plan）' },
+    ];
+  }
+
+  if (providerId === 'qianwen') {
+    return [
+      { value: '', label: '默认模型 (qwen3.5-plus)' },
+      { value: 'qwen3.5-plus',         label: 'qwen3.5-plus（推荐 · 深度思考 · 图片理解）' },
+      { value: 'kimi-k2.5',            label: 'kimi-k2.5（推荐 · 深度思考 · 图片理解）' },
+      { value: 'glm-5',                label: 'glm-5（推荐 · 深度思考）' },
+      { value: 'MiniMax-M2.5',         label: 'MiniMax-M2.5（推荐 · 深度思考）' },
+      { value: 'deepseek-v3.2',        label: 'deepseek-v3.2（推荐）' },
+      { value: 'qwen3-max-2026-01-23', label: 'qwen3-max-2026-01-23（旗舰 · 深度思考）' },
+      { value: 'qwen3-coder-next',     label: 'qwen3-coder-next（编程专用）' },
+      { value: 'qwen3-coder-plus',     label: 'qwen3-coder-plus（编程专用·轻量）' },
+      { value: 'glm-4.7',              label: 'glm-4.7（深度思考）' },
     ];
   }
 
@@ -1250,6 +1294,7 @@ function tickStreamDisplay() {
 const isRunning = computed(() => Object.values(statusMap).includes('running'));
 
 const scrollToBottom = async () => {
+  if (userHasScrolled.value) return;
   await nextTick();
   if (chatContainer.value) {
     chatContainer.value.scrollTop = chatContainer.value.scrollHeight;
@@ -1260,6 +1305,20 @@ onMounted(() => {
   loadSettings();
   loadHistory();
   loadSummaryConfig();
+
+  // 检测用户主动向上滚动，暂停自动滚动
+  nextTick(() => {
+    if (chatContainer.value) {
+      chatContainer.value.addEventListener('scroll', () => {
+        if (!isRunning.value) return;
+        const el = chatContainer.value!;
+        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        if (distanceFromBottom > 80) {
+          userHasScrolled.value = true;
+        }
+      }, { passive: true });
+    }
+  });
 
   chrome.runtime?.onMessage.addListener((request) => {
     const { provider } = request.payload || {};
@@ -1410,6 +1469,8 @@ const createNewChat = () => {
 const submit = () => {
   const prompt = inputStr.value.trim();
   if (!prompt || isRunning.value) return;
+
+  userHasScrolled.value = false;
 
   const enabledIds = getEnabledProviderIds();
   if (!enabledIds.length) {
