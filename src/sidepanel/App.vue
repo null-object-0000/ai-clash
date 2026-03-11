@@ -348,6 +348,7 @@
 import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
 import { MSG_TYPES } from '../shared/messages.js';
 import logger, { setDebugEnabled } from '../shared/logger.js';
+import { PROVIDER_META, getModelOptions, getProviderName } from '../shared/config.js';
 import ProviderCollapse from './components/ProviderCollapse.vue';
 import ChatMessage from './components/ChatMessage.vue';
 import ChannelList from './components/ChannelList.vue';
@@ -361,33 +362,8 @@ type ProviderId = typeof PROVIDER_IDS[number];
 type ProviderMode = 'web' | 'api';
 type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
 type StageType = 'connecting' | 'thinking' | 'responding';
-const PROVIDER_META = [
-  {
-    id: 'deepseek', name: 'DeepSeek', supportsApi: true,
-    apiKeyLink: 'https://platform.deepseek.com/api_keys',
-    apiNote: undefined,
-  },
-  {
-    id: 'doubao', name: '豆包', supportsApi: true,
-    apiKeyLink: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
-    apiNote: '暂仅支持火山方舟 Coding Plan 模式',
-  },
-  {
-    id: 'qianwen', name: '千问', supportsApi: true,
-    apiKeyLink: 'https://bailian.console.aliyun.com/cn-beijing/?tab=coding-plan#/efm/detail',
-    apiNote: '暂仅支持阿里云百炼 Coding Plan 模式',
-  },
-  {
-    id: 'longcat', name: 'LongCat', supportsApi: true,
-    apiKeyLink: 'https://longcat.chat/platform/api_keys',
-    apiNote: undefined,
-  },
-  {
-    id: 'yuanbao', name: '元宝', supportsApi: false,
-    apiKeyLink: undefined,
-    apiNote: undefined,
-  },
-] as const;
+
+// PROVIDER_META 和 getModelOptions 已从 ../shared/config.js 导入，不再本地定义
 
 type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
@@ -772,53 +748,7 @@ function setProviderModel(providerId: ProviderId, value: string) {
   else longcatModel.value = value;
 }
 
-function getModelOptions(providerId: ProviderId) {
-  if (providerId === 'deepseek') {
-    return [
-      { value: '', label: '默认模型 (deepseek-chat)' },
-      { value: 'deepseek-chat', label: 'deepseek-chat（DeepSeek-V3.2，输出最大 8K）' },
-      { value: 'deepseek-reasoner', label: 'deepseek-reasoner（DeepSeek-V3.2 思考，输出最大 64K）' }
-    ];
-  }
-
-  if (providerId === 'longcat') {
-    return [
-      { value: '', label: '默认模型 (LongCat-Flash-Lite)' },
-      { value: 'LongCat-Flash-Lite', label: 'LongCat-Flash-Lite（高效轻量 MoE）' },
-      { value: 'LongCat-Flash-Chat', label: 'LongCat-Flash-Chat（通用对话）' },
-      { value: 'LongCat-Flash-Thinking', label: 'LongCat-Flash-Thinking（深度思考）' },
-      { value: 'LongCat-Flash-Thinking-2601', label: 'LongCat-Flash-Thinking-2601（升级版深度思考）' },
-    ];
-  }
-
-  if (providerId === 'doubao') {
-    return [
-      { value: '', label: '默认模型 (ark-code-latest)' },
-      { value: 'ark-code-latest', label: 'ark-code-latest（Coding Plan）' },
-    ];
-  }
-
-  if (providerId === 'qianwen') {
-    return [
-      { value: '', label: '默认模型 (qwen3.5-plus)' },
-      { value: 'qwen3.5-plus',         label: 'qwen3.5-plus（推荐 · 深度思考 · 图片理解）' },
-      { value: 'kimi-k2.5',            label: 'kimi-k2.5（推荐 · 深度思考 · 图片理解）' },
-      { value: 'glm-5',                label: 'glm-5（推荐 · 深度思考）' },
-      { value: 'MiniMax-M2.5',         label: 'MiniMax-M2.5（推荐 · 深度思考）' },
-      { value: 'deepseek-v3.2',        label: 'deepseek-v3.2（推荐）' },
-      { value: 'qwen3-max-2026-01-23', label: 'qwen3-max-2026-01-23（旗舰 · 深度思考）' },
-      { value: 'qwen3-coder-next',     label: 'qwen3-coder-next（编程专用）' },
-      { value: 'qwen3-coder-plus',     label: 'qwen3-coder-plus（编程专用·轻量）' },
-      { value: 'glm-4.7',              label: 'glm-4.7（深度思考）' },
-    ];
-  }
-
-  if (providerId === 'yuanbao') {
-    return [{ value: '', label: '默认模型（仅支持网页模式）' }];
-  }
-
-  return [{ value: '', label: '默认模型' }];
-}
+// getModelOptions 已从 ../shared/config.js 导入，不再本地定义
 
 function isProviderEnabled(providerId: ProviderId) {
   return providerId === 'deepseek' ? isDeepSeekEnabled.value

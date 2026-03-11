@@ -3,6 +3,58 @@ import { MSG_TYPES } from '../shared/messages.js';
 import { PROVIDERS, getProvider } from './providers.js';
 import logger from '../shared/logger.js';
 
+// Service Worker 保活机制 - 单个持久化心跳 alarm
+const KEEPALIVE_ALARM_NAME = 'aiclash-sw-keepalive';
+let activeRequestCount = 0; // 跟踪活跃请求数量
+let keepaliveAlarmStarted = false; // 保活 alarm 是否已启动
+
+// 启动保活机制 - 使用单个周期性 alarm 而非每次请求创建新 alarm
+function startKeepalive() {
+  if (keepaliveAlarmStarted) return;
+
+  // 创建一个周期性 alarm，每 0.3 分钟 (18 秒) 触发一次
+  chrome.alarms.create(KEEPALIVE_ALARM_NAME, { periodInMinutes: 0.3 });
+  keepaliveAlarmStarted = true;
+  logger.log('[AI Clash] SW 保活机制已启动');
+}
+
+// 停止保活机制 - 当没有活跃请求时清理 alarm
+function stopKeepalive() {
+  if (!keepaliveAlarmStarted) return;
+
+  chrome.alarms.clear(KEEPALIVE_ALARM_NAME);
+  keepaliveAlarmStarted = false;
+  logger.log('[AI Clash] SW 保活机制已停止');
+}
+
+// 请求开始时调用
+function beginRequest() {
+  activeRequestCount++;
+  if (activeRequestCount === 1) {
+    startKeepalive();
+  }
+}
+
+// 请求结束时调用
+function endRequest() {
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
+  if (activeRequestCount === 0) {
+    // 延迟停止保活，给消息发送留出时间
+    setTimeout(() => {
+      if (activeRequestCount === 0) {
+        stopKeepalive();
+      }
+    }, 2000);
+  }
+}
+
+// 注册保活 alarm 监听器 - 空回调即可，仅用于保持 SW 活跃
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === KEEPALIVE_ALARM_NAME) {
+    // 仅用于保活，无需执行任何逻辑
+  }
+});
+
 // 存储每个provider对应的tab id，记住我们自己创建的tab
 let providerTabMap = {};
 const TAB_MAP_STORAGE_KEY = 'aiclash.provider.tab.map';
@@ -100,11 +152,13 @@ async function handleApiRequest(provider, prompt, settings = {}) {
   const client = createOpenAIClient(apiConfig, apiKey);
 
   // 按模型取默认 max_tokens，settings 中显式传值时优先使用
-  const defaultMaxTokens = apiConfig.modelDefaultMaxTokens?.[model] ?? 4096;
+  // 从 models 数组中查找模型的 maxTokens 配置
+  const modelConfig = apiConfig.models?.find(m => m.id === model);
+  const defaultMaxTokens = modelConfig?.maxTokens ?? 4096;
   const maxTokens = settings.max_tokens ?? defaultMaxTokens;
 
   // 深度思考开关：当 UI 开启且该模型支持通过 extra_body 注入思考参数时生效
-  const supportsThinkingExtraBody = apiConfig.thinkingExtraBodyModels?.includes(model) ?? false;
+  const supportsThinkingExtraBody = modelConfig?.supportThinking ?? false;
   const extraBody = (settings.isDeepThinkingEnabled && supportsThinkingExtraBody)
     ? { thinking: { type: 'enabled' } }
     : undefined;
@@ -119,9 +173,8 @@ async function handleApiRequest(provider, prompt, settings = {}) {
     { role: 'user', content: prompt },
   ];
 
-  // 流式请求期间创建心跳 alarm，防止 SW 被 Chrome 因空闲而杀掉
-  const alarmName = `sw-keepalive-${provider.id}-${Date.now()}`;
-  chrome.alarms.create(alarmName, { periodInMinutes: 0.4 });
+  // 使用统一的保活机制
+  beginRequest();
 
   try {
     const stream = await client.chat.completions.create({
@@ -161,7 +214,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
   } catch (error) {
     sendProviderError(provider.id, error.message || 'API请求失败');
   } finally {
-    chrome.alarms.clear(alarmName);
+    endRequest();
   }
 }
 
@@ -255,7 +308,9 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
   const client = createOpenAIClient(provider.apiConfig, apiKey);
   const effectiveModel = model || provider.apiConfig.defaultModel;
-  const maxTokens = provider.apiConfig.modelDefaultMaxTokens?.[effectiveModel] ?? 8192;
+  // 从 models 数组中查找模型的 maxTokens 配置
+  const modelConfig = provider.apiConfig.models?.find(m => m.id === effectiveModel);
+  const maxTokens = modelConfig?.maxTokens ?? 8192;
 
   const responseParts = validResponses
     .map(r => `【${r.name} 的回答】\n${r.text}`)
@@ -263,9 +318,8 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
   const userContent = `【用户原始问题】\n${question}\n\n${responseParts}`;
 
-  // 归纳总结耗时较长，创建心跳 alarm 防止 SW 被杀
-  const alarmName = `sw-keepalive-_summary-${Date.now()}`;
-  chrome.alarms.create(alarmName, { periodInMinutes: 0.4 });
+  // 使用统一的保活机制
+  beginRequest();
 
   try {
     const stream = await client.chat.completions.create({
@@ -308,7 +362,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
       payload: { provider: '_summary', message: error.message || '归纳总结请求失败' }
     });
   } finally {
-    chrome.alarms.clear(alarmName);
+    endRequest();
   }
 }
 
@@ -332,8 +386,6 @@ chrome.action.onClicked.addListener((tab) => {
     chrome.sidePanel.open({ windowId: tab.windowId });
 });
 
-// SW 保活：只要有 alarm 监听器注册，SW 就不会因空闲被 Chrome 杀掉
-chrome.alarms.onAlarm.addListener(() => {});
 
 // 监听派发任务 & 兜底注入 hook
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
