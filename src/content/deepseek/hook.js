@@ -8,7 +8,25 @@
     // ====== 去重守卫 ======
     if (window.__abHookV) return;          // 避免重复注入
     window.__abHookV = 4;
-    console.log('%c[AI Clash hook v4]%c MAIN world 注入成功', 'color:#6366f1;font-weight:bold', 'color:inherit');
+
+    // ====== Debug 日志控制 ======
+    let isDebugEnabled = false;
+    const logger = {
+        log: (...args) => isDebugEnabled && logger.log(...args),
+        info: (...args) => isDebugEnabled && console.info(...args),
+        warn: (...args) => isDebugEnabled && console.warn(...args),
+        error: (...args) => console.error(...args),
+    };
+
+    // 监听来自 content script 的 debug 状态同步消息
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'AICLASH_DEBUG_STATE') {
+            isDebugEnabled = event.data.enabled;
+            logger.log('%c[AI Clash hook v4]%c 调试状态同步：' + (isDebugEnabled ? '开启' : '关闭'), 'color:#6366f1;font-weight:bold', 'color:inherit');
+        }
+    });
+
+    logger.log('%c[AI Clash hook v4]%c MAIN world 注入成功', 'color:#6366f1;font-weight:bold', 'color:inherit');
 
     // ====== SSE 解析核心 ======
     var _phase = 'RESPONSE';
@@ -18,7 +36,7 @@
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AI Clash v4] → END (chunks=' + _chunkCount + ')');
+        logger.log('[AI Clash v4] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
     }
 
@@ -65,7 +83,7 @@
                     text = '🔍 已联网搜索\n' + text.substring('FINISHEDSEARCH'.length);
                 }
                 _chunkCount++;
-                if (_chunkCount <= 3) console.log('[AI Clash v4] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
+                if (_chunkCount <= 3) logger.log('[AI Clash v4] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
                 window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
             }
         } catch (_) {}
@@ -101,7 +119,7 @@
         var p = _origFetch.apply(this, arguments);
 
         if (isCompletionUrl(url)) {
-            console.log('[AI Clash v4] ★ fetch 命中:', url);
+            logger.log('[AI Clash v4] ★ fetch 命中:', url);
             resetSession();
             p.then(function (response) {
                 if (!response.body) return;
@@ -154,7 +172,7 @@
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AI Clash v4] ★ XHR 命中:', ab.url, 'responseType:', this.responseType);
+        logger.log('[AI Clash v4] ★ XHR 命中:', ab.url, 'responseType:', this.responseType);
         resetSession();
         var xhr = this;
 
@@ -186,7 +204,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AI Clash v4] XHR loadend, chunks:', _chunkCount);
+                logger.log('[AI Clash v4] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -214,7 +232,7 @@
                 result.indexOf('"response_message_id"') >= 0) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AI Clash v4] ★ TextDecoder 检测到 SSE');
+                logger.log('[AI Clash v4] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -251,7 +269,7 @@
                         text.indexOf('data: {"choices"') >= 0 || text.indexOf('data: {"p"') >= 0 ||
                         text.indexOf('"response_message_id"') >= 0) {
                         st.tracked = true; resetSession();
-                        console.log('[AI Clash v4] ★ ReadableStream 检测到 SSE');
+                        logger.log('[AI Clash v4] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -265,5 +283,5 @@
         return reader;
     };
 
-    console.log('[AI Clash v4] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+    logger.log('[AI Clash v4] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
 })();

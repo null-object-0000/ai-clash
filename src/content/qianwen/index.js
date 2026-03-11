@@ -1,4 +1,5 @@
 import { MSG_TYPES } from '../../shared/messages.js';
+import logger from '../../shared/logger.js';
 import {
   isContextValid, safeSend,
   waitForAnyElement,
@@ -12,7 +13,7 @@ const PROVIDER = 'qianwen';
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-console.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
+logger.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
 // 标记content script已就绪，供background检查
 window.__aiclash_content_script_ready = true;
@@ -20,7 +21,7 @@ window.__aiclash_content_script_ready = true;
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      console.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      logger.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -39,7 +40,7 @@ window.addEventListener('message', (event) => {
     domCtx.hookDataReceived = true;
     const payload = event.data.payload;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!responseContent) console.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!responseContent) logger.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
     responseContent += text;
 
     safeSend({
@@ -48,7 +49,7 @@ window.addEventListener('message', (event) => {
     });
   }
   else if (event.data.type === 'QIANWEN_HOOK_END') {
-    console.log(`[AI Clash ${PROVIDER}] content 收到 END`);
+    logger.log(`[AI Clash ${PROVIDER}] content 收到 END`);
     stopDomObserver(domCtx);
     if (!responseContent) {
       safeSend({
@@ -108,7 +109,7 @@ if (isContextValid()) {
       }
     });
   } catch {
-    console.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
+    logger.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
 }
 
@@ -171,7 +172,7 @@ async function setDeepThinkMode(enable = true) {
     // 开启深度思考
     deepThinkBtn.click();
     await new Promise(r => setTimeout(r, 300));
-    console.log(`[AI Clash ${PROVIDER}] 已开启深度思考模式`);
+    logger.log(`[AI Clash ${PROVIDER}] 已开启深度思考模式`);
     return true;
   } else if (!enable && isEnabled) {
     // 关闭深度思考：点击内部的关闭叉号
@@ -179,7 +180,7 @@ async function setDeepThinkMode(enable = true) {
     if (closeBtn) {
       closeBtn.click();
       await new Promise(r => setTimeout(r, 300));
-      console.log(`[AI Clash ${PROVIDER}] 已关闭深度思考模式`);
+      logger.log(`[AI Clash ${PROVIDER}] 已关闭深度思考模式`);
       return true;
     }
     // fallback：如果没有找到关闭按钮，直接点击按钮本身切换
@@ -191,10 +192,12 @@ async function setDeepThinkMode(enable = true) {
 }
 
 async function executeQianwen(prompt, settings = {}) {
-  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
+  logger.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
   sendConnecting(PROVIDER);
 
-  await tryStartNewConversation();
+  if (settings.isNewConversation !== false) {
+    await tryStartNewConversation();
+  }
 
   // 根据全局深度思考开关调整模式
   if (settings.isDeepThinkingEnabled !== undefined) {
@@ -291,13 +294,13 @@ async function executeQianwen(prompt, settings = {}) {
     }
 
     if (sendBtn) {
-      console.log(`[AI Clash ${PROVIDER}] 找到发送按钮`, sendBtn);
+      logger.log(`[AI Clash ${PROVIDER}] 找到发送按钮`, sendBtn);
       (sendBtn).focus();
       // 尝试多次点击，避免单次点击失效
       setTimeout(() => (sendBtn).click(), 100);
       setTimeout(() => (sendBtn).click(), 300);
     } else {
-      console.warn(`[AI Clash ${PROVIDER}] 未找到发送按钮，尝试按Enter提交`);
+      logger.warn(`[AI Clash ${PROVIDER}] 未找到发送按钮，尝试按Enter提交`);
       simulateEnter(inputEl);
     }
 
@@ -305,3 +308,26 @@ async function executeQianwen(prompt, settings = {}) {
     startDomObserver(domCtx, PROVIDER, pollQianwenDom);
   }, 1000);
 }
+
+// 同步debug状态到MAIN world
+function syncDebugState() {
+  chrome.storage.local.get('isDebugEnabled', (result) => {
+    window.postMessage({
+      type: 'AICLASH_DEBUG_STATE',
+      enabled: !!result.isDebugEnabled
+    }, '*');
+  });
+}
+
+// 初始化时同步一次
+syncDebugState();
+
+// 监听storage变化，实时同步
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.isDebugEnabled) {
+    window.postMessage({
+      type: 'AICLASH_DEBUG_STATE',
+      enabled: !!changes.isDebugEnabled.newValue
+    }, '*');
+  }
+});

@@ -1,4 +1,5 @@
 import { MSG_TYPES } from '../../shared/messages.js';
+import logger from '../../shared/logger.js';
 import {
   isContextValid, safeSend,
   waitForAnyElement,
@@ -12,13 +13,13 @@ const PROVIDER = 'longcat';
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-console.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
+logger.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
 window.__aiclash_content_script_ready = true;
 
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      console.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      logger.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -38,7 +39,7 @@ window.addEventListener('message', (event) => {
     const payload = event.data.payload;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
     const isThink = payload?.isThink ?? false;
-    if (!isThink && !responseContent) console.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!isThink && !responseContent) logger.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
     if (!isThink) responseContent += text;
 
     safeSend({
@@ -47,7 +48,7 @@ window.addEventListener('message', (event) => {
     });
   }
   else if (event.data.type === 'LONGCAT_HOOK_END') {
-    console.log(`[AI Clash ${PROVIDER}] content 收到 END`);
+    logger.log(`[AI Clash ${PROVIDER}] content 收到 END`);
     stopDomObserver(domCtx);
     if (!responseContent) {
       safeSend({
@@ -96,7 +97,7 @@ if (isContextValid()) {
       }
     });
   } catch {
-    console.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
+    logger.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
 }
 
@@ -109,14 +110,14 @@ async function ensureDeepThinkingMode(wantEnabled) {
     (el) => el.querySelector('use[href="#icon-sikao"]')
   );
   if (!btn) {
-    console.warn(`[AI Clash ${PROVIDER}] 未找到深度思考按钮`);
+    logger.warn(`[AI Clash ${PROVIDER}] 未找到深度思考按钮`);
     return;
   }
 
   const isActive = btn.classList.contains('active');
   if (wantEnabled === isActive) return; // 状态已符合，无需操作
 
-  console.log(`[AI Clash ${PROVIDER}] 切换深度思考模式 → ${wantEnabled ? '开启' : '关闭'}`);
+  logger.log(`[AI Clash ${PROVIDER}] 切换深度思考模式 → ${wantEnabled ? '开启' : '关闭'}`);
   btn.click();
   await new Promise((r) => setTimeout(r, 400));
 }
@@ -176,10 +177,12 @@ async function tryStartNewConversation() {
 }
 
 async function executeLongcat(prompt, settings = {}) {
-  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
+  logger.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
   sendConnecting(PROVIDER);
 
-  await tryStartNewConversation();
+  if (settings.isNewConversation !== false) {
+    await tryStartNewConversation();
+  }
 
   // 根据设置同步深度思考模式
   await ensureDeepThinkingMode(!!settings.isDeepThinkingEnabled);
@@ -272,13 +275,13 @@ async function executeLongcat(prompt, settings = {}) {
     }
 
     if (sendBtn) {
-      console.log(`[AI Clash ${PROVIDER}] 找到发送按钮`, sendBtn);
+      logger.log(`[AI Clash ${PROVIDER}] 找到发送按钮`, sendBtn);
       (sendBtn).focus();
       // 尝试多次点击，避免单次点击失效
       setTimeout(() => (sendBtn).click(), 100);
       setTimeout(() => (sendBtn).click(), 300);
     } else {
-      console.warn(`[AI Clash ${PROVIDER}] 未找到发送按钮，尝试按Enter提交`);
+      logger.warn(`[AI Clash ${PROVIDER}] 未找到发送按钮，尝试按Enter提交`);
       simulateEnter(inputEl);
     }
 
@@ -286,3 +289,26 @@ async function executeLongcat(prompt, settings = {}) {
     startDomObserver(domCtx, PROVIDER, pollLongcatDom);
   }, 1000);
 }
+
+// 同步debug状态到MAIN world
+function syncDebugState() {
+  chrome.storage.local.get('isDebugEnabled', (result) => {
+    window.postMessage({
+      type: 'AICLASH_DEBUG_STATE',
+      enabled: !!result.isDebugEnabled
+    }, '*');
+  });
+}
+
+// 初始化时同步一次
+syncDebugState();
+
+// 监听storage变化，实时同步
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.isDebugEnabled) {
+    window.postMessage({
+      type: 'AICLASH_DEBUG_STATE',
+      enabled: !!changes.isDebugEnabled.newValue
+    }, '*');
+  }
+});

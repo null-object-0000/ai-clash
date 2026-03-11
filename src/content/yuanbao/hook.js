@@ -15,10 +15,29 @@
     if (window.__abYuanbaoHookV) return;
     window.__abYuanbaoHookV = 1;
 
+    // ====== Debug 日志控制 ======
+    let isDebugEnabled = false;
+    const logger = {
+        log: (...args) => isDebugEnabled && logger.log(...args),
+        info: (...args) => isDebugEnabled && console.info(...args),
+        warn: (...args) => isDebugEnabled && console.warn(...args),
+        error: (...args) => console.error(...args),
+    };
+
+    // 监听来自 content script 的 debug 状态同步消息
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'AICLASH_DEBUG_STATE') {
+            isDebugEnabled = event.data.enabled;
+            logger.log('%c[AI Clash yuanbao-hook v2]%c 调试状态同步：' + (isDebugEnabled ? '开启' : '关闭'), 'color:#0d9488;font-weight:bold', 'color:inherit');
+        }
+    });
+
     // 阻止元宝页面主动清除控制台，确保调试日志可见
     console.clear = function () {};
 
-    console.log('%c[AI Clash yuanbao-hook v2]%c MAIN world 注入成功', 'color:#07c160;font-weight:bold', 'color:inherit');
+    logger.log('%c[AI Clash yuanbao-hook v2]%c MAIN world 注入成功', 'color:#0d9488;font-weight:bold', 'color:inherit');
+
+    logger.log('%c[AI Clash yuanbao-hook v2]%c MAIN world 注入成功', 'color:#07c160;font-weight:bold', 'color:inherit');
 
     // ====== 状态变量 ======
     var _chunkCount = 0;
@@ -28,14 +47,14 @@
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AI Clash yuanbao] → END (chunks=' + _chunkCount + ')');
+        logger.log('[AI Clash yuanbao] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'YUANBAO_HOOK_END' }, '*');
     }
 
     function emitChunk(text, isThink) {
         if (!text) return;
         _chunkCount++;
-        console.log('[AI Clash yuanbao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考)' : '(正文)');
+        logger.log('[AI Clash yuanbao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考)' : '(正文)');
         window.postMessage({ type: 'YUANBAO_HOOK_CHUNK', payload: { text: text, isThink: !!isThink } }, '*');
     }
 
@@ -76,7 +95,7 @@
             if (d.type === 'think') {
                 // status:2 → 思考完成标记，无需输出内容
                 if (d.status === 2) {
-                    console.log('[AI Clash yuanbao] 思考阶段完成');
+                    logger.log('[AI Clash yuanbao] 思考阶段完成');
                     return;
                 }
                 // status:1 → 思考增量
@@ -95,7 +114,7 @@
         if (typeof url !== 'string') return false;
         // 绝对路径：https://yuanbao.tencent.com/api/chat/{id}
         // 相对路径：/api/chat/{id}
-        return url.includes('https://yuanbao.tencent.com/api/chat/') || url.startsWith('/api/chat/');
+        return url.includes('/api/chat/');
     }
 
     /** 检测裸文本是否包含元宝 SSE 特征 */
@@ -123,7 +142,7 @@
         var p = _origFetch.apply(this, arguments);
 
         if (isYuanbaoApiUrl(url)) {
-            console.log('[AI Clash yuanbao] ★ fetch 命中:', url);
+            logger.log('[AI Clash yuanbao] ★ fetch 命中:', url);
             resetSession();
             _fetchHandlingInProgress = true;
             p.then(function (response) {
@@ -178,7 +197,7 @@
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AI Clash yuanbao] ★ XHR 命中:', ab.url);
+        logger.log('[AI Clash yuanbao] ★ XHR 命中:', ab.url);
         resetSession();
         var xhr = this;
 
@@ -209,7 +228,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AI Clash yuanbao] XHR loadend, chunks:', _chunkCount);
+                logger.log('[AI Clash yuanbao] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -235,7 +254,7 @@
             if (hasYuanbaoSignature(result)) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AI Clash yuanbao] ★ TextDecoder 检测到 SSE');
+                logger.log('[AI Clash yuanbao] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -271,7 +290,7 @@
                 if (!st.tracked) {
                     if (hasYuanbaoSignature(text)) {
                         st.tracked = true; resetSession();
-                        console.log('[AI Clash yuanbao] ★ ReadableStream 检测到 SSE');
+                        logger.log('[AI Clash yuanbao] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -285,5 +304,5 @@
         return reader;
     };
 
-    console.log('[AI Clash yuanbao] 三路拦截就绪 (fetch / TextDecoder / ReadableStream)');
+    logger.log('[AI Clash yuanbao] 三路拦截就绪 (fetch / TextDecoder / ReadableStream)');
 })();

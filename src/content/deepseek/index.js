@@ -13,7 +13,7 @@ const PROVIDER = 'deepseek';
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-logger.log(`[AIClash ${PROVIDER}] content script 已在该页运行（document_start）`);
+logger.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
 // 标记content script已就绪，供background检查
 window.__aiclash_content_script_ready = true;
@@ -21,7 +21,7 @@ window.__aiclash_content_script_ready = true;
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      logger.log(`[AIClash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      logger.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -51,7 +51,7 @@ window.addEventListener('message', (event) => {
     const payload = event.data.payload;
     const isThink = typeof payload === 'object' && payload && payload.isThink === true;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!thinkContent && !responseContent) logger.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!thinkContent && !responseContent) logger.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
     if (isThink) thinkContent += text; else responseContent += text;
 
     const stage = responseContent ? 'responding' : 'thinking';
@@ -61,7 +61,7 @@ window.addEventListener('message', (event) => {
     });
   }
   else if (event.data.type === 'DEEPSEEK_HOOK_END') {
-    logger.log(`[AIClash ${PROVIDER}] content 收到 END`);
+    logger.log(`[AI Clash ${PROVIDER}] content 收到 END`);
     stopDomObserver(domCtx);
     const full = buildDisplayText();
     if (!full) {
@@ -98,7 +98,7 @@ if (isContextValid()) {
       }
     });
   } catch {
-    console.warn(`[AIClash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
+    logger.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
 }
 
@@ -138,22 +138,24 @@ async function syncDeepThinkToggle(wantEnabled) {
       const isSelected = btn.classList.contains('ds-toggle-button--selected');
       if (wantEnabled !== isSelected) {
         (btn).click();
-        logger.log(`[AIClash ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
+        logger.log(`[AI Clash ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
         await new Promise(r => setTimeout(r, 300));
       } else {
-        logger.log(`[AIClash ${PROVIDER}] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
+        logger.log(`[AI Clash ${PROVIDER}] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
       }
       return;
     }
   }
-  console.warn(`[AIClash ${PROVIDER}] 未找到深度思考按钮`);
+  logger.warn(`[AI Clash ${PROVIDER}] 未找到深度思考按钮`);
 }
 
 async function executeDeepSeek(prompt, settings) {
-  logger.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
+  logger.log(`[AI Clash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
-  await tryStartNewConversation();
+  if (settings?.isNewConversation !== false) {
+    await tryStartNewConversation();
+  }
 
   const deepThinkWanted = settings?.isDeepThinkingEnabled ?? true;
   await syncDeepThinkToggle(deepThinkWanted);

@@ -8,7 +8,25 @@
     // ====== 去重守卫 ======
     if (window.__abDoubaoHookV) return;
     window.__abDoubaoHookV = 1;
-    console.log('%c[AI Clash doubao-hook v1]%c MAIN world 注入成功', 'color:#f59e0b;font-weight:bold', 'color:inherit');
+
+    // ====== Debug 日志控制 ======
+    let isDebugEnabled = false;
+    const logger = {
+        log: (...args) => isDebugEnabled && logger.log(...args),
+        info: (...args) => isDebugEnabled && console.info(...args),
+        warn: (...args) => isDebugEnabled && console.warn(...args),
+        error: (...args) => console.error(...args),
+    };
+
+    // 监听来自 content script 的 debug 状态同步消息
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'AICLASH_DEBUG_STATE') {
+            isDebugEnabled = event.data.enabled;
+            logger.log('%c[AI Clash doubao-hook v1]%c 调试状态同步：' + (isDebugEnabled ? '开启' : '关闭'), 'color:#f59e0b;font-weight:bold', 'color:inherit');
+        }
+    });
+
+    logger.log('%c[AI Clash doubao-hook v1]%c MAIN world 注入成功', 'color:#f59e0b;font-weight:bold', 'color:inherit');
 
     // ====== SSE 解析核心 ======
     var _chunkCount = 0;
@@ -21,14 +39,14 @@
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AI Clash doubao] → END (chunks=' + _chunkCount + ')');
+        logger.log('[AI Clash doubao] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'DOUBAO_HOOK_END' }, '*');
     }
 
     function emitChunk(text, isThink = false) {
         if (!text) return;
         _chunkCount++;
-        console.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考内容)' : '(正式内容)');
+        logger.log('[AI Clash doubao] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80), isThink ? '(思考内容)' : '(正式内容)');
         window.postMessage({ type: 'DOUBAO_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
     }
 
@@ -53,7 +71,7 @@
                     const isThinkBlock = block.block_type === 10040 || block.content?.thinking_block;
                     if (isThinkBlock) {
                         _thinkingBlockId = block.block_id; // 记录思考块ID
-                        console.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
+                        logger.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
                     }
                     // 识别思考内容：思考未完成 + （是思考块本身，或父级是思考块）
                     const isThink = !_isThinkingFinished && (
@@ -82,7 +100,7 @@
                             if (isThinkFinish) {
                                 _isThinkingFinished = true;
                                 _thinkingBlockId = null; // 清空思考块ID，避免后续内容被误判
-                                console.log('[AI Clash doubao] 思考已完成，后续为正式回复内容');
+                                logger.log('[AI Clash doubao] 思考已完成，后续为正式回复内容');
                                 continue; // 完成标记本身不需要输出文本
                             }
 
@@ -92,7 +110,7 @@
                             const isThinkBlock = cb.block_type === 10040 || cb.content?.thinking_block;
                             if (isThinkBlock && !_isThinkingFinished) {
                                 _thinkingBlockId = cb.block_id;
-                                console.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
+                                logger.log('[AI Clash doubao] 检测到思考块，ID:', _thinkingBlockId);
                             }
 
                             // 识别思考内容：思考未完成 + （要么是思考块本身，要么父级是思考块）
@@ -201,7 +219,7 @@
         var p = _origFetch.apply(this, arguments);
 
         if (isDoubaoApiUrl(url)) {
-            console.log('[AI Clash doubao] ★ fetch 命中:', url);
+            logger.log('[AI Clash doubao] ★ fetch 命中:', url);
             resetSession();
             _fetchHandlingInProgress = true;
             p.then(function (response) {
@@ -256,7 +274,7 @@
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AI Clash doubao] ★ XHR 命中:', ab.url);
+        logger.log('[AI Clash doubao] ★ XHR 命中:', ab.url);
         resetSession();
         var xhr = this;
 
@@ -287,7 +305,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AI Clash doubao] XHR loadend, chunks:', _chunkCount);
+                logger.log('[AI Clash doubao] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -316,7 +334,7 @@
                 result.indexOf('data: {"choices"') >= 0 || result.indexOf('"alice/msg"') >= 0) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AI Clash doubao] ★ TextDecoder 检测到 SSE');
+                logger.log('[AI Clash doubao] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -356,7 +374,7 @@
                         text.indexOf('event: reply') >= 0 || text.indexOf('event: done') >= 0 ||
                         text.indexOf('data: {"choices"') >= 0 || text.indexOf('"alice/msg"') >= 0) {
                         st.tracked = true; resetSession();
-                        console.log('[AI Clash doubao] ★ ReadableStream 检测到 SSE');
+                        logger.log('[AI Clash doubao] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -370,5 +388,5 @@
         return reader;
     };
 
-    console.log('[AI Clash doubao] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+    logger.log('[AI Clash doubao] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
 })();

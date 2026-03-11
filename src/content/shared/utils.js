@@ -1,4 +1,5 @@
 import { MSG_TYPES } from '../../shared/messages.js';
+import logger from '../../shared/logger.js';
 
 // ============================================================================
 // 扩展上下文 & 安全通信
@@ -99,7 +100,7 @@ export function startDomObserver(
       // hook 已接管流式输出，不干涉
       if (ctx.hookDataReceived) return;
       if (ctx.runId === currentRunId && ctx.observer) {
-        console.log(`[AIClash ${provider}] DOM 观测超时，自动停止`);
+        logger.log(`[AI Clash ${provider}] DOM 观测超时，自动停止`);
         stopDomObserver(ctx);
         sendError(provider, '等待响应超时，请检查网络或重试');
         sendCompleted(provider);
@@ -165,7 +166,7 @@ export async function fillContentEditable(el, text) {
         cancelable: true
       });
       el.dispatchEvent(pasteEvent);
-      console.log('[fillContentEditable] 使用模拟粘贴事件成功');
+      logger.log('[fillContentEditable] 使用模拟粘贴事件成功');
 
       // 作为兜底补一刀 execCommand
       document.execCommand('insertText', false, text);
@@ -184,12 +185,12 @@ export async function fillContentEditable(el, text) {
         const props = el[reactPropsKey];
         if (props && props.onInput) props.onInput({ target: el, currentTarget: el });
         if (props && props.onChange) props.onChange({ target: el, currentTarget: el });
-        console.log('[fillContentEditable] 已触发React Fiber事件');
+        logger.log('[fillContentEditable] 已触发React Fiber事件');
       }
 
       return;
     } catch (e) {
-      console.warn('[fillContentEditable] 模拟粘贴失败，尝试逐字输入:', e);
+      logger.warn('[fillContentEditable] 模拟粘贴失败，尝试逐字输入:', e);
     }
 
     try {
@@ -231,10 +232,10 @@ export async function fillContentEditable(el, text) {
         // 每个字符间隔一点时间，更像真人输入
         await new Promise(r => setTimeout(r, 10));
       }
-      console.log('[fillContentEditable] 逐字输入成功');
+      logger.log('[fillContentEditable] 逐字输入成功');
       return;
     } catch (e) {
-      console.warn('[fillContentEditable] 逐字输入失败，使用普通方式:', e);
+      logger.warn('[fillContentEditable] 逐字输入失败，使用普通方式:', e);
     }
   }
 

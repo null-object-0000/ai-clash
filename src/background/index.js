@@ -504,7 +504,7 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
         // 发送失败，说明 content script 已失效（常见于扩展重新加载后旧 Tab 的孤儿上下文）
         // 不能用 executeScript({ files }) 重注入——那会以普通脚本执行 ES Module 文件，导致 import 报错
         // 正确做法：重载该 Tab，让 manifest 声明的 content script 自动重新注入
-        logger.log(`[AIClash] ${provider.id} content script 未响应，正在重载页面以重新注入...`);
+        logger.log(`[AI Clash] ${provider.id} content script 未响应，正在重载页面以重新注入...`);
 
         chrome.runtime.sendMessage({
             type: MSG_TYPES.TASK_STATUS_UPDATE,
@@ -537,7 +537,7 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
 
             await chrome.tabs.sendMessage(tabId, msg);
         } catch (err) {
-            console.error(`Failed to send message to ${provider.id} after reload:`, err);
+            logger.error(`[AI Clash] Failed to send message to ${provider.id} after reload:`, err);
             sendProviderError(provider.id, `${provider.name} 页面重载后仍无法连接：${err.message}`);
         }
     }

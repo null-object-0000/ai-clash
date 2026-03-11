@@ -8,7 +8,25 @@
     // ====== 去重守卫 ======
     if (window.__abQianwenHookV) return;
     window.__abQianwenHookV = 1;
-    console.log('%c[AI Clash qianwen-hook v1]%c MAIN world 注入成功', 'color:#10b981;font-weight:bold', 'color:inherit');
+
+    // ====== Debug 日志控制 ======
+    let isDebugEnabled = false;
+    const logger = {
+        log: (...args) => isDebugEnabled && logger.log(...args),
+        info: (...args) => isDebugEnabled && console.info(...args),
+        warn: (...args) => isDebugEnabled && console.warn(...args),
+        error: (...args) => console.error(...args),
+    };
+
+    // 监听来自 content script 的 debug 状态同步消息
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'AICLASH_DEBUG_STATE') {
+            isDebugEnabled = event.data.enabled;
+            logger.log('%c[AI Clash qianwen-hook v1]%c 调试状态同步：' + (isDebugEnabled ? '开启' : '关闭'), 'color:#10b981;font-weight:bold', 'color:inherit');
+        }
+    });
+
+    logger.log('%c[AI Clash qianwen-hook v1]%c MAIN world 注入成功', 'color:#10b981;font-weight:bold', 'color:inherit');
 
     // ====== SSE 解析核心 ======
     var _chunkCount = 0;
@@ -20,21 +38,21 @@
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AI Clash qianwen] → END (chunks=' + _chunkCount + ')');
+        logger.log('[AI Clash qianwen] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'QIANWEN_HOOK_END' }, '*');
     }
 
     function emitChunk(text) {
         if (!text) return;
         _chunkCount++;
-        if (_chunkCount <= 5) console.log('[AI Clash qianwen] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
+        if (_chunkCount <= 5) logger.log('[AI Clash qianwen] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
         window.postMessage({ type: 'QIANWEN_HOOK_CHUNK', payload: { text: text } }, '*');
     }
 
     /** 根据 event 类型从 data JSON 中提取文本 */
     function extractByEvent(eventType, d) {
         // 调试日志：输出完整的响应结构
-        if (_chunkCount <= 3) console.log('[AI Clash qianwen] 收到响应结构:', JSON.stringify(d).slice(0, 300));
+        if (_chunkCount <= 3) logger.log('[AI Clash qianwen] 收到响应结构:', JSON.stringify(d).slice(0, 300));
 
         // 处理千问最新的v2 API格式：data.messages数组最后一个元素的content
         if (d.data && d.data.messages && Array.isArray(d.data.messages)) {
@@ -168,7 +186,7 @@
         var p = _origFetch.apply(this, arguments);
 
         if (isQianwenApiUrl(url)) {
-            console.log('[AI Clash qianwen] ★ fetch 命中:', url);
+            logger.log('[AI Clash qianwen] ★ fetch 命中:', url);
             resetSession();
             _fetchHandlingInProgress = true;
             p.then(function (response) {
@@ -223,7 +241,7 @@
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AI Clash qianwen] ★ XHR 命中:', ab.url);
+        logger.log('[AI Clash qianwen] ★ XHR 命中:', ab.url);
         resetSession();
         var xhr = this;
 
@@ -254,7 +272,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AI Clash qianwen] XHR loadend, chunks:', _chunkCount);
+                logger.log('[AI Clash qianwen] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -282,7 +300,7 @@
                 result.indexOf('"content":') >= 0) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AI Clash qianwen] ★ TextDecoder 检测到 SSE');
+                logger.log('[AI Clash qianwen] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -321,7 +339,7 @@
                         text.indexOf('data: {"choices"') >= 0 || text.indexOf('"text":') >= 0 ||
                         text.indexOf('"content":') >= 0) {
                         st.tracked = true; resetSession();
-                        console.log('[AI Clash qianwen] ★ ReadableStream 检测到 SSE');
+                        logger.log('[AI Clash qianwen] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -335,5 +353,5 @@
         return reader;
     };
 
-    console.log('[AI Clash qianwen] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+    logger.log('[AI Clash qianwen] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
 })();

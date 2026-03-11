@@ -1,4 +1,5 @@
 import { MSG_TYPES } from '../../shared/messages.js';
+import logger from '../../shared/logger.js';
 import {
   isContextValid, safeSend,
   waitForAnyElement,
@@ -12,7 +13,7 @@ const PROVIDER = 'doubao';
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-console.log(`[AIClash ${PROVIDER}] content script 已在该页运行（document_start）`);
+logger.log(`[AI Clash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
 // 标记content script已就绪，供background检查
 window.__aiclash_content_script_ready = true;
@@ -20,7 +21,7 @@ window.__aiclash_content_script_ready = true;
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      console.log(`[AIClash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      logger.log(`[AI Clash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -41,13 +42,13 @@ setInterval(() => {
     const oldUrl = lastUrl;
     lastUrl = location.href; // 始终更新URL记录，避免任务结束后误判
     if (!isTaskRunning) {
-      console.log(`[AIClash ${PROVIDER}] 检测到页面跳转（新对话），自动重置任务状态`);
+      logger.log(`[AI Clash ${PROVIDER}] 检测到页面跳转（新对话），自动重置任务状态`);
       stopDomObserver(domCtx);
       if (taskTimeout) clearTimeout(taskTimeout);
       sendCompleted(PROVIDER);
       responseContent = "";
     } else {
-      console.log(`[AIClash ${PROVIDER}] 任务执行中，忽略本次URL变化: ${oldUrl} → ${lastUrl}`);
+      logger.log(`[AI Clash ${PROVIDER}] 任务执行中，忽略本次URL变化: ${oldUrl} → ${lastUrl}`);
     }
   }
 }, 1000);
@@ -60,7 +61,7 @@ window.addEventListener('message', (event) => {
     const payload = event.data.payload;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
     const isThink = typeof payload === 'object' ? (payload?.isThink ?? false) : false;
-    if (!responseContent) console.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`, isThink ? '(思考内容)' : '');
+    if (!responseContent) logger.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`, isThink ? '(思考内容)' : '');
     responseContent += text;
 
     safeSend({
@@ -69,7 +70,7 @@ window.addEventListener('message', (event) => {
     });
   }
   else if (event.data.type === 'DOUBAO_HOOK_END') {
-    console.log(`[AIClash ${PROVIDER}] content 收到 END`);
+    logger.log(`[AI Clash ${PROVIDER}] content 收到 END`);
     if (taskTimeout) clearTimeout(taskTimeout);
     stopDomObserver(domCtx);
     if (!responseContent) {
@@ -123,7 +124,7 @@ if (isContextValid()) {
       }
     });
   } catch {
-    console.warn(`[AIClash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
+    logger.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
 }
 
@@ -173,12 +174,12 @@ function simulateRealClick(element) {
 /** 切换到思考模式 */
 async function switchToDeepThinking() {
   try {
-    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 开始执行...`);
+    logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 开始执行...`);
 
     // 找到内部wrapper，然后查找最外层的dropdown触发按钮
     const innerWrapper = await waitForAnyElement(['[data-testid="deep-thinking-action-button"]'], 2000);
     if (!innerWrapper) {
-      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 未找到思考模式按钮`);
+      logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 未找到思考模式按钮`);
       return false;
     }
 
@@ -187,21 +188,21 @@ async function switchToDeepThinking() {
                       innerWrapper.closest('button[aria-haspopup="menu"]') ||
                       innerWrapper.querySelector('button');
 
-    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 找到触发按钮:`, targetBtn.tagName, targetBtn.textContent?.slice(0, 50));
+    logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 找到触发按钮:`, targetBtn.tagName, targetBtn.textContent?.slice(0, 50));
 
     // 检查当前是否已经是思考模式
     const btnText = targetBtn.textContent || '';
     const isDeepThinking = btnText.includes('思考') || targetBtn.querySelector('button')?.getAttribute('data-checked') === 'true';
 
-    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 当前模式: ${isDeepThinking ? '思考模式' : '快速模式'}`);
+    logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 当前模式: ${isDeepThinking ? '思考模式' : '快速模式'}`);
 
     if (isDeepThinking) {
-      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 已经是思考模式，无需切换`);
+      logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 已经是思考模式，无需切换`);
       return true;
     }
 
     // 使用真实点击模拟展开菜单
-    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 模拟真实点击展开菜单...`);
+    logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 模拟真实点击展开菜单...`);
     simulateRealClick(targetBtn);
     await new Promise(r => setTimeout(r, 800)); // 等待菜单展开
 
@@ -212,7 +213,7 @@ async function switchToDeepThinking() {
       ...Array.from(document.querySelectorAll('[data-slot="dropdown-menu-item"]'))
     ];
 
-    console.log(`[AIClash ${PROVIDER}] [思考模式切换] 找到菜单项数量:`, menuItems.length);
+    logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 找到菜单项数量:`, menuItems.length);
 
     // 找到思考模式选项
     let deepThinkingOption = menuItems.find(el => el.textContent?.includes('思考')) ||
@@ -225,7 +226,7 @@ async function switchToDeepThinking() {
                               deepThinkingOption.querySelector('[role="menuitem"]') ||
                               deepThinkingOption;
 
-      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 找到思考模式选项，点击切换...`, clickableOption.tagName);
+      logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 找到思考模式选项，点击切换...`, clickableOption.tagName);
       simulateRealClick(clickableOption); // 同样用真实点击
       await new Promise(r => setTimeout(r, 800)); // 等待切换完成
 
@@ -234,20 +235,20 @@ async function switchToDeepThinking() {
       const isReallyDeepThinking = updatedBtnText.includes('思考') || targetBtn.querySelector('button')?.getAttribute('data-checked') === 'true';
 
       if (isReallyDeepThinking) {
-        console.log(`[AIClash ${PROVIDER}] [思考模式切换] ✅ 切换成功！当前模式：思考模式`);
+        logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] ✅ 切换成功！当前模式：思考模式`);
         return true;
       } else {
-        console.error(`[AIClash ${PROVIDER}] [思考模式切换] ❌ 切换失败！点击后仍为快速模式`);
+        logger.error(`[AI Clash ${PROVIDER}] [思考模式切换] ❌ 切换失败！点击后仍为快速模式`);
         return false;
       }
     } else {
-      console.log(`[AIClash ${PROVIDER}] [思考模式切换] 未找到思考模式选项`);
+      logger.log(`[AI Clash ${PROVIDER}] [思考模式切换] 未找到思考模式选项`);
       // 关闭菜单
       simulateRealClick(document.body);
       return false;
     }
   } catch (e) {
-    console.warn(`[AIClash ${PROVIDER}] [思考模式切换] 切换失败，异常:`, e);
+    logger.warn(`[AI Clash ${PROVIDER}] [思考模式切换] 切换失败，异常:`, e);
     return false;
   }
 }
@@ -255,12 +256,12 @@ async function switchToDeepThinking() {
 /** 切换到快速模式 */
 async function switchToFastMode() {
   try {
-    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 开始执行...`);
+    logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 开始执行...`);
 
     // 找到内部wrapper，然后查找最外层的dropdown触发按钮
     const innerWrapper = await waitForAnyElement(['[data-testid="deep-thinking-action-button"]'], 2000);
     if (!innerWrapper) {
-      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 未找到模式切换按钮`);
+      logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 未找到模式切换按钮`);
       return false;
     }
 
@@ -269,21 +270,21 @@ async function switchToFastMode() {
                       innerWrapper.closest('button[aria-haspopup="menu"]') ||
                       innerWrapper.querySelector('button');
 
-    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 找到触发按钮:`, targetBtn.tagName, targetBtn.textContent?.slice(0, 50));
+    logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 找到触发按钮:`, targetBtn.tagName, targetBtn.textContent?.slice(0, 50));
 
     // 检查当前是否已经是快速模式
     const btnText = targetBtn.textContent || '';
     const isFastMode = btnText.includes('快速') || targetBtn.querySelector('button')?.getAttribute('data-checked') !== 'true';
 
-    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 当前模式: ${isFastMode ? '快速模式' : '思考模式'}`);
+    logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 当前模式: ${isFastMode ? '快速模式' : '思考模式'}`);
 
     if (isFastMode) {
-      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 已经是快速模式，无需切换`);
+      logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 已经是快速模式，无需切换`);
       return true;
     }
 
     // 使用真实点击模拟展开菜单
-    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 模拟真实点击展开菜单...`);
+    logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 模拟真实点击展开菜单...`);
     simulateRealClick(targetBtn);
     await new Promise(r => setTimeout(r, 800)); // 等待菜单展开
 
@@ -294,7 +295,7 @@ async function switchToFastMode() {
       ...Array.from(document.querySelectorAll('[data-slot="dropdown-menu-item"]'))
     ];
 
-    console.log(`[AIClash ${PROVIDER}] [快速模式切换] 找到菜单项数量:`, menuItems.length);
+    logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 找到菜单项数量:`, menuItems.length);
 
     // 找到快速模式选项
     const fastModeOption = menuItems.find(el => el.textContent?.includes('快速')) ||
@@ -307,7 +308,7 @@ async function switchToFastMode() {
                               fastModeOption.querySelector('[role="menuitem"]') ||
                               fastModeOption;
 
-      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 找到快速模式选项，点击切换...`, clickableOption.tagName);
+      logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 找到快速模式选项，点击切换...`, clickableOption.tagName);
       simulateRealClick(clickableOption);
       await new Promise(r => setTimeout(r, 800)); // 等待切换完成
 
@@ -316,30 +317,32 @@ async function switchToFastMode() {
       const isReallyFastMode = updatedBtnText.includes('快速') || targetBtn.querySelector('button')?.getAttribute('data-checked') !== 'true';
 
       if (isReallyFastMode) {
-        console.log(`[AIClash ${PROVIDER}] [快速模式切换] ✅ 切换成功！当前模式：快速模式`);
+        logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] ✅ 切换成功！当前模式：快速模式`);
         return true;
       } else {
-        console.error(`[AIClash ${PROVIDER}] [快速模式切换] ❌ 切换失败！点击后仍为思考模式`);
+        logger.error(`[AI Clash ${PROVIDER}] [快速模式切换] ❌ 切换失败！点击后仍为思考模式`);
         return false;
       }
     } else {
-      console.log(`[AIClash ${PROVIDER}] [快速模式切换] 未找到快速模式选项`);
+      logger.log(`[AI Clash ${PROVIDER}] [快速模式切换] 未找到快速模式选项`);
       // 关闭菜单
       simulateRealClick(document.body);
       return false;
     }
   } catch (e) {
-    console.warn(`[AIClash ${PROVIDER}] [快速模式切换] 切换失败，异常:`, e);
+    logger.warn(`[AI Clash ${PROVIDER}] [快速模式切换] 切换失败，异常:`, e);
     return false;
   }
 }
 
 async function executeDoubao(prompt, settings = {}) {
-  console.log(`[AIClash ${PROVIDER}] 开始执行任务...`, settings);
+  logger.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
   isTaskRunning = true; // 标记任务开始执行
   sendConnecting(PROVIDER);
 
-  await tryStartNewConversation();
+  if (settings.isNewConversation !== false) {
+    await tryStartNewConversation();
+  }
 
   sendStatus(PROVIDER, '正在定位输入框...');
 
@@ -426,7 +429,7 @@ async function executeDoubao(prompt, settings = {}) {
     startDomObserver(domCtx, PROVIDER, pollDoubaoDom);
     // 全局任务超时保护，90秒后强制结束，避免永远卡在等待回复状态
     taskTimeout = setTimeout(() => {
-      console.log(`[AIClash ${PROVIDER}] 任务全局超时，强制结束`);
+      logger.log(`[AI Clash ${PROVIDER}] 任务全局超时，强制结束`);
       stopDomObserver(domCtx);
       sendError(PROVIDER, '任务执行超时，请检查页面是否正常后重试');
       sendCompleted(PROVIDER);
@@ -434,3 +437,26 @@ async function executeDoubao(prompt, settings = {}) {
     }, 90000);
   }, 800);
 }
+
+// 同步debug状态到MAIN world
+function syncDebugState() {
+  chrome.storage.local.get('isDebugEnabled', (result) => {
+    window.postMessage({
+      type: 'AICLASH_DEBUG_STATE',
+      enabled: !!result.isDebugEnabled
+    }, '*');
+  });
+}
+
+// 初始化时同步一次
+syncDebugState();
+
+// 监听storage变化，实时同步
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.isDebugEnabled) {
+    window.postMessage({
+      type: 'AICLASH_DEBUG_STATE',
+      enabled: !!changes.isDebugEnabled.newValue
+    }, '*');
+  }
+});

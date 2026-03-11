@@ -8,7 +8,25 @@
     // ====== 去重守卫 ======
     if (window.__abLongcatHookV) return;
     window.__abLongcatHookV = 1;
-    console.log('%c[AI Clash longcat-hook v1]%c MAIN world 注入成功', 'color:#10b981;font-weight:bold', 'color:inherit');
+
+    // ====== Debug 日志控制 ======
+    let isDebugEnabled = false;
+    const logger = {
+        log: (...args) => isDebugEnabled && logger.log(...args),
+        info: (...args) => isDebugEnabled && console.info(...args),
+        warn: (...args) => isDebugEnabled && console.warn(...args),
+        error: (...args) => console.error(...args),
+    };
+
+    // 监听来自 content script 的 debug 状态同步消息
+    window.addEventListener('message', (event) => {
+        if (event.data.type === 'AICLASH_DEBUG_STATE') {
+            isDebugEnabled = event.data.enabled;
+            logger.log('%c[AI Clash longcat-hook v1]%c 调试状态同步：' + (isDebugEnabled ? '开启' : '关闭'), 'color:#8b5cf6;font-weight:bold', 'color:inherit');
+        }
+    });
+
+    logger.log('%c[AI Clash longcat-hook v1]%c MAIN world 注入成功', 'color:#8b5cf6;font-weight:bold', 'color:inherit');
 
     // ====== SSE 解析核心 ======
     var _chunkCount = 0;
@@ -19,7 +37,7 @@
     function emitEnd() {
         if (_endSentThisSession) return;
         _endSentThisSession = true;
-        console.log('[AI Clash longcat] → END (chunks=' + _chunkCount + ')');
+        logger.log('[AI Clash longcat] → END (chunks=' + _chunkCount + ')');
         window.postMessage({ type: 'LONGCAT_HOOK_END' }, '*');
     }
 
@@ -27,7 +45,7 @@
     function emitChunk(text, isThink) {
         if (!text) return;
         _chunkCount++;
-        if (_chunkCount <= 3) console.log('[AI Clash longcat] chunk#' + _chunkCount + (isThink ? '(think)' : ''), JSON.stringify(text).slice(0, 80));
+        if (_chunkCount <= 3) logger.log('[AI Clash longcat] chunk#' + _chunkCount + (isThink ? '(think)' : ''), JSON.stringify(text).slice(0, 80));
         window.postMessage({ type: 'LONGCAT_HOOK_CHUNK', payload: { text: text, isThink: !!isThink } }, '*');
     }
 
@@ -111,7 +129,7 @@
         var p = _origFetch.apply(this, arguments);
 
         if (isLongcatApiUrl(url)) {
-            console.log('[AI Clash longcat] ★ fetch 命中:', url);
+            logger.log('[AI Clash longcat] ★ fetch 命中:', url);
             resetSession();
             _fetchHandlingInProgress = true;
             p.then(function (response) {
@@ -166,7 +184,7 @@
             return _origXhrSend.apply(this, arguments);
         }
 
-        console.log('[AI Clash longcat] ★ XHR 命中:', ab.url);
+        logger.log('[AI Clash longcat] ★ XHR 命中:', ab.url);
         resetSession();
         var xhr = this;
 
@@ -197,7 +215,7 @@
             } catch (_) {}
             if (!ab.ended) {
                 ab.ended = true;
-                console.log('[AI Clash longcat] XHR loadend, chunks:', _chunkCount);
+                logger.log('[AI Clash longcat] XHR loadend, chunks:', _chunkCount);
                 emitEnd();
             }
         });
@@ -225,7 +243,7 @@
                 result.indexOf('"content":') >= 0) {
                 st.tracked = true;
                 resetSession();
-                console.log('[AI Clash longcat] ★ TextDecoder 检测到 SSE');
+                logger.log('[AI Clash longcat] ★ TextDecoder 检测到 SSE');
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
 
@@ -264,7 +282,7 @@
                         text.indexOf('data: {"choices"') >= 0 || text.indexOf('"text":') >= 0 ||
                         text.indexOf('"content":') >= 0) {
                         st.tracked = true; resetSession();
-                        console.log('[AI Clash longcat] ★ ReadableStream 检测到 SSE');
+                        logger.log('[AI Clash longcat] ★ ReadableStream 检测到 SSE');
                     } else { st.n++; if (st.n > 3) st.rejected = true; return res; }
                 }
 
@@ -278,5 +296,5 @@
         return reader;
     };
 
-    console.log('[AI Clash longcat] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
+    logger.log('[AI Clash longcat] 四路拦截就绪 (fetch / XHR / TextDecoder / ReadableStream)');
 })();
