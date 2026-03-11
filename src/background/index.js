@@ -118,6 +118,10 @@ async function handleApiRequest(provider, prompt, settings = {}) {
     { role: 'user', content: prompt },
   ];
 
+  // 流式请求期间创建心跳 alarm，防止 SW 被 Chrome 因空闲而杀掉
+  const alarmName = `sw-keepalive-${provider.id}-${Date.now()}`;
+  chrome.alarms.create(alarmName, { periodInMinutes: 0.4 });
+
   try {
     const stream = await client.chat.completions.create({
       model,
@@ -155,6 +159,8 @@ async function handleApiRequest(provider, prompt, settings = {}) {
 
   } catch (error) {
     sendProviderError(provider.id, error.message || 'API请求失败');
+  } finally {
+    chrome.alarms.clear(alarmName);
   }
 }
 
@@ -256,6 +262,10 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
   const userContent = `【用户原始问题】\n${question}\n\n${responseParts}`;
 
+  // 归纳总结耗时较长，创建心跳 alarm 防止 SW 被杀
+  const alarmName = `sw-keepalive-_summary-${Date.now()}`;
+  chrome.alarms.create(alarmName, { periodInMinutes: 0.4 });
+
   try {
     const stream = await client.chat.completions.create({
       model: effectiveModel,
@@ -296,6 +306,8 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
       type: MSG_TYPES.ERROR,
       payload: { provider: '_summary', message: error.message || '归纳总结请求失败' }
     });
+  } finally {
+    chrome.alarms.clear(alarmName);
   }
 }
 
@@ -318,6 +330,9 @@ chrome.scripting.registerContentScripts(hookScripts).catch(() => {
 chrome.action.onClicked.addListener((tab) => {
     chrome.sidePanel.open({ windowId: tab.windowId });
 });
+
+// SW 保活：只要有 alarm 监听器注册，SW 就不会因空闲被 Chrome 杀掉
+chrome.alarms.onAlarm.addListener(() => {});
 
 // 监听派发任务 & 兜底注入 hook
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -505,6 +520,7 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
 async function isTabValid(tabId, provider) {
     try {
         const tab = await chrome.tabs.get(tabId);
+        if (tab.discarded) return false;
         return tab.url?.startsWith(provider.matchPattern.replace('/*', '')) ?? false;
     } catch {
         return false;
