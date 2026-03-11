@@ -12,10 +12,10 @@
     // ====== Debug 日志控制 ======
     let isDebugEnabled = false;
     const logger = {
-        log: (...args) => isDebugEnabled && logger.log(...args),
-        info: (...args) => isDebugEnabled && console.info(...args),
-        warn: (...args) => isDebugEnabled && console.warn(...args),
-        error: (...args) => console.error(...args),
+        log: (...args) => isDebugEnabled && console.log('[AI Clash doubao]', ...args),
+        info: (...args) => isDebugEnabled && console.info('[AI Clash doubao]', ...args),
+        warn: (...args) => isDebugEnabled && console.warn('[AI Clash doubao]', ...args),
+        error: (...args) => console.error('[AI Clash doubao]', ...args),
     };
 
     // 监听来自 content script 的 debug 状态同步消息
