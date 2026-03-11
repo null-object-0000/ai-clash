@@ -35,7 +35,7 @@
 2. 点击「添加到 Chrome/Edge」，1秒安装完成
 
 ### 方式二：手动安装（现在就能用）
-1. 去 [Releases](../../releases) 下载最新版的插件包
+1. 去 [Releases](https://github.com/null-object-0000/ai-clash/releases/) 下载最新版的插件包
 2. 解压到一个你找得到的文件夹（不要删除哦）
 3. 打开浏览器地址栏输入：
    - Chrome: `chrome://extensions/`

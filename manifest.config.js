@@ -25,7 +25,7 @@ export default defineManifest({
     run_at: "document_start"
   }, {
     js: ["src/content/qianwen/index.js"],
-    matches: ["https://www.qianwen.com/*"],
+    matches: ["https://tongyi.aliyun.com/*", "https://www.qianwen.com/*"],
     run_at: "document_start"
   }, {
     js: ["src/content/longcat/index.js"],
