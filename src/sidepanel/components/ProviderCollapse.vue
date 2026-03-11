@@ -118,7 +118,7 @@ type ProviderStats = {
 const props = defineProps<{
   providerId: string;
   providerName: string;
-  themeColor: 'blue' | 'amber' | 'emerald' | 'violet';
+  themeColor: 'blue' | 'amber' | 'emerald' | 'violet' | 'teal';
   status: 'idle' | 'running' | 'completed' | 'error';
   stage: 'connecting' | 'thinking' | 'responding';
   response: string;
@@ -165,6 +165,12 @@ const themeClassMap = {
     dot: 'bg-violet-500',
     text: 'text-violet-600',
     prose: 'prose-violet',
+  },
+  teal: {
+    ping: 'bg-teal-400',
+    dot: 'bg-teal-500',
+    text: 'text-teal-600',
+    prose: 'prose-teal',
   },
 } as const;
 

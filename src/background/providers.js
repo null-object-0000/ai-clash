@@ -104,6 +104,16 @@ export const PROVIDERS = [
       },
     }
   },
+  {
+    id: 'yuanbao',
+    name: '元宝',
+    matchPattern: 'https://yuanbao.tencent.com/*',
+    startUrl: 'https://yuanbao.tencent.com/chat/',
+    hookFile: 'src/content/yuanbao/hook.js',
+    hookScriptId: 'aiclash-yuanbao-hook',
+    hookGlobalVar: '__abYuanbaoHookV',
+    contentScriptFile: 'src/content/yuanbao/index.js',
+  },
 ];
 
 /** 通过 provider id 查找配置 */

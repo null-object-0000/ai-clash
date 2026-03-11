@@ -1,4 +1,5 @@
 import { MSG_TYPES } from '../../shared/messages.js';
+import logger from '../../shared/logger.js';
 import {
   isContextValid, safeSend,
   waitForElement,
@@ -12,7 +13,7 @@ const PROVIDER = 'deepseek';
 // ============================================================================
 // 第一部分：尽早注入 hook 到 MAIN world
 // ============================================================================
-console.log(`[AIClash ${PROVIDER}] content script 已在该页运行（document_start）`);
+logger.log(`[AIClash ${PROVIDER}] content script 已在该页运行（document_start）`);
 
 // 标记content script已就绪，供background检查
 window.__aiclash_content_script_ready = true;
@@ -20,7 +21,7 @@ window.__aiclash_content_script_ready = true;
 if (isContextValid()) {
   safeSend({ type: MSG_TYPES.INJECT_HOOK, payload: { provider: PROVIDER } }, (response) => {
     if (response?.ok) {
-      console.log(`[AIClash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
+      logger.log(`[AIClash ${PROVIDER}] hook 已通过 scripting API 兜底注入`);
     }
   });
 }
@@ -50,7 +51,7 @@ window.addEventListener('message', (event) => {
     const payload = event.data.payload;
     const isThink = typeof payload === 'object' && payload && payload.isThink === true;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!thinkContent && !responseContent) console.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!thinkContent && !responseContent) logger.log(`[AIClash ${PROVIDER}] content 收到首包 CHUNK`);
     if (isThink) thinkContent += text; else responseContent += text;
 
     const stage = responseContent ? 'responding' : 'thinking';
@@ -60,7 +61,7 @@ window.addEventListener('message', (event) => {
     });
   }
   else if (event.data.type === 'DEEPSEEK_HOOK_END') {
-    console.log(`[AIClash ${PROVIDER}] content 收到 END`);
+    logger.log(`[AIClash ${PROVIDER}] content 收到 END`);
     stopDomObserver(domCtx);
     const full = buildDisplayText();
     if (!full) {
@@ -137,10 +138,10 @@ async function syncDeepThinkToggle(wantEnabled) {
       const isSelected = btn.classList.contains('ds-toggle-button--selected');
       if (wantEnabled !== isSelected) {
         (btn).click();
-        console.log(`[AIClash ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
+        logger.log(`[AIClash ${PROVIDER}] 深度思考: ${isSelected ? 'ON→OFF' : 'OFF→ON'}`);
         await new Promise(r => setTimeout(r, 300));
       } else {
-        console.log(`[AIClash ${PROVIDER}] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
+        logger.log(`[AIClash ${PROVIDER}] 深度思考已处于期望状态: ${wantEnabled ? 'ON' : 'OFF'}`);
       }
       return;
     }
@@ -149,7 +150,7 @@ async function syncDeepThinkToggle(wantEnabled) {
 }
 
 async function executeDeepSeek(prompt, settings) {
-  console.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
+  logger.log(`[AIClash ${PROVIDER}] 开始执行任务...`);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();

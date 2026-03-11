@@ -31,6 +31,10 @@ export default defineManifest({
     js: ["src/content/longcat/index.js"],
     matches: ["https://longcat.chat/*"],
     run_at: "document_start"
+  }, {
+    js: ["src/content/yuanbao/index.js"],
+    matches: ["https://yuanbao.tencent.com/*"],
+    run_at: "document_start"
   }],
   permissions: [
     "sidePanel",
@@ -44,6 +48,7 @@ export default defineManifest({
     "https://www.doubao.com/*",
     "https://www.qianwen.com/*",
     "https://longcat.chat/*",
+    "https://yuanbao.tencent.com/*",
     // API模式权限
     "https://api.deepseek.com/*",
     "https://api.longcat.chat/*",
@@ -92,6 +97,15 @@ export default defineManifest({
       ],
       matches: [
         "https://longcat.chat/*"
+      ]
+    },
+    {
+      resources: [
+        "src/content/yuanbao/hook.js",
+        "src/content/yuanbao/index.js"
+      ],
+      matches: [
+        "https://yuanbao.tencent.com/*"
       ]
     }
   ],
