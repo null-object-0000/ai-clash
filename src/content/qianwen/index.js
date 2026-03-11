@@ -93,7 +93,7 @@ if (isContextValid()) {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         responseContent = "";
-        executeQianwen(request.payload.prompt, request.payload.options || {});
+        executeQianwen(request.payload.prompt, request.payload.settings || {});
       }
       // 支持查询当前模式
       else if (request.type === 'GET_QIANWEN_MODE') {
@@ -190,16 +190,16 @@ async function setDeepThinkMode(enable = true) {
   return false;
 }
 
-async function executeQianwen(prompt, options = {}) {
-  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, options);
+async function executeQianwen(prompt, settings = {}) {
+  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
 
-  // 根据用户设置调整深度思考模式
-  if (options.deepThink !== undefined) {
-    sendStatus(PROVIDER, `正在${options.deepThink ? '开启' : '关闭'}深度思考模式...`);
-    await setDeepThinkMode(options.deepThink);
+  // 根据全局深度思考开关调整模式
+  if (settings.isDeepThinkingEnabled !== undefined) {
+    sendStatus(PROVIDER, `正在${settings.isDeepThinkingEnabled ? '开启' : '关闭'}深度思考模式...`);
+    await setDeepThinkMode(settings.isDeepThinkingEnabled);
   }
 
   sendStatus(PROVIDER, '正在定位输入框...');

@@ -37,12 +37,13 @@ window.addEventListener('message', (event) => {
     domCtx.hookDataReceived = true;
     const payload = event.data.payload;
     const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!responseContent) console.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
-    responseContent += text;
+    const isThink = payload?.isThink ?? false;
+    if (!isThink && !responseContent) console.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
+    if (!isThink) responseContent += text;
 
     safeSend({
       type: MSG_TYPES.CHUNK_RECEIVED,
-      payload: { provider: PROVIDER, text, stage: 'responding', isThink: false }
+      payload: { provider: PROVIDER, text, stage: isThink ? 'thinking' : 'responding', isThink }
     });
   }
   else if (event.data.type === 'LONGCAT_HOOK_END') {
@@ -91,12 +92,33 @@ if (isContextValid()) {
     chrome.runtime.onMessage.addListener((request) => {
       if (request.type === MSG_TYPES.EXECUTE_PROMPT) {
         responseContent = "";
-        executeLongcat(request.payload.prompt);
+        executeLongcat(request.payload.prompt, request.payload.settings || {});
       }
     });
   } catch {
     console.warn(`[AI Clash ${PROVIDER}] 注册消息监听失败，扩展上下文已失效`);
   }
+}
+
+/**
+ * 确保深度思考模式与期望状态一致
+ * @param {boolean} wantEnabled - 是否希望开启深度思考
+ */
+async function ensureDeepThinkingMode(wantEnabled) {
+  const btn = Array.from(document.querySelectorAll('.v-checked-button')).find(
+    (el) => el.querySelector('use[href="#icon-sikao"]')
+  );
+  if (!btn) {
+    console.warn(`[AI Clash ${PROVIDER}] 未找到深度思考按钮`);
+    return;
+  }
+
+  const isActive = btn.classList.contains('active');
+  if (wantEnabled === isActive) return; // 状态已符合，无需操作
+
+  console.log(`[AI Clash ${PROVIDER}] 切换深度思考模式 → ${wantEnabled ? '开启' : '关闭'}`);
+  btn.click();
+  await new Promise((r) => setTimeout(r, 400));
 }
 
 /** 尝试点击「新对话」按钮 */
@@ -153,11 +175,14 @@ async function tryStartNewConversation() {
   return false;
 }
 
-async function executeLongcat(prompt) {
-  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`);
+async function executeLongcat(prompt, settings = {}) {
+  console.log(`[AI Clash ${PROVIDER}] 开始执行任务...`, settings);
   sendConnecting(PROVIDER);
 
   await tryStartNewConversation();
+
+  // 根据设置同步深度思考模式
+  await ensureDeepThinkingMode(!!settings.isDeepThinkingEnabled);
 
   sendStatus(PROVIDER, '正在定位输入框...');
 

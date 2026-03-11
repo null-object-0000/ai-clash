@@ -1064,7 +1064,9 @@ const submit = () => {
         provider: 'qianwen',
         prompt,
         mode: qianwenMode.value,
-        settings: {}
+        settings: {
+          isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+        }
       }
     });
   }
@@ -1077,7 +1079,9 @@ const submit = () => {
         provider: 'longcat',
         prompt,
         mode: longcatMode.value,
-        settings: {}
+        settings: {
+          isDeepThinkingEnabled: isDeepThinkingEnabled.value,
+        }
       }
     });
   }

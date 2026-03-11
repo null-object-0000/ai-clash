@@ -23,99 +23,67 @@
         window.postMessage({ type: 'LONGCAT_HOOK_END' }, '*');
     }
 
-    function emitChunk(text) {
+    // isThink=true 时走思考通道，false 时走正文通道
+    function emitChunk(text, isThink) {
         if (!text) return;
         _chunkCount++;
-        if (_chunkCount <= 5) console.log('[AI Clash longcat] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
-        window.postMessage({ type: 'LONGCAT_HOOK_CHUNK', payload: { text: text } }, '*');
-    }
-
-    /** 根据 event 类型从 data JSON 中提取文本 */
-    function extractByEvent(eventType, d) {
-        // 处理通用OpenAI格式
-        if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
-            return String(d.choices[0].delta.content);
-        }
-        // 尝试从常见的字段中提取文本
-        if (typeof d.text === 'string') {
-            return d.text;
-        }
-        if (typeof d.content === 'string') {
-            return d.content;
-        }
-        if (d.output && typeof d.output === 'string') {
-            return d.output;
-        }
-        if (d.answer && typeof d.answer === 'string') {
-            return d.answer;
-        }
-        if (d.result && typeof d.result === 'string') {
-            return d.result;
-        }
-        // 处理消息数组格式
-        if (d.messages && Array.isArray(d.messages)) {
-            const lastMsg = d.messages[d.messages.length - 1];
-            if (lastMsg && typeof lastMsg.content === 'string') {
-                return lastMsg.content;
-            }
-        }
-        // 尝试从嵌套结构中提取
-        if (d.data && typeof d.data === 'object') {
-            if (typeof d.data.text === 'string') return d.data.text;
-            if (typeof d.data.content === 'string') return d.data.content;
-            if (d.data.choices && d.data.choices[0] && d.data.choices[0].delta && d.data.choices[0].delta.content != null) {
-                return String(d.data.choices[0].delta.content);
-            }
-        }
-        return '';
+        if (_chunkCount <= 3) console.log('[AI Clash longcat] chunk#' + _chunkCount + (isThink ? '(think)' : ''), JSON.stringify(text).slice(0, 80));
+        window.postMessage({ type: 'LONGCAT_HOOK_CHUNK', payload: { text: text, isThink: !!isThink } }, '*');
     }
 
     function parseSSE(line) {
-        // 跟踪 event: 行
+        // 标准 SSE event: 行
         if (line.startsWith('event: ')) {
             _currentEvent = line.substring(7).trim();
             return;
         }
-        // 忽略 id: 行
         if (line.startsWith('id: ')) return;
-
-        // 兼容旧格式 end 信号
         if (line === 'event: close' || line === 'event: done' || line === 'event: complete') { emitEnd(); return; }
-        if (!line.startsWith('data: ')) return;
 
-        var json = line.substring(6).trim();
+        // 兼容 'data: '（标准）和 'data:'（LongCat 无空格）两种格式
+        if (!line.startsWith('data:')) return;
+        var json = line.startsWith('data: ') ? line.substring(6).trim() : line.substring(5).trim();
         if (!json || json === '[DONE]' || json === 'true') { emitEnd(); return; }
+
         try {
             var d = JSON.parse(json);
-            var text = '';
 
-            // 检查是否为结束信号
-            if (d.event === 'done' || d.event === 'all_done' || d.status === 'done' || d.finished === true) {
-                emitEnd();
+            // ---- LongCat 私有格式：所有信息在 d.event 对象里 ----
+            if (d.event && typeof d.event === 'object') {
+                var evType = d.event.type;
+
+                // 结束信号
+                if (evType === 'finish') { emitEnd(); return; }
+
+                var content = d.event.content;
+                if (content == null || content === '') return;
+
+                if (evType === 'content') {
+                    // 最终汇总回复（heavy_summary 阶段）→ 正文
+                    emitChunk(String(content), false);
+                } else if (evType === 'think') {
+                    // 各 Thinker 的思考过程 → 思考通道
+                    emitChunk(String(content), true);
+                }
+                // create / reason / summary 等元数据事件忽略
                 return;
             }
 
-            // 优先：根据 event 类型精确提取
-            if (_currentEvent) {
-                var result = extractByEvent(_currentEvent, d);
-                if (result !== null && result !== '') {
-                    emitChunk(result);
-                    return;
-                }
+            // ---- 标准 OpenAI 格式兜底 ----
+            if (d.event === 'done' || d.event === 'all_done' || d.status === 'done' || d.finished === true) {
+                emitEnd(); return;
             }
-
-            // Fallback: 无 event 类型或未知事件，尝试通用模式
-            text = extractByEvent('', d);
-
-            emitChunk(text);
+            // choices[0].delta.content
+            if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
+                emitChunk(String(d.choices[0].delta.content), false); return;
+            }
         } catch (_) {}
     }
 
     /** 检测是否为LongCat聊天 API 端点 */
     function isLongcatApiUrl(url) {
         if (typeof url !== 'string') return false;
-        // 只拦截指定的SSE接口
-        return url === '/api/v1/chat-completion-V2';
+        return url.includes('/api/v1/chat-completion-V2');
     }
 
     function resetSession() {
