@@ -205,6 +205,7 @@
       :show-api-key="showApiKey[activeProviderSettings] ?? false"
       :testing="testingApiKey[activeProviderSettings] ?? false"
       :api-key-test-result="apiKeyTestResult[activeProviderSettings] ?? null"
+      :api-key-link="activeProviderSettings === 'longcat' ? 'https://longcat.chat/platform/api_keys' : undefined"
       @close="closeProviderSettings"
       @update:mode="(m) => setProviderMode(activeProviderSettings as ProviderId, m)"
       @update:api-key="(v) => setProviderApiKey(activeProviderSettings as ProviderId, v)"
@@ -472,8 +473,11 @@ function getModelOptions(providerId: ProviderId) {
 
   if (providerId === 'longcat') {
     return [
-      { value: '', label: '默认模型 (longcat-chat)' },
-      { value: 'longcat-chat', label: 'longcat-chat' }
+      { value: '', label: '默认模型 (LongCat-Flash-Lite)' },
+      { value: 'LongCat-Flash-Lite', label: 'LongCat-Flash-Lite（高效轻量 MoE）' },
+      { value: 'LongCat-Flash-Chat', label: 'LongCat-Flash-Chat（通用对话）' },
+      { value: 'LongCat-Flash-Thinking', label: 'LongCat-Flash-Thinking（深度思考）' },
+      { value: 'LongCat-Flash-Thinking-2601', label: 'LongCat-Flash-Thinking-2601（升级版深度思考）' },
     ];
   }
 

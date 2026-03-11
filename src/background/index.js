@@ -1,3 +1,4 @@
+import OpenAI from 'openai';
 import { MSG_TYPES } from '../shared/messages.js';
 import { PROVIDERS, getProvider } from './providers.js';
 
@@ -68,14 +69,24 @@ function sendProviderError(providerId, message) {
   });
 }
 
-// 处理API模式请求
+/**
+ * 为指定 provider 构建 OpenAI 客户端实例
+ */
+function createOpenAIClient(apiConfig, apiKey) {
+  return new OpenAI({
+    apiKey,
+    baseURL: apiConfig.baseURL,
+    dangerouslyAllowBrowser: true,
+  });
+}
+
+// 处理API模式请求（统一使用 OpenAI SDK）
 async function handleApiRequest(provider, prompt, settings = {}) {
   const apiConfig = provider.apiConfig;
   if (!apiConfig || !apiConfig.enabled) {
     throw new Error(`Provider ${provider.id} 不支持API模式`);
   }
 
-  // 加载用户配置
   const userConfig = await loadApiConfig();
   const providerConfig = userConfig[provider.id] || {};
   const apiKey = providerConfig.apiKey;
@@ -85,96 +96,42 @@ async function handleApiRequest(provider, prompt, settings = {}) {
     throw new Error(`请先配置 ${provider.name} 的API Key`);
   }
 
-  // 构造请求
-  const requestOptions = apiConfig.requestTemplate(prompt, apiKey, model, settings);
+  const client = createOpenAIClient(apiConfig, apiKey);
 
-  // 超时控制器
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒超时
+  // 按模型取默认 max_tokens，settings 中显式传值时优先使用
+  const defaultMaxTokens = apiConfig.modelDefaultMaxTokens?.[model] ?? 4096;
+  const maxTokens = settings.max_tokens ?? defaultMaxTokens;
 
   try {
-    const response = await fetch(apiConfig.endpoint, {
-      ...requestOptions,
-      signal: controller.signal
+    const stream = await client.chat.completions.create({
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      stream: true,
+      temperature: settings.temperature ?? 0.7,
+      max_tokens: maxTokens,
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const body = await response.text();
-      const errorMsg = apiConfig.errorParser(response, body);
-      throw new Error(errorMsg);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder('utf-8');
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (!trimmedLine) continue;
-
-        const content = apiConfig.responseParser(trimmedLine);
-        if (content === null) {
-          // 流结束
-          chrome.runtime.sendMessage({
-            type: MSG_TYPES.TASK_COMPLETED,
-            payload: { provider: provider.id }
-          });
-          return;
-        }
-        if (content) {
-          // 发送内容块
-          chrome.runtime.sendMessage({
-            type: MSG_TYPES.CHUNK_RECEIVED,
-            payload: {
-              provider: provider.id,
-              text: content,
-              stage: 'responding',
-              isThink: false
-            }
-          });
-        }
-      }
-    }
-
-    // 处理剩余的buffer
-    if (buffer.trim()) {
-      const content = apiConfig.responseParser(buffer.trim());
-      if (content && content !== null) {
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content;
+      if (content) {
         chrome.runtime.sendMessage({
           type: MSG_TYPES.CHUNK_RECEIVED,
-          payload: {
-            provider: provider.id,
-            text: content,
-            stage: 'responding',
-            isThink: false
-          }
+          payload: { provider: provider.id, text: content, stage: 'responding', isThink: false }
         });
       }
     }
 
-    // 任务完成
     chrome.runtime.sendMessage({
       type: MSG_TYPES.TASK_COMPLETED,
       payload: { provider: provider.id }
     });
 
   } catch (error) {
-    clearTimeout(timeoutId);
     sendProviderError(provider.id, error.message || 'API请求失败');
   }
 }
 
-// 测试API Key有效性
+// 测试API Key有效性（统一使用 OpenAI SDK）
 async function testApiKey(providerId, apiKey) {
   const provider = getProvider(providerId);
   if (!provider || !provider.apiConfig || !provider.apiConfig.enabled) {
@@ -182,39 +139,22 @@ async function testApiKey(providerId, apiKey) {
   }
 
   const apiConfig = provider.apiConfig;
-  const model = apiConfig.defaultModel;
+  const client = createOpenAIClient(apiConfig, apiKey);
 
   try {
-    // 构造一个简单的测试请求
-    const requestOptions = apiConfig.requestTemplate('hi', apiKey, model, { max_tokens: 10 });
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒超时
-
-    const response = await fetch(apiConfig.endpoint, {
-      ...requestOptions,
-      signal: controller.signal
+    await client.chat.completions.create({
+      model: apiConfig.defaultModel,
+      messages: [{ role: 'user', content: 'hi' }],
+      max_tokens: 10,
+      stream: false,
     });
-
-    clearTimeout(timeoutId);
-
-    if (response.status === 401 || response.status === 403) {
-      return { success: false, error: 'API Key无效' };
-    }
-
-    if (!response.ok) {
-      const body = await response.text();
-      const errorMsg = apiConfig.errorParser(response, body);
-      return { success: false, error: errorMsg };
-    }
-
-    // 快速读取一下响应头就关闭，不用等完整响应
-    const reader = response.body?.getReader();
-    await reader?.cancel();
-
-    return { success: true, message: 'API Key有效' };
-
+    return { success: true, message: 'API Key 有效' };
   } catch (error) {
-    if (error.name === 'AbortError') {
+    const status = error?.status;
+    if (status === 401 || status === 403) {
+      return { success: false, error: 'API Key 无效' };
+    }
+    if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
       return { success: false, error: '请求超时' };
     }
     return { success: false, error: error.message || '请求失败' };

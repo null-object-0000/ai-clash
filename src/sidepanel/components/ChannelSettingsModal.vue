@@ -63,7 +63,20 @@
           v-if="supportsApi && mode === 'api'"
           class="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
           <div class="space-y-2">
-            <label class="text-[12px] font-medium text-slate-700">API Key</label>
+            <div class="flex items-center justify-between">
+              <label class="text-[12px] font-medium text-slate-700">API Key</label>
+              <a
+                v-if="apiKeyLink"
+                :href="apiKeyLink"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-1 text-[11px] text-indigo-500 hover:text-indigo-700 transition-colors">
+                前往获取 API Key
+                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
             <div class="flex items-center gap-2">
               <input
                 :type="showApiKey ? 'text' : 'password'"
@@ -125,6 +138,7 @@ defineProps<{
   showApiKey: boolean;
   testing: boolean;
   apiKeyTestResult: { success: boolean; message: string } | null;
+  apiKeyLink?: string;
 }>();
 
 defineEmits<{

@@ -12,51 +12,12 @@ export const PROVIDERS = [
     hookScriptId: 'aiclash-deepseek-hook',
     hookGlobalVar: '__abHookV',
     contentScriptFile: 'src/content/deepseek/index.js',
-    // API模式配置
+    // API模式配置（OpenAI兼容）
     apiConfig: {
       enabled: true,
-      endpoint: 'https://api.deepseek.com/chat/completions',
-      authPrefix: 'Bearer ',
+      baseURL: 'https://api.deepseek.com/v1',
       defaultModel: 'deepseek-chat',
       models: ['deepseek-chat', 'deepseek-reasoner'],
-      // 请求模板
-      requestTemplate: (prompt, apiKey, model, settings = {}) => ({
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model || 'deepseek-chat',
-          messages: [{ role: 'user', content: prompt }],
-          stream: true,
-          temperature: settings.temperature || 0.7,
-          max_tokens: settings.max_tokens || 4096
-        })
-      }),
-      // 流式响应解析器
-      responseParser: (chunk) => {
-        if (chunk.startsWith('data: ')) {
-          chunk = chunk.slice(6);
-          if (chunk === '[DONE]') return null;
-          try {
-            const data = JSON.parse(chunk);
-            return data.choices?.[0]?.delta?.content || '';
-          } catch (e) {
-            return '';
-          }
-        }
-        return '';
-      },
-      // 错误解析器
-      errorParser: (response, body) => {
-        try {
-          const error = JSON.parse(body);
-          return error.error?.message || `API请求失败 (${response.status})`;
-        } catch (e) {
-          return `API请求失败 (${response.status})`;
-        }
-      }
     }
   },
   {
@@ -96,51 +57,19 @@ export const PROVIDERS = [
     hookScriptId: 'aiclash-longcat-hook',
     hookGlobalVar: '__abLongcatHookV',
     contentScriptFile: 'src/content/longcat/index.js',
-    // API模式配置
+    // API模式配置（OpenAI兼容）
     apiConfig: {
       enabled: true,
-      endpoint: 'https://api.longcat.chat/openai/v1/chat/completions',
-      authPrefix: 'Bearer ',
-      defaultModel: 'longcat-chat',
-      models: ['longcat-chat'],
-      // 请求模板（OpenAI兼容格式）
-      requestTemplate: (prompt, apiKey, model, settings = {}) => ({
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model: model || 'longcat-chat',
-          messages: [{ role: 'user', content: prompt }],
-          stream: true,
-          temperature: settings.temperature || 0.7,
-          max_tokens: settings.max_tokens || 4096
-        })
-      }),
-      // 流式响应解析器（OpenAI兼容格式）
-      responseParser: (chunk) => {
-        if (chunk.startsWith('data: ')) {
-          chunk = chunk.slice(6);
-          if (chunk === '[DONE]') return null;
-          try {
-            const data = JSON.parse(chunk);
-            return data.choices?.[0]?.delta?.content || '';
-          } catch (e) {
-            return '';
-          }
-        }
-        return '';
+      baseURL: 'https://api.longcat.chat/openai/v1',
+      defaultModel: 'LongCat-Flash-Lite',
+      models: ['LongCat-Flash-Lite', 'LongCat-Flash-Chat', 'LongCat-Flash-Thinking', 'LongCat-Flash-Thinking-2601'],
+      // 各模型默认 max_tokens（未指定时使用）
+      modelDefaultMaxTokens: {
+        'LongCat-Flash-Chat':          131072,
+        'LongCat-Flash-Thinking':      262144,
+        'LongCat-Flash-Thinking-2601': 262144,
+        'LongCat-Flash-Lite':          262144,
       },
-      // 错误解析器
-      errorParser: (response, body) => {
-        try {
-          const error = JSON.parse(body);
-          return error.error?.message || `API请求失败 (${response.status})`;
-        } catch (e) {
-          return `API请求失败 (${response.status})`;
-        }
-      }
     }
   },
 ];
