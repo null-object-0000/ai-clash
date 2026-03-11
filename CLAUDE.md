@@ -129,6 +129,7 @@ export const PROVIDERS = [
 1. 修改 providers.js 后需要重新加载扩展
 2. Content script 调试需要在对应网页的开发者工具中查看
 3. Service Worker 调试在扩展管理页面的"Service Worker"链接中
+4. **代码修改完成后必须自动执行 `npm run build` 进行生产构建，确保dist目录是最新版本**
 
 ## 新AI通道接入规范
 
