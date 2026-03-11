@@ -8,13 +8,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **项目类型**: Chrome 浏览器扩展
 
-**主要功能**: 聚合多个 AI 平台（DeepSeek、豆包、千问）的能力，统一接口调用，实现混合专家模式（MoE）
+**主要功能**: 聚合多个 AI 平台（DeepSeek、豆包、千问、LongCat）的能力，统一接口调用，支持深度思考模式，实现混合专家模式（MoE）
 
 ## 技术栈
 
 - **前端框架**: Vue 3 (Composition API)
 - **构建工具**: Vite + @crxjs/vite-plugin
-- **语言**: TypeScript
+- **语言**: JavaScript (部分TypeScript类型定义)
 - **UI**: Tailwind CSS
 - **扩展清单**: Manifest V3
 
@@ -23,8 +23,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 src/
 ├── background/          # Service Worker 后台服务
-│   ├── index.ts        # 主入口，消息路由、任务分发
-│   └── providers.ts    # AI 提供者配置注册表
+│   ├── index.js        # 主入口，消息路由、任务分发
+│   └── providers.js    # AI 提供者配置注册表
 ├── content/            # Content Scripts 内容脚本
 │   ├── deepseek/       # DeepSeek 集成
 │   ├── doubao/         # 豆包集成
@@ -46,6 +46,7 @@ src/
 ```bash
 npm install          # 安装依赖
 npm run dev          # 开发模式 (HMR 热重载)
+npm run typecheck    # 类型检查
 npm run build        # 类型检查 + 生产构建
 ```
 
@@ -60,15 +61,15 @@ npm run build        # 类型检查 + 生产构建
 
 - `manifest.config.ts`: Chrome 扩展清单配置
 - `vite.config.ts`: Vite 构建配置（包含 HMR 修复插件）
-- `src/background/providers.ts`: AI 提供者配置，添加新 AI 时修改
+- `src/background/providers.js`: AI 提供者配置，添加新 AI 时修改
 - `src/shared/messages.ts`: 消息类型定义
 
 ## AI 提供者配置
 
-在 `src/background/providers.ts` 中添加新的 AI 提供者：
+在 `src/background/providers.js` 中添加新的 AI 提供者：
 
-```typescript
-export const PROVIDERS: Provider[] = [
+```javascript
+export const PROVIDERS = [
   {
     id: 'deepseek',
     name: 'DeepSeek',
@@ -76,9 +77,23 @@ export const PROVIDERS: Provider[] = [
     matchPattern: 'https://chat.deepseek.com/*',
     // ... 其他配置
   },
-  // ...
+  // 已支持：doubao(豆包), qianwen(千问), longcat
 ];
 ```
+
+## 深度思考模式规则
+
+**全局唯一开关**：是否开启深度思考模式由侧边栏顶部的「深度思考」按钮统一控制，对应 `isDeepThinkingEnabled` 响应式变量，通过 `settings.isDeepThinkingEnabled` 传入每次请求。
+
+**禁止**在模型名称、模型选项或任何其他地方单独控制思考模式。不允许出现类似 `deepseek-chat+thinking` 这样的虚拟模型 ID，或在模型下拉中区分"思考版"/"非思考版"。
+
+**各通道的实现方式**：
+- **网页模式**：content script 根据 `settings.isDeepThinkingEnabled` 控制网页上的深度思考按钮点击
+- **API 模式（deepseek-chat）**：开关开启时通过 `extra_body: { thinking: { type: "enabled" } }` 注入思考参数；`providers.js` 中用 `thinkingExtraBodyModels` 声明支持此方式的模型列表
+- **API 模式（deepseek-reasoner 等原生思考模型）**：本身即思考模型，不受开关影响，始终输出思维链
+- **API 模式（LongCat 思考模型）**：选择 `LongCat-Flash-Thinking` 或 `LongCat-Flash-Thinking-2601` 模型本身即开启思考；开关仅控制 UI 是否展示思维链内容
+
+**stream 处理**：`background/index.js` 的 stream 循环中，`delta.reasoning_content` 对应思维链，发送时 `isThink: true`；`delta.content` 对应正文，发送时 `isThink: false`。
 
 ## 重要技术细节
 
@@ -107,8 +122,7 @@ export const PROVIDERS: Provider[] = [
 
 ## Git 分支
 
-- `main`: 主分支
-- `chrome-extension`: 当前开发分支
+- `main`: 主分支（当前开发分支）
 
 ## 注意事项
 

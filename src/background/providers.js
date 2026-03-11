@@ -18,6 +18,13 @@ export const PROVIDERS = [
       baseURL: 'https://api.deepseek.com/v1',
       defaultModel: 'deepseek-chat',
       models: ['deepseek-chat', 'deepseek-reasoner'],
+      // 各模型默认 max_tokens（未指定时使用）
+      modelDefaultMaxTokens: {
+        'deepseek-chat':     8192,
+        'deepseek-reasoner': 65536,
+      },
+      // 支持通过 extra_body 开启思考模式的模型列表（仅对这些模型注入 thinking 参数）
+      thinkingExtraBodyModels: ['deepseek-reasoner'],
     }
   },
   {

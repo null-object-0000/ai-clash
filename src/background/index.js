@@ -102,6 +102,12 @@ async function handleApiRequest(provider, prompt, settings = {}) {
   const defaultMaxTokens = apiConfig.modelDefaultMaxTokens?.[model] ?? 4096;
   const maxTokens = settings.max_tokens ?? defaultMaxTokens;
 
+  // 深度思考开关：当 UI 开启且该模型支持通过 extra_body 注入思考参数时生效
+  const supportsThinkingExtraBody = apiConfig.thinkingExtraBodyModels?.includes(model) ?? false;
+  const extraBody = (settings.isDeepThinkingEnabled && supportsThinkingExtraBody)
+    ? { thinking: { type: 'enabled' } }
+    : undefined;
+
   try {
     const stream = await client.chat.completions.create({
       model,
@@ -109,14 +115,25 @@ async function handleApiRequest(provider, prompt, settings = {}) {
       stream: true,
       temperature: settings.temperature ?? 0.7,
       max_tokens: maxTokens,
+      ...(extraBody ? { extra_body: extraBody } : {}),
     });
 
     for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      if (content) {
+      const delta = chunk.choices[0]?.delta ?? {};
+
+      // 思考链内容（reasoning_content）
+      if (delta.reasoning_content) {
         chrome.runtime.sendMessage({
           type: MSG_TYPES.CHUNK_RECEIVED,
-          payload: { provider: provider.id, text: content, stage: 'responding', isThink: false }
+          payload: { provider: provider.id, text: delta.reasoning_content, stage: 'thinking', isThink: true }
+        });
+      }
+
+      // 正文内容
+      if (delta.content) {
+        chrome.runtime.sendMessage({
+          type: MSG_TYPES.CHUNK_RECEIVED,
+          payload: { provider: provider.id, text: delta.content, stage: 'responding', isThink: false }
         });
       }
     }

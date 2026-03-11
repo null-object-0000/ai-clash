@@ -205,7 +205,7 @@
       :show-api-key="showApiKey[activeProviderSettings] ?? false"
       :testing="testingApiKey[activeProviderSettings] ?? false"
       :api-key-test-result="apiKeyTestResult[activeProviderSettings] ?? null"
-      :api-key-link="activeProviderSettings === 'longcat' ? 'https://longcat.chat/platform/api_keys' : undefined"
+      :api-key-link="activeProviderSettings === 'longcat' ? 'https://longcat.chat/platform/api_keys' : activeProviderSettings === 'deepseek' ? 'https://platform.deepseek.com/api_keys' : undefined"
       @close="closeProviderSettings"
       @update:mode="(m) => setProviderMode(activeProviderSettings as ProviderId, m)"
       @update:api-key="(v) => setProviderApiKey(activeProviderSettings as ProviderId, v)"
@@ -466,8 +466,8 @@ function getModelOptions(providerId: ProviderId) {
   if (providerId === 'deepseek') {
     return [
       { value: '', label: '默认模型 (deepseek-chat)' },
-      { value: 'deepseek-chat', label: 'deepseek-chat' },
-      { value: 'deepseek-reasoner', label: 'deepseek-reasoner' }
+      { value: 'deepseek-chat', label: 'deepseek-chat（DeepSeek-V3.2，输出最大 8K）' },
+      { value: 'deepseek-reasoner', label: 'deepseek-reasoner（DeepSeek-V3.2 思考，输出最大 64K）' }
     ];
   }
 
