@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="switch"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  label:has(input[type="radio"]:not(:disabled)),
+  label:has(input[type="checkbox"]:not(:disabled)) {
+    cursor: pointer;
+  }
+}
+
 /* 侧边栏整体重置一下滚动条样式，让它更美观 */
 ::-webkit-scrollbar {
     width: 6px;
