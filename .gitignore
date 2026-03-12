@@ -4,3 +4,5 @@ release
 .claude
 .claude.json
 .cursor
+test-results
+playwright-report

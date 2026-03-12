@@ -7,10 +7,14 @@
     "scripts": {
         "dev": "vite",
         "typecheck": "vue-tsc --noEmit",
-        "build": "vue-tsc --noEmit && vite build"
+        "build": "vue-tsc --noEmit && vite build",
+        "test:unit": "vitest run",
+        "test:unit:dev": "vitest",
+        "test:e2e": "playwright test",
+        "test:e2e:ui": "playwright test --ui",
+        "test": "npm run test:unit && npm run test:e2e"
     },
     "dependencies": {
-        "@tailwindcss/vite": "^4.2.1",
         "lucide-vue-next": "^0.577.0",
         "marked": "^17.0.4",
         "openai": "^6.27.0",
@@ -19,17 +23,22 @@
     },
     "devDependencies": {
         "@crxjs/vite-plugin": "^2.3.0",
+        "@playwright/test": "^1.58.2",
         "@tailwindcss/typography": "^0.5.19",
+        "@tailwindcss/vite": "^4.2.1",
         "@types/chrome": "^0.1.37",
         "@types/node": "^24.12.0",
         "@types/sanitize-html": "^2.16.1",
         "@vitejs/plugin-vue": "^6.0.4",
+        "@vue/test-utils": "^2.4.6",
         "@vue/tsconfig": "^0.7.0",
-        "postcss": "^8.5.8",
+        "jest-chrome": "^0.8.0",
+        "jsdom": "^25.0.1",
         "tailwindcss": "^4.2.1",
         "typescript": "~5.8.3",
         "vite": "^7.3.1",
         "vite-plugin-zip-pack": "^1.2.4",
+        "vitest": "^2.1.9",
         "vue-tsc": "^3.2.5"
     }
 }
