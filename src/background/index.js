@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { MSG_TYPES } from '../shared/messages.js';
-import { PROVIDERS, getProvider } from './providers.js';
+import { PROVIDERS, getProvider, deriveProviderConfig } from './providers.js';
 import logger from '../shared/logger.js';
 
 // Service Worker 保活机制 - 单个持久化心跳 alarm
@@ -369,13 +369,16 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 // ============================================================================
 // 注册所有通道的 hook.js 到 MAIN world（最早时机，在页面任何 JS 之前执行）
 // ============================================================================
-const hookScripts = PROVIDERS.map(p => ({
-  id: p.hookScriptId,
-  matches: [p.matchPattern],
-  js: [p.hookFile],
-  runAt: 'document_start',
-  world: 'MAIN',
-}));
+const hookScripts = PROVIDERS.map(p => {
+  const derived = deriveProviderConfig(p);
+  return {
+    id: derived.hookScriptId,
+    matches: [p.matchPattern],
+    js: [derived.hookFile],
+    runAt: 'document_start',
+    world: 'MAIN',
+  };
+});
 
 chrome.scripting.registerContentScripts(hookScripts).catch(() => {
   chrome.scripting.updateContentScripts(hookScripts).catch(() => {});
