@@ -1,6 +1,5 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* 侧边栏整体重置一下滚动条样式，让它更美观 */
 ::-webkit-scrollbar {

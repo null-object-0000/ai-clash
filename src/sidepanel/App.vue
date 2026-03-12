@@ -11,19 +11,14 @@
           @click="createNewChat"
           :disabled="!hasAsked || isRunning"
           aria-label="新建对话">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus class="w-3.5 h-3.5" />
         </button>
         <button
           type="button"
           class="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm hover:text-slate-700 hover:border-slate-300 transition-colors"
           @click="isHistoryPanelOpen = !isHistoryPanelOpen"
           aria-label="历史对话">
-          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3" />
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.05 11A9 9 0 1112 21v-3" />
-          </svg>
+          <History class="w-3.5 h-3.5" />
           <span class="text-[11px]">{{ historyList.length }}</span>
         </button>
       </div>
@@ -81,15 +76,11 @@
             <!-- 单通道 / 多通道模式动态提示 -->
             <div class="mt-2.5 pt-2.5 border-t border-slate-100">
               <div v-if="getEnabledProviderIds().length === 1" class="flex items-center gap-1.5 text-[11px] text-emerald-600">
-                <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3v-3z" />
-                </svg>
+                <MessageSquare class="w-3 h-3 flex-shrink-0" :stroke-width="2.5" />
                 单通道模式 · 支持多轮对话，可连续追问
               </div>
               <div v-else-if="getEnabledProviderIds().length >= 2" class="flex items-center gap-1.5 text-[11px] text-indigo-500">
-                <svg class="w-3 h-3 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
+                <Layers class="w-3 h-3 flex-shrink-0" />
                 MoE 对比模式 · {{ getEnabledProviderIds().length }} 个通道并行回答
               </div>
               <div v-else class="text-[11px] text-slate-400">请至少选择一个通道</div>
@@ -346,6 +337,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
+import { Plus, History, MessageSquare, Layers } from 'lucide-vue-next';
 import { MSG_TYPES } from '../shared/messages.js';
 import logger, { setDebugEnabled } from '../shared/logger.js';
 import { PROVIDER_META, getModelOptions, getProviderName } from '../shared/config.js';

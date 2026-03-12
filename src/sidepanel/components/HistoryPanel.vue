@@ -63,15 +63,14 @@
         @click.stop="$emit('delete-item', item.id)"
         aria-label="删除此记录"
       >
-        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+        <X class="w-3 h-3" :stroke-width="2.5" />
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
 import type { ChatHistoryItem } from '../App.vue';
 
 interface Props {

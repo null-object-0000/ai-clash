@@ -9,14 +9,10 @@
           <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
         </span>
         <span v-else-if="status === 'completed'" class="text-indigo-500">
-          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-          </svg>
+          <CheckCircle class="w-3.5 h-3.5" />
         </span>
         <span v-else-if="status === 'error'" class="text-rose-500">
-          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 10-1.5 0v4.5a.75.75 0 001.5 0V6.5zm0 7a.75.75 0 10-1.5 0v.5a.75.75 0 001.5 0V13.5z" clip-rule="evenodd" />
-          </svg>
+          <AlertCircle class="w-3.5 h-3.5" />
         </span>
         <span v-else class="inline-flex rounded-full h-2.5 w-2.5 bg-slate-200"></span>
 
@@ -47,10 +43,7 @@
           <button
             @click="isThinkBlockOpen = !isThinkBlockOpen"
             class="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1">
-            <svg class="w-3 h-3 transition-transform duration-200" :class="{ 'rotate-90': isThinkBlockOpen }"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight class="w-3 h-3 transition-transform duration-200" :class="{ 'rotate-90': isThinkBlockOpen }" />
             <span>思考过程</span>
             <span v-if="stage === 'thinking' && status === 'running'"
               class="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle"></span>
@@ -80,6 +73,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { CheckCircle, AlertCircle, ChevronRight } from 'lucide-vue-next';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 

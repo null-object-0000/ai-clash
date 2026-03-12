@@ -22,9 +22,7 @@
             class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition-colors hover:border-slate-300 hover:text-slate-700"
             @click="$emit('close')"
             aria-label="关闭当前通道设置">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M18 6L6 18M6 6l12 12" />
-            </svg>
+            <X class="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -69,9 +67,7 @@
           <div
             v-if="apiNote"
             class="flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-            <svg class="h-3.5 w-3.5 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
-            </svg>
+            <Info class="h-3.5 w-3.5 shrink-0 text-amber-500" />
             <span>{{ apiNote }}</span>
           </div>
           <div class="space-y-2">
@@ -84,9 +80,7 @@
                 rel="noopener noreferrer"
                 class="inline-flex items-center gap-1 text-[11px] text-indigo-500 hover:text-indigo-700 transition-colors">
                 前往获取 API Key
-                <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6m0 0v6m0-6L10 14" />
-                </svg>
+                <ExternalLink class="h-3 w-3" />
               </a>
             </div>
             <div class="flex items-center gap-2">
@@ -139,6 +133,8 @@
 </template>
 
 <script setup lang="ts">
+import { X, Info, ExternalLink } from 'lucide-vue-next';
+
 defineProps<{
   activeProviderId: string | null;
   providerLabel: string;

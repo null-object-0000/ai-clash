@@ -16,12 +16,8 @@
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" :class="themeClasses.ping"></span>
           <span class="relative inline-flex rounded-full h-2 w-2" :class="themeClasses.dot"></span>
         </span>
-        <svg v-else-if="status === 'completed'" class="w-3 h-3 text-emerald-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-        </svg>
-        <svg v-else-if="status === 'error'" class="w-3 h-3 text-rose-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.5a.75.75 0 10-1.5 0v4.5a.75.75 0 001.5 0V6.5zm0 7a.75.75 0 10-1.5 0v.5a.75.75 0 001.5 0V13.5z" clip-rule="evenodd" />
-        </svg>
+        <CheckCircle v-else-if="status === 'completed'" class="w-3 h-3 text-emerald-500 flex-shrink-0" />
+        <AlertCircle v-else-if="status === 'error'" class="w-3 h-3 text-rose-500 flex-shrink-0" />
 
         <span v-if="operationStatus" class="text-[10px] text-amber-500 animate-pulse truncate">{{ operationStatus }}</span>
         <span v-else-if="status === 'running'" class="text-[10px] text-slate-400 animate-pulse truncate">{{ stageLabel }}</span>
@@ -37,9 +33,7 @@
           class="ml-auto flex-shrink-0 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-0.5 text-[11px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
           @click="onOriginalClick"
           :title="isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'">
-          <svg class="w-3 h-3 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
+          <ExternalLink class="w-3 h-3 opacity-80" />
           <span>原文</span>
         </a>
         <span
@@ -57,12 +51,7 @@
             <button
               @click="isThinkBlockOpen = !isThinkBlockOpen"
               class="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1">
-              <svg
-                class="w-3 h-3 transition-transform duration-200"
-                :class="{ 'rotate-90': isThinkBlockOpen }"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-              </svg>
+              <ChevronRight class="w-3 h-3 transition-transform duration-200" :class="{ 'rotate-90': isThinkBlockOpen }" />
               <span>思考过程</span>
               <span
                 v-if="stage === 'thinking' && status === 'running'"
@@ -101,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { CheckCircle, AlertCircle, ExternalLink, ChevronRight } from 'lucide-vue-next';
 import { marked } from 'marked';
 import sanitizeHtml from 'sanitize-html';
 
