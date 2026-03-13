@@ -47,7 +47,9 @@ src/
 npm install          # 安装依赖
 npm run dev          # 开发模式 (HMR 热重载)
 npm run typecheck    # 类型检查
-npm run build        # 类型检查 + 生产构建
+npm run test         # 运行 Playwright 测试
+npm run test:ui      # 运行 Playwright UI 模式测试
+npm run build        # 类型检查 + 运行测试 + 生产构建
 ```
 
 ## 开发流程

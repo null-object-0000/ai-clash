@@ -115,6 +115,30 @@ if (isContextValid()) {
 
 /** 尝试点击「新对话」按钮 */
 async function tryStartNewConversation() {
+  // 策略1：侧边栏大按钮 —— class 含 newChatButton（带 hash 后缀的稳定前缀）
+  const sidebarBtn = document.querySelector('[class*="newChatButton"]');
+  if (sidebarBtn) {
+    logger.log(`[AI Clash ${PROVIDER}] 新对话：命中 newChatButton`);
+    sidebarBtn.click();
+    await new Promise((r) => setTimeout(r, 600));
+    return true;
+  }
+
+  // 策略2：通过图标 data-icon-type 定位（两种图标名均兼容）
+  for (const iconType of ['qwpcicon-newDialogueMedium', 'qwpcicon-newDialogue']) {
+    const iconEl = document.querySelector(`[data-icon-type="${iconType}"]`);
+    if (iconEl) {
+      const btn = iconEl.closest('button, [role="button"], a') || iconEl.parentElement;
+      if (btn) {
+        logger.log(`[AI Clash ${PROVIDER}] 新对话：命中 icon ${iconType}`);
+        btn.click();
+        await new Promise((r) => setTimeout(r, 600));
+        return true;
+      }
+    }
+  }
+
+  // 策略3：文字兜底
   const labels = ['新对话', '新会话', '开启新对话', '新建对话'];
   for (const label of labels) {
     const el = Array.from(document.querySelectorAll('span, div, button, a')).find(
@@ -123,33 +147,15 @@ async function tryStartNewConversation() {
     if (el) {
       const clickable = el.closest('[role="button"], button, a, [tabindex="0"]') || el;
       if (clickable) {
-        (clickable).click();
+        logger.log(`[AI Clash ${PROVIDER}] 新对话：命中文字"${label}"`);
+        clickable.click();
         await new Promise((r) => setTimeout(r, 600));
         return true;
       }
     }
   }
 
-  const testIdBtns = document.querySelectorAll('[data-testid*="new"], [data-testid*="create"]');
-  for (const btn of Array.from(testIdBtns)) {
-    (btn).click();
-    await new Promise((r) => setTimeout(r, 600));
-    return true;
-  }
-
-  const iconBtns = document.querySelectorAll('[class*="icon"], svg');
-  for (const btn of Array.from(iconBtns)) {
-    const parent = btn.closest('[role="button"], button, a');
-    if (parent) {
-      const d = btn.querySelector('path')?.getAttribute('d') || '';
-      if (d.includes('M12 5v14M5 12h14') || d.includes('plus') || d.includes('+')) {
-        (parent).click();
-        await new Promise((r) => setTimeout(r, 600));
-        return true;
-      }
-    }
-  }
-
+  logger.warn(`[AI Clash ${PROVIDER}] 新对话：未找到任何入口按钮`);
   return false;
 }
 

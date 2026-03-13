@@ -92,7 +92,8 @@ export function startDomObserver(
   ctx.runId += 1;
   const currentRunId = ctx.runId;
   ctx.hookDataReceived = false;
-  ctx.lastObservedText = '';
+  // 用当前 DOM 内容作为基线，避免把页面上已有的上一轮对话内容当新内容发出
+  ctx.lastObservedText = pollFn() ?? '';
 
   const scheduleTimeout = () => {
     if (ctx.timeoutId) { clearTimeout(ctx.timeoutId); ctx.timeoutId = null; }
