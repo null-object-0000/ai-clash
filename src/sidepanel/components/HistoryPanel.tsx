@@ -1,4 +1,5 @@
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
+import { ActionIcon, Button, Empty, Tag } from '@lobehub/ui';
 import type { ChatHistoryItem } from '../types';
 
 function formatHistoryTime(timestamp: number) {
@@ -37,31 +38,21 @@ export default function HistoryPanel({
   onClose,
 }: HistoryPanelProps) {
   return (
-    <div className="absolute left-4 right-4 top-[calc(100%+8px)] max-h-[320px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl p-2 space-y-1">
+    <div className="absolute left-4 right-4 top-[calc(100%+8px)] max-h-[320px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl p-2 space-y-1 z-50">
       <div className="flex items-center justify-between px-2 pt-1 pb-2">
         <div className="text-[12px] font-semibold text-slate-700">历史对话</div>
         <div className="flex items-center gap-2">
           {historyList.length > 0 && (
-            <button
-              type="button"
-              className="text-[11px] text-red-400 hover:text-red-600 transition-colors"
-              onClick={onClearAll}
-            >
+            <Button type="text" size="small" danger onClick={onClearAll} style={{ fontSize: 11, padding: '0 4px' }}>
               清除全部
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            className="text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
-            onClick={onClose}
-          >
-            关闭
-          </button>
+          <ActionIcon icon={X} size="small" onClick={onClose} title="关闭" />
         </div>
       </div>
 
       {historyList.length === 0 ? (
-        <div className="px-3 py-6 text-center text-[12px] text-slate-400">暂无历史对话</div>
+        <Empty description="暂无历史对话" style={{ padding: '24px 0' }} />
       ) : (
         historyList.map((item) => (
           <div
@@ -89,22 +80,23 @@ export default function HistoryPanel({
                     {item.type === 'single' ? ` · ${item.turns.length} 轮` : ''}
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-400 whitespace-nowrap">
+                <Tag size="small">
                   {item.type === 'single' ? '单通道' : `${getHistoryEnabledCount(item)} 通道`}
-                </div>
+                </Tag>
               </div>
             </button>
-            <button
-              type="button"
-              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-slate-300 opacity-0 transition-all group-hover:opacity-100 hover:bg-red-50 hover:text-red-400"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteItem(item.id);
-              }}
-              aria-label="删除此记录"
-            >
-              <X className="w-3 h-3" strokeWidth={2.5} />
-            </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <ActionIcon
+                icon={X}
+                size={{ blockSize: 20 }}
+                danger
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDeleteItem(item.id);
+                }}
+                title="删除此记录"
+              />
+            </div>
           </div>
         ))
       )}

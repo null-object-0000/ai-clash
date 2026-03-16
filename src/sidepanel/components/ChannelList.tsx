@@ -1,4 +1,6 @@
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
+import { Avatar, Button, Tag } from '@lobehub/ui';
+import { Settings } from 'lucide-react';
 
 type IconWithColor = { Color: React.ComponentType<{ size?: number; className?: string }> };
 const iconMap: Record<string, IconWithColor> = {
@@ -34,13 +36,9 @@ export default function ChannelList({
     <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
         <div className="text-[12px] font-semibold text-slate-700">通道列表</div>
-        <button
-          type="button"
-          className="text-[11px] text-slate-500 transition-colors hover:text-slate-800"
-          onClick={onViewHistory}
-        >
+        <Button type="text" size="small" onClick={onViewHistory} style={{ fontSize: 11, padding: '0 4px' }}>
           查看历史
-        </button>
+        </Button>
       </div>
 
       <div className="divide-y divide-slate-100">
@@ -53,34 +51,41 @@ export default function ChannelList({
             <div key={provider.id} className="px-4 py-2.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0 flex items-center gap-2">
-                  {Icon && <Icon.Color size={16} className="flex-shrink-0" />}
+                  {Icon && (
+                    <Avatar
+                      avatar={<Icon.Color size={16} />}
+                      size={24}
+                      shape="circle"
+                      style={{ flexShrink: 0 }}
+                    />
+                  )}
                   <span className="text-[13px] font-medium text-slate-800">{provider.name}</span>
-                  <span className="text-[11px] text-slate-500">{getModeText(provider.id)}模式</span>
+                  <Tag size="small">{getModeText(provider.id)}模式</Tag>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {modeValue === 'web' && (
-                    <button
-                      type="button"
-                      className="inline-flex h-7 items-center justify-center rounded-full bg-indigo-50 px-2.5 text-[11px] font-medium text-indigo-600 transition-colors hover:bg-indigo-100"
-                      onClick={() => onGo(provider.id)}
-                    >
+                    <Button type="primary" size="small" onClick={() => onGo(provider.id)} style={{ fontSize: 11 }}>
                       前往
-                    </button>
+                    </Button>
                   )}
-                  <button
-                    type="button"
-                    className="inline-flex h-7 items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 text-[11px] font-medium text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-800"
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={Settings}
                     onClick={() => onOpenSettings(provider.id)}
+                    style={{ fontSize: 11 }}
                   >
                     设置
-                  </button>
+                  </Button>
                   <button
                     type="button"
                     onClick={() => onToggle(provider.id)}
                     className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
                       enabled ? 'bg-indigo-500' : 'bg-slate-300'
                     }`}
+                    role="switch"
+                    aria-checked={enabled}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${

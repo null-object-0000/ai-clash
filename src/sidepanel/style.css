@@ -13,7 +13,6 @@
   }
 }
 
-/* 侧边栏整体重置一下滚动条样式，让它更美观 */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -29,52 +28,4 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
-}
-
-/* 消息内容区 - ChatMessage / ProviderCollapse / SummaryPanel */
-.response-content {
-  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 13.5px;
-}
-
-.response-content p,
-.response-content ul,
-.response-content ol,
-.response-content blockquote {
-  margin-top: 0.7rem;
-  margin-bottom: 0.7rem;
-}
-
-.response-content h1,
-.response-content h2,
-.response-content h3 {
-  margin-top: 1rem;
-  margin-bottom: 0.6rem;
-  line-height: 1.45;
-}
-
-.response-content li {
-  margin: 0.3rem 0;
-}
-
-.response-content code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", monospace;
-  font-size: 0.9em;
-}
-
-/* 折叠块内滚动条 */
-.max-h-\[200px\].overflow-y-auto::-webkit-scrollbar,
-.max-h-\[380px\].overflow-y-auto::-webkit-scrollbar {
-  width: 4px;
-}
-
-.max-h-\[200px\].overflow-y-auto::-webkit-scrollbar-track,
-.max-h-\[380px\].overflow-y-auto::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.max-h-\[200px\].overflow-y-auto::-webkit-scrollbar-thumb,
-.max-h-\[380px\].overflow-y-auto::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
 }

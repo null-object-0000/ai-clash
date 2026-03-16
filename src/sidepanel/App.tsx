@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Plus, History, MessageSquare, Layers } from 'lucide-react';
+import { ActionIcon, Tag, Modal, Button, Tooltip } from '@lobehub/ui';
 import { MSG_TYPES } from '../shared/messages.js';
 import logger, { setDebugEnabled } from '../shared/logger.js';
 import { PROVIDER_META, getModelOptions } from '../shared/config.js';
@@ -1016,40 +1017,29 @@ export default function App() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 bg-white/75 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex h-9 min-w-9 items-center justify-center rounded-full border border-slate-200 bg-white/90 px-2 text-slate-500 shadow-sm hover:text-slate-700 hover:border-slate-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            onClick={createNewChat}
-            disabled={!hasAsked || isRunning}
-            aria-label="新建对话"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-full border border-slate-200 bg-white/90 text-slate-500 shadow-sm hover:text-slate-700 hover:border-slate-300 transition-colors"
-            onClick={() => setIsHistoryPanelOpen(!isHistoryPanelOpen)}
-            aria-label="历史对话"
-          >
-            <History className="w-3.5 h-3.5" />
-            <span className="text-[11px]">{historyList.length}</span>
-          </button>
+          <Tooltip title="新建对话">
+            <ActionIcon
+              icon={Plus}
+              onClick={createNewChat}
+              disabled={!hasAsked || isRunning}
+              size="small"
+              variant="outlined"
+            />
+          </Tooltip>
+          <Tooltip title="历史对话">
+            <div className="inline-flex items-center gap-1.5 cursor-pointer" onClick={() => setIsHistoryPanelOpen(!isHistoryPanelOpen)}>
+              <ActionIcon icon={History} size="small" variant="outlined" />
+              <span className="text-[11px] text-slate-500">{historyList.length}</span>
+            </div>
+          </Tooltip>
         </div>
         <div className="relative flex items-center gap-2">
           {isMultiTurnSession && hasAsked ? (
-            <div className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 transition-colors">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              多轮对话
-            </div>
+            <Tag size="small" color="green">多轮对话</Tag>
           ) : singleChannelProviderId ? (
-            <div className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 transition-colors">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              单通道
-            </div>
+            <Tag size="small" color="green">单通道</Tag>
           ) : (
-            <div className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-              MoE 模式
-            </div>
+            <Tag size="small">MoE 模式</Tag>
           )}
         </div>
 
@@ -1236,19 +1226,19 @@ export default function App() {
       )}
 
       {/* 未选通道提示 */}
-      {showNoChannelTip && (
-        <div className="fixed inset-0 z-30 flex items-center justify-center p-4">
-          <button type="button" className="absolute inset-0 bg-slate-900/25 backdrop-blur-[2px]" aria-label="关闭提示" onClick={() => setShowNoChannelTip(false)} />
-          <div className="relative z-10 w-full max-w-[320px] rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-[0_24px_48px_-12px_rgba(15,23,42,0.25)]">
-            <p className="text-[14px] leading-6 text-slate-700">请在通道列表中至少开启一个通道后再发送。</p>
-            <div className="mt-4 flex justify-end">
-              <button type="button" onClick={() => setShowNoChannelTip(false)} className="inline-flex h-9 items-center justify-center rounded-full bg-indigo-600 px-4 text-[13px] font-medium text-white transition-colors hover:bg-indigo-700">
-                确定
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={showNoChannelTip}
+        onCancel={() => setShowNoChannelTip(false)}
+        title="提示"
+        width={320}
+        footer={
+          <Button type="primary" onClick={() => setShowNoChannelTip(false)} block>
+            确定
+          </Button>
+        }
+      >
+        <p className="text-[14px] leading-6 text-slate-700">请在通道列表中至少开启一个通道后再发送。</p>
+      </Modal>
 
       {/* Footer */}
       <FooterArea

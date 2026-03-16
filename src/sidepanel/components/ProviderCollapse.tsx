@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
-import { CheckCircle, AlertCircle, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ExternalLink, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Markdown, Avatar, Tooltip, Tag, Collapse } from '@lobehub/ui';
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
-import { renderMarkdown } from '../utils/renderMarkdown';
 import type { ProviderStats, ProviderStatus, StageType, ThemeColor } from '../types';
 
 const iconMap: Record<string, { Color?: React.ComponentType<{ size?: number | string; className?: string }> }> = {
@@ -18,17 +18,12 @@ const STAGE_LABELS: Record<string, string> = {
   responding: '正在输出...',
 };
 
-const THEME_CLASS_MAP: Record<ThemeColor, { ping: string; dot: string; text: string; prose: string }> = {
-  blue: { ping: 'bg-blue-400', dot: 'bg-blue-500', text: 'text-blue-600', prose: 'prose-blue' },
-  amber: { ping: 'bg-amber-400', dot: 'bg-amber-500', text: 'text-amber-600', prose: 'prose-amber' },
-  emerald: {
-    ping: 'bg-emerald-400',
-    dot: 'bg-emerald-500',
-    text: 'text-emerald-600',
-    prose: 'prose-emerald',
-  },
-  violet: { ping: 'bg-violet-400', dot: 'bg-violet-500', text: 'text-violet-600', prose: 'prose-violet' },
-  teal: { ping: 'bg-teal-400', dot: 'bg-teal-500', text: 'text-teal-600', prose: 'prose-teal' },
+const THEME_COLOR_MAP: Record<ThemeColor, string> = {
+  blue: '#3b82f6',
+  amber: '#f59e0b',
+  emerald: '#10b981',
+  violet: '#8b5cf6',
+  teal: '#14b8a6',
 };
 
 export interface ProviderCollapseProps {
@@ -82,31 +77,21 @@ export default function ProviderCollapse({
   defaultOpen = true,
   stats,
 }: ProviderCollapseProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [activeKeys, setActiveKeys] = useState<string[]>(defaultOpen ? [providerId] : []);
   const [isThinkBlockOpen, setIsThinkBlockOpen] = useState(true);
 
   useEffect(() => {
-    setIsOpen(defaultOpen ?? true);
-  }, [defaultOpen]);
+    setActiveKeys(defaultOpen ? [providerId] : []);
+  }, [defaultOpen, providerId]);
 
-  const themeClasses = THEME_CLASS_MAP[themeColor] ?? THEME_CLASS_MAP.blue;
+  const color = THEME_COLOR_MAP[themeColor] ?? THEME_COLOR_MAP.blue;
   const stageLabel = STAGE_LABELS[stage] ?? STAGE_LABELS.connecting;
   const Icon = iconMap[providerId];
 
-  const statusText = useMemo(() => {
-    if (status === 'running') return '正在输出...';
-    if (status === 'completed') return '(已完成)';
-    if (status === 'error') return '(出错)';
-    return '(待开始)';
-  }, [status]);
-
-  const renderedContent = useMemo(() => {
-    if (response) return renderMarkdown(response);
-    if (status === 'running') return stage === 'responding' ? '' : stageLabel;
-    if (status === 'error') return '执行失败，请查看上面的错误信息。';
-    if (status === 'completed') return '本轮未收到可展示内容。';
-    return '等待开始...';
-  }, [response, status, stage, stageLabel]);
+  const statusText = status === 'running' ? '正在输出...'
+    : status === 'completed' ? '(已完成)'
+    : status === 'error' ? '(出错)'
+    : '(待开始)';
 
   const handleOriginalClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isFromHistory) return;
@@ -117,128 +102,128 @@ export default function ProviderCollapse({
     }
   };
 
-  return (
-    <div className="bg-white rounded-xl border border-slate-200/60 shadow-sm overflow-hidden transition-all duration-300">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3 bg-slate-50/50 hover:bg-slate-50 transition-colors"
-      >
-        <div className="flex items-center gap-2.5 min-w-0">
-          {status === 'running' && (
-            <span className="relative flex h-3 w-3 ml-1 flex-shrink-0">
-              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${themeClasses.ping}`} />
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${themeClasses.dot}`} />
-            </span>
-          )}
-          {status === 'completed' && (
-            <span className="text-emerald-500 ml-1 flex-shrink-0">
-              <CheckCircle className="w-3.5 h-3.5" />
-            </span>
-          )}
-          {status === 'error' && (
-            <span className="text-rose-500 ml-1 flex-shrink-0">
-              <AlertCircle className="w-3.5 h-3.5" />
-            </span>
-          )}
-          {status === 'idle' && (
-            <span className="text-slate-300 ml-1 flex-shrink-0">
-              <span className="inline-flex rounded-full h-3 w-3 bg-slate-300" />
-            </span>
-          )}
+  const statusIcon = status === 'running' ? (
+    <span className="relative flex h-3 w-3 flex-shrink-0">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: color }} />
+      <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: color }} />
+    </span>
+  ) : status === 'completed' ? (
+    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+  ) : status === 'error' ? (
+    <AlertCircle className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+  ) : (
+    <span className="inline-flex rounded-full h-3 w-3 bg-slate-300 flex-shrink-0" />
+  );
 
-          {Icon?.Color && (
-            <span className="ml-0.5 flex-shrink-0">
-              <Icon.Color size={14} />
-            </span>
-          )}
-          <span className={`text-[12px] font-medium flex-shrink-0 ${themeClasses.text}`}>
-            {providerName} {statusText}
-          </span>
-          {operationStatus && (
-            <span className="text-[10px] font-normal text-amber-500 animate-pulse truncate">{operationStatus}</span>
-          )}
-          {!operationStatus && status === 'running' && (
-            <span className="text-[10px] font-normal text-slate-400 animate-pulse truncate">{stageLabel}</span>
-          )}
-          {!operationStatus && stats && status === 'completed' && (
-            <span className="text-[10px] font-normal text-slate-400 truncate">
-              首字 {(stats.ttff / 1000).toFixed(1)}s · 总耗时 {(stats.totalTime / 1000).toFixed(1)}s ·{' '}
-              {stats.charCount.toLocaleString('zh-CN')}字 · {stats.charsPerSec}字/s
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {rawUrl && rawUrl !== 'api' && (
-            <a
-              href={rawUrl}
-              target={isFromHistory ? '_blank' : undefined}
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
-              onClick={handleOriginalClick}
-              title={isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'}
-            >
-              <ExternalLink className="w-3 h-3 opacity-80" />
-              <span>原文</span>
-            </a>
-          )}
-          {rawUrl === 'api' && (
-            <span className="rounded-full border border-slate-100 bg-slate-50/80 px-2 py-0.5 text-[11px] font-medium text-slate-400">
-              API
-            </span>
-          )}
-          <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
-        </div>
-      </button>
-
-      {isOpen && (
-        <div className="p-4 border-t border-slate-100 bg-white max-h-[380px] overflow-y-auto text-[13px] response-scroll">
-          {/* 思考内容折叠块 */}
-          {isDeepThinkingEnabled && (
-            <>
-              {thinkResponse ? (
-                <div className="mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsThinkBlockOpen(!isThinkBlockOpen)}
-                    className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1"
-                  >
-                    <ChevronRight
-                      className={`w-3 h-3 transition-transform duration-200 ${isThinkBlockOpen ? 'rotate-90' : ''}`}
-                    />
-                    <span>思考过程</span>
-                    {stage === 'thinking' && status === 'running' && (
-                      <span className="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle" />
-                    )}
-                  </button>
-                  {isThinkBlockOpen && (
-                    <div className="pl-3 border-l border-slate-200 text-slate-500 leading-6 whitespace-pre-wrap text-[12px] break-words">
-                      {thinkResponse}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                stage === 'thinking' &&
-                status === 'running' && (
-                  <div className="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
-                    正在思考...
-                    <span className="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle" />
-                  </div>
-                )
-              )}
-            </>
-          )}
-
-          {/* 正式回复 */}
-          <div className={`response-content text-slate-700 prose prose-sm max-w-none text-[13.5px] leading-7 break-words ${themeClasses.prose}`}>
-            <span dangerouslySetInnerHTML={{ __html: renderedContent }} />
-            {status === 'running' && stage === 'responding' && (
-              <span className={`inline-block w-1.5 h-3.5 ml-0.5 animate-pulse align-middle ${themeClasses.dot}`} />
-            )}
-          </div>
-        </div>
+  const headerLabel = (
+    <div className="flex items-center gap-2 min-w-0">
+      {statusIcon}
+      {Icon?.Color && <Icon.Color size={14} />}
+      <span className="text-[12px] font-medium flex-shrink-0" style={{ color }}>
+        {providerName} {statusText}
+      </span>
+      {operationStatus && (
+        <span className="text-[10px] font-normal text-amber-500 animate-pulse truncate">{operationStatus}</span>
+      )}
+      {!operationStatus && status === 'running' && (
+        <span className="text-[10px] font-normal text-slate-400 animate-pulse truncate">{stageLabel}</span>
+      )}
+      {!operationStatus && stats && status === 'completed' && (
+        <span className="text-[10px] font-normal text-slate-400 truncate">
+          首字 {(stats.ttff / 1000).toFixed(1)}s · 总耗时 {(stats.totalTime / 1000).toFixed(1)}s ·{' '}
+          {stats.charCount.toLocaleString('zh-CN')}字 · {stats.charsPerSec}字/s
+        </span>
       )}
     </div>
+  );
+
+  const headerExtra = (
+    <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+      {rawUrl && rawUrl !== 'api' && (
+        <Tooltip title={isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'}>
+          <a
+            href={rawUrl}
+            target={isFromHistory ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
+            onClick={handleOriginalClick}
+          >
+            <ExternalLink className="w-3 h-3 opacity-80" />
+            <span>原文</span>
+          </a>
+        </Tooltip>
+      )}
+      {rawUrl === 'api' && (
+        <Tag size="small">API</Tag>
+      )}
+    </div>
+  );
+
+  const bodyContent = (
+    <div>
+      {isDeepThinkingEnabled && (
+        <>
+          {thinkResponse ? (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => setIsThinkBlockOpen(!isThinkBlockOpen)}
+                className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1"
+              >
+                <ChevronRight
+                  className={`w-3 h-3 transition-transform duration-200 ${isThinkBlockOpen ? 'rotate-90' : ''}`}
+                />
+                <span>思考过程</span>
+                {stage === 'thinking' && status === 'running' && (
+                  <span className="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle" />
+                )}
+              </button>
+              {isThinkBlockOpen && (
+                <div className="pl-3 border-l border-slate-200 text-slate-500 leading-6 whitespace-pre-wrap text-[12px] break-words">
+                  {thinkResponse}
+                </div>
+              )}
+            </div>
+          ) : (
+            stage === 'thinking' && status === 'running' && (
+              <div className="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
+                正在思考...
+                <span className="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle" />
+              </div>
+            )
+          )}
+        </>
+      )}
+
+      {response ? (
+        <Markdown variant="chat" fontSize={13.5}>
+          {response}
+        </Markdown>
+      ) : (
+        <div className="text-[13.5px] text-slate-500 leading-7">
+          {status === 'running' ? (stage === 'responding' ? '' : stageLabel)
+            : status === 'error' ? '执行失败，请查看上面的错误信息。'
+            : status === 'completed' ? '本轮未收到可展示内容。'
+            : '等待开始...'}
+        </div>
+      )}
+      {response && status === 'running' && stage === 'responding' && (
+        <span className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse align-middle" style={{ backgroundColor: color }} />
+      )}
+    </div>
+  );
+
+  return (
+    <Collapse
+      activeKey={activeKeys}
+      onChange={(keys) => setActiveKeys(keys as string[])}
+      variant="outlined"
+      items={[{
+        key: providerId,
+        label: headerLabel,
+        extra: headerExtra,
+        children: bodyContent,
+      }]}
+    />
   );
 }

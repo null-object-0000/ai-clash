@@ -16,11 +16,9 @@
         "@lobehub/icons-static-svg": "^1.82.0",
         "@lobehub/ui": "^5.5.1",
         "lucide-react": "^0.577.0",
-        "marked": "^17.0.4",
         "openai": "^6.29.0",
         "react": "^19.2.4",
-        "react-dom": "^19.2.4",
-        "sanitize-html": "^2.17.1"
+        "react-dom": "^19.2.4"
     },
     "devDependencies": {
         "@crxjs/vite-plugin": "^2.4.0",
@@ -31,7 +29,6 @@
         "@types/node": "^24.12.0",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
-        "@types/sanitize-html": "^2.16.1",
         "@vitejs/plugin-react": "^5.2.0",
         "tailwindcss": "^4.2.1",
         "typescript": "~5.8.3",

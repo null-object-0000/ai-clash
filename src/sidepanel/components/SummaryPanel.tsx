@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
-import { renderMarkdown } from '../utils/renderMarkdown';
+import { Markdown, Tag } from '@lobehub/ui';
 import type { ProviderStats } from '../types';
 
 export interface SummaryPanelProps {
@@ -22,14 +22,8 @@ export default function SummaryPanel({
 }: SummaryPanelProps) {
   const [isThinkBlockOpen, setIsThinkBlockOpen] = useState(true);
 
-  const renderedContent = useMemo(() => {
-    if (!response) return '';
-    return renderMarkdown(response);
-  }, [response]);
-
   return (
     <div className="relative bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden ring-1 ring-indigo-50">
-      {/* 头部标题栏 */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 border-b border-indigo-100/80">
         <div className="flex items-center gap-2">
           {status === 'running' && (
@@ -38,22 +32,12 @@ export default function SummaryPanel({
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500" />
             </span>
           )}
-          {status === 'completed' && (
-            <span className="text-indigo-500">
-              <CheckCircle className="w-3.5 h-3.5" />
-            </span>
-          )}
-          {status === 'error' && (
-            <span className="text-rose-500">
-              <AlertCircle className="w-3.5 h-3.5" />
-            </span>
-          )}
+          {status === 'completed' && <CheckCircle className="w-3.5 h-3.5 text-indigo-500" />}
+          {status === 'error' && <AlertCircle className="w-3.5 h-3.5 text-rose-500" />}
           {status === 'idle' && <span className="inline-flex rounded-full h-2.5 w-2.5 bg-slate-200" />}
 
           <span className="text-[12px] font-semibold text-indigo-700 tracking-wide">最终研判结论</span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-500 font-medium">
-            AI 智能汇总
-          </span>
+          <Tag size="small" color="purple">AI 智能汇总</Tag>
         </div>
         <div className="text-[11px] text-indigo-400">
           {operationStatus && <span className="animate-pulse">{operationStatus}</span>}
@@ -69,13 +53,11 @@ export default function SummaryPanel({
         </div>
       </div>
 
-      {/* 内容区 */}
       <div className="p-4">
         {status === 'idle' && (
           <div className="text-[13px] text-slate-400 italic">等待各通道回答完毕后自动归纳...</div>
         )}
 
-        {/* 思考过程 */}
         {thinkResponse && status !== 'idle' && (
           <div className="mb-3">
             <button
@@ -105,14 +87,21 @@ export default function SummaryPanel({
           </div>
         )}
 
-        {/* 正文内容 */}
         {status !== 'idle' && (
-          <div className="response-content text-slate-700 prose prose-sm max-w-none text-[13.5px] leading-7 break-words prose-indigo">
-            <span dangerouslySetInnerHTML={{ __html: renderedContent }} />
-            {status === 'running' && stage === 'responding' && (
+          <>
+            {response ? (
+              <Markdown variant="chat" fontSize={13.5}>
+                {response}
+              </Markdown>
+            ) : (
+              status === 'running' && stage === 'responding' && (
+                <span className="inline-block w-1.5 h-3.5 bg-indigo-500 animate-pulse align-middle" />
+              )
+            )}
+            {response && status === 'running' && stage === 'responding' && (
               <span className="inline-block w-1.5 h-3.5 ml-0.5 bg-indigo-500 animate-pulse align-middle" />
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

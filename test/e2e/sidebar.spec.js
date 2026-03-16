@@ -49,7 +49,7 @@ test('侧边栏打开无报错且正常渲染', async () => {
 
   // 验证核心UI元素存在
   await expect(page.getByPlaceholder('输入问题，按 Enter 发送...')).toBeVisible()
-  await expect(page.locator('button[class*="bg-indigo-600"]')).toBeVisible()
+  await expect(page.locator('button[type="button"]').filter({ has: page.locator('svg') }).last()).toBeVisible()
 
   await page.close()
 })
@@ -66,7 +66,7 @@ test('发送消息功能正常', async () => {
   await expect(longcatToggle).toHaveClass(/bg-indigo-500/, { timeout: 3000 })
 
   await page.getByPlaceholder('输入问题，按 Enter 发送...').fill('你好')
-  await page.locator('button[class*="bg-indigo-600"]').click()
+  await page.getByPlaceholder('输入问题，按 Enter 发送...').press('Enter')
 
   // 验证问题出现在聊天区域
   await expect(page.getByText('你好')).toBeVisible({ timeout: 5000 })
