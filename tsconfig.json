@@ -1,18 +1,28 @@
 {
-  "extends": "@vue/tsconfig/tsconfig.dom.json",
   "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
     "allowJs": true,
     "checkJs": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
     "baseUrl": ".",
     "types": ["chrome", "node"],
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
   "include": [
     "src/**/*.ts",
     "src/**/*.tsx",
-    "src/**/*.vue",
     "src/**/*.js",
     "manifest.config.js",
     "vite.config.js"

@@ -12,11 +12,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 技术栈
 
-- **前端框架**: Vue 3 (Composition API)
+- **前端框架**: React 19 (TSX + TypeScript)
 - **构建工具**: Vite + @crxjs/vite-plugin
-- **语言**: JavaScript (部分TypeScript类型定义)
-- **UI**: Tailwind CSS
+- **语言**: TypeScript
+- **UI**: Tailwind CSS + Lobe UI
 - **扩展清单**: Manifest V3
+- **测试框架**: Playwright
 
 ## 项目结构
 
@@ -30,7 +31,7 @@ src/
 │   ├── doubao/         # 豆包集成
 │   ├── qianwen/        # 千问集成
 │   └── shared/         # 共享工具 (DOM 操作、通信等)
-├── sidepanel/          # 侧边栏 UI (Vue 3 + Tailwind)
+├── sidepanel/          # 侧边栏 UI (React 19 + TypeScript + Tailwind + Lobe UI)
 └── shared/             # 共享类型定义
 ```
 
@@ -44,12 +45,13 @@ src/
 ## 开发命令
 
 ```bash
-npm install          # 安装依赖
-npm run dev          # 开发模式 (HMR 热重载)
-npm run typecheck    # 类型检查
-npm run test         # 运行 Playwright 测试
-npm run test:ui      # 运行 Playwright UI 模式测试
-npm run build        # 类型检查 + 运行测试 + 生产构建
+npm install                      # 安装依赖
+npm run dev                      # 开发模式 (HMR 热重载)
+npm run typecheck                # 类型检查
+npm run test                     # 运行所有 Playwright 测试
+npm run test:ui                  # 运行 Playwright UI 模式测试
+npm run build                    # 类型检查 + 运行测试 + 生产构建
+npx playwright test <test-file>  # 运行单个测试文件
 ```
 
 ## 开发流程
@@ -188,9 +190,9 @@ mkdir -p src/content/provider-id
 3. 确认 `web_accessible_resources` 中已包含对应资源（CRXJS会自动根据providers配置生成）
 
 ### 6. 更新UI配置
-在 `src/sidepanel/App.vue` 中添加：
+在 `src/sidepanel/App.tsx` 中添加：
 1. 在设置面板中添加通道开关
-2. 添加对应的响应式变量（开关状态、折叠状态）
+2. 添加对应的响应式状态（开关状态、折叠状态）
 3. 添加通道折叠面板组件
 4. 更新所有状态管理逻辑（初始化、重置、任务分发等）
 5. 更新底部支持列表文字
