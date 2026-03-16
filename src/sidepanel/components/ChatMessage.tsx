@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ExternalLink, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
-import { Markdown, Avatar, ActionIcon, Tooltip, Tag } from '@lobehub/ui';
+import { Markdown, Tooltip, Tag, Skeleton } from '@lobehub/ui';
+import { ChatItem, LoadingDots } from '@lobehub/ui/chat';
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
 import type { ProviderStats, ProviderStatus, StageType, ThemeColor } from '../types';
 
@@ -61,6 +62,70 @@ function activateOrOpenTab(url: string) {
   }
 }
 
+function ThinkingBlock({
+  thinkResponse,
+  stage,
+  status,
+  isOpen,
+  onToggle,
+}: {
+  thinkResponse?: string;
+  stage: StageType;
+  status: ProviderStatus;
+  isOpen: boolean;
+  onToggle: () => void;
+}) {
+  if (thinkResponse) {
+    return (
+      <div style={{ marginBottom: 8 }}>
+        <button
+          type="button"
+          onClick={onToggle}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)',
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            marginBottom: 4,
+          }}
+        >
+          <ChevronRight
+            style={{
+              width: 12, height: 12,
+              transition: 'transform 0.2s',
+              transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+            }}
+          />
+          <span>思考过程</span>
+          {stage === 'thinking' && status === 'running' && (
+            <span style={{ display: 'inline-block', width: 3, height: 10, marginLeft: 2, background: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }} />
+          )}
+        </button>
+        {isOpen && (
+          <div style={{
+            paddingLeft: 12, borderLeft: '2px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+            color: 'var(--lobe-colorTextSecondary, #666)', lineHeight: 1.8,
+            whiteSpace: 'pre-wrap', fontSize: 12, wordBreak: 'break-word',
+            maxHeight: 200, overflowY: 'auto',
+          }}>
+            {thinkResponse}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (stage === 'thinking' && status === 'running') {
+    return (
+      <div style={{ marginBottom: 8, fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
+        正在思考...
+        <span style={{ display: 'inline-block', width: 3, height: 10, background: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }} />
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function ChatMessage({
   providerId,
   providerName,
@@ -81,13 +146,7 @@ export default function ChatMessage({
   const stageLabel = STAGE_LABELS[stage] ?? STAGE_LABELS.connecting;
   const Icon = iconMap[providerId];
 
-  const fallbackText = status === 'running'
-    ? (stage === 'responding' ? '' : stageLabel)
-    : status === 'error'
-      ? '执行失败，请查看上面的错误信息。'
-      : status === 'completed'
-        ? '本轮未收到可展示内容。'
-        : '等待开始...';
+  const isLoading = status === 'running' && !response && stage !== 'responding';
 
   const handleOriginalClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (isFromHistory) return;
@@ -97,110 +156,108 @@ export default function ChatMessage({
     }
   };
 
-  return (
-    <div className="flex items-start gap-2.5">
-      <Avatar
-        avatar={Icon?.Color ? <Icon.Color size={18} /> : undefined}
-        size={28}
-        shape="circle"
-        background={color}
-        style={{ flexShrink: 0, marginTop: 2 }}
-      />
+  const titleAddon = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {status === 'running' && (
+        <LoadingDots variant="pulse" size={12} color={color} />
+      )}
+      {status === 'completed' && <CheckCircle style={{ width: 12, height: 12, color: '#10b981' }} />}
+      {status === 'error' && <AlertCircle style={{ width: 12, height: 12, color: '#f43f5e' }} />}
 
-      <div className="flex-1 min-w-0 space-y-1">
-        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span className="text-[12px] font-semibold flex-shrink-0" style={{ color }}>{providerName}</span>
+      {operationStatus && (
+        <span style={{ fontSize: 10, color: '#f59e0b', animation: 'pulse 1s infinite' }}>{operationStatus}</span>
+      )}
+      {!operationStatus && status === 'running' && (
+        <span style={{ fontSize: 10, color: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }}>{stageLabel}</span>
+      )}
+      {!operationStatus && stats && status === 'completed' && (
+        <span style={{ fontSize: 10, color: 'var(--lobe-colorTextQuaternary, #bbb)' }}>
+          首字 {(stats.ttff / 1000).toFixed(1)}s · 总耗时 {(stats.totalTime / 1000).toFixed(1)}s ·{' '}
+          {stats.charCount.toLocaleString('zh-CN')}字 · {stats.charsPerSec}字/s
+        </span>
+      )}
 
-          {status === 'running' && (
-            <span className="relative flex h-2 w-2 flex-shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: color }} />
-              <span className="relative inline-flex rounded-full h-2 w-2" style={{ backgroundColor: color }} />
-            </span>
-          )}
-          {status === 'completed' && <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />}
-          {status === 'error' && <AlertCircle className="w-3 h-3 text-rose-500 flex-shrink-0" />}
-
-          {operationStatus && (
-            <span className="text-[10px] text-amber-500 animate-pulse truncate">{operationStatus}</span>
-          )}
-          {!operationStatus && status === 'running' && (
-            <span className="text-[10px] text-slate-400 animate-pulse truncate">{stageLabel}</span>
-          )}
-          {!operationStatus && stats && status === 'completed' && (
-            <span className="text-[10px] text-slate-400 truncate">
-              首字 {(stats.ttff / 1000).toFixed(1)}s · 总耗时 {(stats.totalTime / 1000).toFixed(1)}s ·{' '}
-              {stats.charCount.toLocaleString('zh-CN')}字 · {stats.charsPerSec}字/s
-            </span>
-          )}
-
-          {rawUrl && rawUrl !== 'api' && (
-            <Tooltip title={isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'}>
-              <a
-                href={rawUrl}
-                target={isFromHistory ? '_blank' : undefined}
-                rel="noopener noreferrer"
-                className="ml-auto flex-shrink-0 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-0.5 text-[11px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
-                onClick={handleOriginalClick}
-              >
-                <ExternalLink className="w-3 h-3 opacity-80" />
-                <span>原文</span>
-              </a>
-            </Tooltip>
-          )}
-          {rawUrl === 'api' && (
-            <Tag className="ml-auto flex-shrink-0" size="small">API</Tag>
-          )}
-        </div>
-
-        <div className="bg-white rounded-2xl rounded-tl-sm border border-slate-200/60 shadow-sm px-4 py-3">
-          {isDeepThinkingEnabled && (
-            <>
-              {thinkResponse ? (
-                <div className="mb-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsThinkBlockOpen(!isThinkBlockOpen)}
-                    className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1"
-                  >
-                    <ChevronRight
-                      className={`w-3 h-3 transition-transform duration-200 ${isThinkBlockOpen ? 'rotate-90' : ''}`}
-                    />
-                    <span>思考过程</span>
-                    {stage === 'thinking' && status === 'running' && (
-                      <span className="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle" />
-                    )}
-                  </button>
-                  {isThinkBlockOpen && (
-                    <div className="pl-3 border-l border-slate-200 text-slate-500 leading-6 whitespace-pre-wrap text-[12px] break-words max-h-[200px] overflow-y-auto">
-                      {thinkResponse}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                stage === 'thinking' && status === 'running' && (
-                  <div className="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
-                    正在思考...
-                    <span className="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle" />
-                  </div>
-                )
-              )}
-            </>
-          )}
-
-          {response ? (
-            <Markdown variant="chat" fontSize={13.5}>
-              {response}
-            </Markdown>
-          ) : (
-            <div className="text-[13.5px] text-slate-500 leading-7">
-              {fallbackText}
-            </div>
-          )}
-          {response && status === 'running' && stage === 'responding' && (
-            <span className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse align-middle" style={{ backgroundColor: color }} />
-          )}
-        </div>
-      </div>
+      {rawUrl && rawUrl !== 'api' && (
+        <Tooltip title={isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'}>
+          <a
+            href={rawUrl}
+            target={isFromHistory ? '_blank' : undefined}
+            rel="noopener noreferrer"
+            onClick={handleOriginalClick}
+            style={{
+              marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4,
+              borderRadius: 999, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+              background: 'var(--lobe-colorFillQuaternary, rgba(0,0,0,0.02))',
+              padding: '1px 8px', fontSize: 11, fontWeight: 500,
+              color: 'var(--lobe-colorTextSecondary, #666)', textDecoration: 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            <ExternalLink style={{ width: 12, height: 12, opacity: 0.8 }} />
+            <span>原文</span>
+          </a>
+        </Tooltip>
+      )}
+      {rawUrl === 'api' && (
+        <Tag size="small" style={{ marginLeft: 'auto' }}>API</Tag>
+      )}
     </div>
+  );
+
+  const aboveMessage = isDeepThinkingEnabled ? (
+    <ThinkingBlock
+      thinkResponse={thinkResponse}
+      stage={stage}
+      status={status}
+      isOpen={isThinkBlockOpen}
+      onToggle={() => setIsThinkBlockOpen(!isThinkBlockOpen)}
+    />
+  ) : null;
+
+  const fallbackText = status === 'running'
+    ? (stage === 'responding' ? '' : stageLabel)
+    : status === 'error'
+      ? '执行失败，请查看上面的错误信息。'
+      : status === 'completed'
+        ? '本轮未收到可展示内容。'
+        : '等待开始...';
+
+  const messageContent = response ? (
+    <>
+      <Markdown variant="chat" fontSize={13.5}>
+        {response}
+      </Markdown>
+      {status === 'running' && stage === 'responding' && (
+        <span style={{
+          display: 'inline-block', width: 6, height: 14, marginLeft: 2,
+          backgroundColor: color, animation: 'pulse 1s infinite',
+          verticalAlign: 'middle', borderRadius: 1,
+        }} />
+      )}
+    </>
+  ) : isLoading ? (
+    <Skeleton active paragraph={{ rows: 2 }} title={false} />
+  ) : (
+    <div style={{ fontSize: 13.5, color: 'var(--lobe-colorTextTertiary, #999)', lineHeight: 1.8 }}>
+      {fallbackText}
+    </div>
+  );
+
+  return (
+    <ChatItem
+      placement="left"
+      avatar={{
+        avatar: Icon?.Color ? <Icon.Color size={20} /> : undefined,
+        backgroundColor: color,
+        title: providerName,
+      }}
+      showTitle
+      titleAddon={titleAddon}
+      aboveMessage={aboveMessage}
+      renderMessage={() => messageContent}
+      message=" "
+      variant="bubble"
+      markdownProps={{ variant: 'chat', fontSize: 13.5 }}
+    />
   );
 }

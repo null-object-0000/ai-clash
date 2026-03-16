@@ -59,11 +59,10 @@ test('发送消息功能正常', async () => {
   await page.goto(`chrome-extension://${extensionId}/src/sidepanel/index.html`)
   await expect(page.locator('#app')).toBeVisible({ timeout: 10000 })
 
-  // 开启 LongCat 通道（无需登录即可对话）
-  const longcatRow = page.locator('div.px-4.py-2\\.5').filter({ hasText: 'LongCat' })
-  const longcatToggle = longcatRow.locator('button.rounded-full.h-6.w-10')
+  // 开启 LongCat 通道
+  const longcatToggle = page.getByTestId('provider-toggle-longcat')
   await longcatToggle.click()
-  await expect(longcatToggle).toHaveClass(/bg-indigo-500/, { timeout: 3000 })
+  await expect(longcatToggle).toHaveAttribute('aria-checked', 'true', { timeout: 3000 })
 
   await page.getByPlaceholder('输入问题，按 Enter 发送...').fill('你好')
   await page.getByPlaceholder('输入问题，按 Enter 发送...').press('Enter')

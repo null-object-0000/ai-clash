@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from '@lobehub/ui';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
 import { PROVIDER_META, getModelOptions } from '../../shared/config.js';
@@ -527,9 +528,17 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
       set(prev => ({ testingApiKey: { ...prev.testingApiKey, [providerId]: true } }));
       try {
         const r = await chrome.runtime?.sendMessage({ type: MSG_TYPES.TEST_API_KEY, payload: { providerId, apiKey } });
-        set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success: !!r?.success, message: r?.message || r?.error || '请求失败' } } }));
+        const success = !!r?.success;
+        const message = r?.message || r?.error || '请求失败';
+        set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success, message } } }));
+        if (success) {
+          toast.success({ title: 'API Key 验证成功', description: message });
+        } else {
+          toast.error({ title: 'API Key 验证失败', description: message });
+        }
       } catch {
         set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success: false, message: '请求失败' } } }));
+        toast.error({ title: 'API Key 验证失败', description: '请求失败' });
       } finally {
         set(prev => ({ testingApiKey: { ...prev.testingApiKey, [providerId]: false } }));
       }

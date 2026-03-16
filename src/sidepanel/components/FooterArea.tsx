@@ -1,7 +1,10 @@
-import { Brain, ClipboardList, Settings, MessageSquare, X, SlidersHorizontal, Send } from 'lucide-react';
-import { ActionIcon, Button, Select, Tag, Tooltip, TextArea } from '@lobehub/ui';
+import { useRef, useState, useEffect } from 'react';
+import { Brain, ClipboardList, Settings, MessageSquare, SlidersHorizontal, Sparkles, ArrowUp } from 'lucide-react';
+import { ActionIcon, Select, Tooltip } from '@lobehub/ui';
+import { ChatInputArea } from '@lobehub/ui/chat';
+import { Switch, Popover, ConfigProvider } from 'antd';
 import { useStore } from '../store';
-import { PROVIDER_IDS, type ProviderId } from '../types';
+import { PROVIDER_IDS } from '../types';
 
 export default function FooterArea() {
   const inputStr = useStore(s => s.inputStr);
@@ -25,170 +28,180 @@ export default function FooterArea() {
   const summaryProviderOptions = getSummaryProviderOptions();
   const summaryModelOptions = getSummaryModelOptions();
 
-  return (
-    <div className="p-4 bg-white border-t border-slate-200/60 shadow-[0_-4px_20px_-10px_rgba(0,0,0,0.05)] z-10">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <Tooltip title="开启后 AI 会先进行深度思考再输出回答">
-          <button
-            type="button"
-            onClick={toggleDeepThinking}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-              isDeepThinkingEnabled
-                ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
-                : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500'
-            }`}
-          >
-            <Brain className="w-3.5 h-3.5" />
-            <span>深度思考</span>
-          </button>
-        </Tooltip>
+  // ==========================================
+  // 🎨 总结设置弹窗内容 (保持紧凑优雅)
+  // ==========================================
+  const summarySettingsContent = (
+    <div className="w-[260px] flex flex-col bg-white">
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-50/80 border-b border-slate-100">
+        <div className="flex items-center gap-2 text-slate-700">
+          <SlidersHorizontal className="w-4 h-4 text-slate-400" />
+          <span className="text-[13px] font-medium">调试模式</span>
+        </div>
+        <Switch checked={isDebugEnabled} onChange={toggleDebug} size="small" />
+      </div>
 
-        <div className="relative flex items-center gap-0.5">
-          <Tooltip title={blockReason ?? '多通道完成后自动汇总各通道回答'}>
-            <button
-              type="button"
-              onClick={toggleSummary}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                isSummaryEnabled && !blockReason
-                  ? 'bg-purple-50 border-purple-200 text-purple-600'
-                  : !blockReason
-                    ? 'bg-white border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500'
-                    : 'bg-white border-slate-200 text-slate-300 cursor-default'
-              }`}
-            >
-              <ClipboardList className="w-3.5 h-3.5" />
-              <span>归纳总结</span>
-            </button>
-          </Tooltip>
+      <div className="p-4 flex flex-col gap-4">
+        <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">
+          归纳总结配置
+        </div>
 
-          <ActionIcon
-            icon={Settings}
-            size={{ blockSize: 24 }}
-            onClick={() => setIsSummarySettingsOpen(!isSummarySettingsOpen)}
-            active={isSummarySettingsOpen}
-            title="总结设置"
-          />
+        {summaryProviderOptions.length === 0 ? (
+          <div className="bg-amber-50 border border-amber-100 text-amber-600 text-[12px] rounded-lg p-3 leading-relaxed">
+            请先配置 API Key，才能使用归纳总结功能。
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[12px] font-medium text-slate-600">汇总通道</label>
+              <Select
+                value={summaryProviderId || undefined}
+                options={[{ label: '请选择通道', value: '' }, ...summaryProviderOptions]}
+                onChange={(value) => setSummaryProviderId(value)}
+                className="w-full"
+                size="middle"
+              />
+            </div>
 
-          {isMultiTurnSession && hasAsked && !isSummarySettingsOpen && (
-            <Tag
-              size="small"
-              color="green"
-              className="ml-1"
-              title="当前为单通道模式，发送下一条消息即可自动续聊"
-            >
-              <MessageSquare className="w-2.5 h-2.5 flex-shrink-0 mr-1" strokeWidth={2.5} />
-              多轮对话中
-            </Tag>
-          )}
-
-          {isSummarySettingsOpen && (
-            <div className="absolute bottom-full left-0 mb-2 w-[260px] rounded-2xl border border-slate-200 bg-white shadow-xl p-3 space-y-3 z-20">
-              <div className="flex items-center justify-between">
-                <div className="text-[12px] font-semibold text-slate-800">设置</div>
-                <ActionIcon icon={X} size="small" onClick={() => setIsSummarySettingsOpen(false)} title="关闭" />
+            {summaryProviderId && (
+              <div className="flex flex-col gap-1.5 animate-fadeIn">
+                <label className="text-[12px] font-medium text-slate-600">汇总模型</label>
+                <Select
+                  value={summaryModel || undefined}
+                  options={summaryModelOptions}
+                  onChange={(value) => setSummaryModel(value)}
+                  className="w-full"
+                  size="middle"
+                />
               </div>
+            )}
+            <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+              等所有通道回答完毕后自动发起汇总请求。
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-[12px] text-slate-700">调试模式</span>
-                </div>
+  // ==========================================
+  // 💻 渲染区：一体化现代输入框
+  // ==========================================
+  return (
+    <div className="relative flex flex-col shrink-0 bg-white border-t border-slate-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.03)] z-10 px-4 py-4">
+      
+      {/* 🚀 核心组件：一体化拟物卡片 */}
+      <div 
+        className={`
+          relative flex flex-col transition-all duration-300 ease-out
+          bg-slate-50 border border-slate-200 rounded-[1.25rem] overflow-hidden
+          focus-within:bg-white focus-within:border-indigo-400 focus-within:shadow-[0_0_0_4px_rgba(79,70,229,0.08)]
+        `}
+      >
+        
+        {/* 多轮对话指示器 (只在激活时优雅地滑出) */}
+        {isMultiTurnSession && hasAsked && !isSummarySettingsOpen && (
+          <div className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-emerald-500 text-[11px] font-medium tracking-wide">
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>单通道续聊模式</span>
+          </div>
+        )}
+
+        {/* 文本输入区 (剥离默认边框，完全融进卡片) */}
+        <div className="px-3 pt-2 pb-1">
+          <ChatInputArea.Inner
+            value={inputStr}
+            onInput={(val) => setInputStr(val)}
+            onSend={submit}
+            loading={isRunning}
+            placeholder="输入问题，按 Enter 发送..."
+            autoSize={{ minRows: 2, maxRows: 8 }}
+            className="!border-none !shadow-none !bg-transparent !px-2 text-[14px] leading-relaxed placeholder:text-slate-400 focus-within:ring-0"
+          />
+        </div>
+
+        {/* 卡片底栏：各种开关与发送按钮 */}
+        <div className="flex items-center justify-between px-2 pb-2 pt-1">
+          
+          {/* 左侧：功能开关组 */}
+          <div className="flex items-center gap-1">
+            <Tooltip title="深度思考">
+              <button
+                type="button"
+                onClick={toggleDeepThinking}
+                className={`
+                  flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[12px] font-medium transition-colors border border-transparent
+                  ${isDeepThinkingEnabled 
+                    ? 'bg-white border-indigo-100 text-indigo-600 shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}
+                `}
+              >
+                <Brain className={`w-4 h-4 ${isDeepThinkingEnabled ? 'animate-pulse' : ''}`} />
+                <span className="hidden sm:inline">深度思考</span>
+              </button>
+            </Tooltip>
+
+            <div className="flex items-center bg-transparent rounded-xl">
+              <Tooltip title={blockReason ?? '多通道完成后自动汇总'}>
                 <button
                   type="button"
-                  onClick={toggleDebug}
-                  className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
-                    isDebugEnabled ? 'bg-slate-600' : 'bg-slate-200'
-                  }`}
-                  role="switch"
-                  aria-checked={isDebugEnabled}
+                  onClick={toggleSummary}
+                  disabled={!!blockReason}
+                  className={`
+                    flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[12px] font-medium transition-colors border border-transparent
+                    ${isSummaryEnabled && !blockReason
+                      ? 'bg-white border-purple-100 text-purple-600 shadow-sm' 
+                      : blockReason
+                        ? 'text-slate-300 cursor-not-allowed'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}
+                  `}
                 >
-                  <span
-                    className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
-                      isDebugEnabled ? 'translate-x-4' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="border-t border-slate-100" />
-
-              <div className="text-[11px] font-medium text-slate-500 -mb-1">归纳总结</div>
-
-              {summaryProviderOptions.length === 0 ? (
-                <div className="text-[11px] text-amber-600 bg-amber-50 rounded-xl px-3 py-2 leading-5">
-                  请先在通道设置中为 DeepSeek 或 LongCat 配置 API Key，才能使用归纳总结功能。
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-medium text-slate-600">汇总通道</label>
-                    <Select
-                      value={summaryProviderId || undefined}
-                      options={[{ label: '请选择通道', value: '' }, ...summaryProviderOptions]}
-                      onChange={(value) => setSummaryProviderId(value)}
-                      style={{ width: '100%' }}
-                      size="small"
-                    />
-                  </div>
-
-                  {summaryProviderId && (
-                    <div className="space-y-1.5">
-                      <label className="text-[11px] font-medium text-slate-600">汇总模型</label>
-                      <Select
-                        value={summaryModel || undefined}
-                        options={summaryModelOptions}
-                        onChange={(value) => setSummaryModel(value)}
-                        style={{ width: '100%' }}
-                        size="small"
-                      />
-                    </div>
+                  {isSummaryEnabled && !blockReason ? (
+                    <Sparkles className="w-4 h-4 text-purple-500" />
+                  ) : (
+                    <ClipboardList className="w-4 h-4" />
                   )}
+                  <span className="hidden sm:inline">归纳总结</span>
+                </button>
+              </Tooltip>
 
-                  <p className="text-[10px] text-slate-400 leading-4">
-                    将复用已配置的 API Key，等所有通道回答完毕后自动发起汇总请求。
-                  </p>
-                </>
-              )}
+              <Popover
+                open={isSummarySettingsOpen}
+                onOpenChange={setIsSummarySettingsOpen}
+                trigger="click"
+                placement="topLeft"
+                arrow={false}
+                overlayInnerStyle={{ padding: 0, borderRadius: '12px', overflow: 'hidden' }}
+                content={summarySettingsContent}
+              >
+                <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition-colors ml-0.5">
+                  <Settings className="w-4 h-4" />
+                </button>
+              </Popover>
             </div>
-          )}
+          </div>
+
+          {/* 右侧：发送按钮 (克制、高级的小圆角方块) */}
+          <Tooltip title="发送指令 (Enter)">
+            <button
+              onClick={submit}
+              disabled={isRunning || !inputStr.trim()}
+              className={`
+                flex items-center justify-center w-8 h-8 rounded-[10px] transition-all duration-200
+                ${isRunning || !inputStr.trim()
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-black text-white hover:bg-slate-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0'}
+              `}
+            >
+              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
-      <div className="relative flex items-end gap-2">
-        <TextArea
-          value={inputStr}
-          onChange={(e) => setInputStr(e.target.value)}
-          onPressEnter={(e) => {
-            if (!e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          placeholder="输入问题，按 Enter 发送..."
-          autoSize={{ minRows: 1, maxRows: 4 }}
-          style={{ flex: 1 }}
-        />
-        <Tooltip title="发送">
-          <Button
-            type="primary"
-            onClick={submit}
-            disabled={isRunning || !inputStr.trim()}
-            icon={Send}
-            style={{ height: 36, width: 36, flexShrink: 0 }}
-          />
-        </Tooltip>
-      </div>
-
-      <div className="text-center mt-2">
-        {isMultiTurnSession && hasAsked ? (
-          <span className="text-[10px] text-emerald-500">
-            单通道多轮对话模式 · 直接输入下一条消息即可继续
-          </span>
-        ) : (
-          <span className="text-[10px] text-slate-400">
-            目前支持：DeepSeek · 豆包 · 千问 · LongCat（网页模式/API模式双接入）
-          </span>
-        )}
+      {/* 底部版权/状态声明 */}
+      <div className="text-center mt-3 text-[10px] text-slate-300 font-medium tracking-wider">
+        DEEPSEEK · DOUBAO · QIANWEN · LONGCAT
       </div>
     </div>
   );

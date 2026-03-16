@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
-import { Markdown, Avatar, Tooltip, Tag, Collapse } from '@lobehub/ui';
+import { ExternalLink, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { Markdown, Tooltip, Tag, Collapse, Skeleton } from '@lobehub/ui';
+import { LoadingDots } from '@lobehub/ui/chat';
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
 import type { ProviderStats, ProviderStatus, StageType, ThemeColor } from '../types';
 
@@ -103,33 +104,30 @@ export default function ProviderCollapse({
   };
 
   const statusIcon = status === 'running' ? (
-    <span className="relative flex h-3 w-3 flex-shrink-0">
-      <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: color }} />
-      <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: color }} />
-    </span>
+    <LoadingDots variant="pulse" size={14} color={color} />
   ) : status === 'completed' ? (
-    <CheckCircle className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+    <CheckCircle style={{ width: 14, height: 14, color: '#10b981', flexShrink: 0 }} />
   ) : status === 'error' ? (
-    <AlertCircle className="w-3.5 h-3.5 text-rose-500 flex-shrink-0" />
+    <AlertCircle style={{ width: 14, height: 14, color: '#f43f5e', flexShrink: 0 }} />
   ) : (
-    <span className="inline-flex rounded-full h-3 w-3 bg-slate-300 flex-shrink-0" />
+    <span style={{ display: 'inline-flex', borderRadius: '50%', height: 12, width: 12, background: 'var(--lobe-colorBorder, #d9d9d9)', flexShrink: 0 }} />
   );
 
   const headerLabel = (
-    <div className="flex items-center gap-2 min-w-0">
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
       {statusIcon}
       {Icon?.Color && <Icon.Color size={14} />}
-      <span className="text-[12px] font-medium flex-shrink-0" style={{ color }}>
+      <span style={{ fontSize: 12, fontWeight: 500, color, flexShrink: 0 }}>
         {providerName} {statusText}
       </span>
       {operationStatus && (
-        <span className="text-[10px] font-normal text-amber-500 animate-pulse truncate">{operationStatus}</span>
+        <span style={{ fontSize: 10, fontWeight: 400, color: '#f59e0b', animation: 'pulse 1s infinite', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{operationStatus}</span>
       )}
       {!operationStatus && status === 'running' && (
-        <span className="text-[10px] font-normal text-slate-400 animate-pulse truncate">{stageLabel}</span>
+        <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stageLabel}</span>
       )}
       {!operationStatus && stats && status === 'completed' && (
-        <span className="text-[10px] font-normal text-slate-400 truncate">
+        <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--lobe-colorTextQuaternary, #bbb)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           首字 {(stats.ttff / 1000).toFixed(1)}s · 总耗时 {(stats.totalTime / 1000).toFixed(1)}s ·{' '}
           {stats.charCount.toLocaleString('zh-CN')}字 · {stats.charsPerSec}字/s
         </span>
@@ -138,17 +136,24 @@ export default function ProviderCollapse({
   );
 
   const headerExtra = (
-    <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
       {rawUrl && rawUrl !== 'api' && (
         <Tooltip title={isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'}>
           <a
             href={rawUrl}
             target={isFromHistory ? '_blank' : undefined}
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white/80 px-2 py-1 text-[11px] font-medium text-slate-500 shadow-sm transition-colors hover:border-indigo-200 hover:bg-indigo-50/80 hover:text-indigo-600"
             onClick={handleOriginalClick}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              borderRadius: 999, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+              background: 'var(--lobe-colorFillQuaternary, rgba(0,0,0,0.02))',
+              padding: '2px 8px', fontSize: 11, fontWeight: 500,
+              color: 'var(--lobe-colorTextSecondary, #666)', textDecoration: 'none',
+              transition: 'all 0.2s',
+            }}
           >
-            <ExternalLink className="w-3 h-3 opacity-80" />
+            <ExternalLink style={{ width: 12, height: 12, opacity: 0.8 }} />
             <span>原文</span>
           </a>
         </Tooltip>
@@ -164,31 +169,44 @@ export default function ProviderCollapse({
       {isDeepThinkingEnabled && (
         <>
           {thinkResponse ? (
-            <div className="mb-2">
+            <div style={{ marginBottom: 8 }}>
               <button
                 type="button"
                 onClick={() => setIsThinkBlockOpen(!isThinkBlockOpen)}
-                className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-600 transition-colors mb-1"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)',
+                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                  marginBottom: 4,
+                }}
               >
                 <ChevronRight
-                  className={`w-3 h-3 transition-transform duration-200 ${isThinkBlockOpen ? 'rotate-90' : ''}`}
+                  style={{
+                    width: 12, height: 12,
+                    transition: 'transform 0.2s',
+                    transform: isThinkBlockOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                  }}
                 />
                 <span>思考过程</span>
                 {stage === 'thinking' && status === 'running' && (
-                  <span className="inline-block w-1 h-2.5 ml-0.5 bg-slate-400 animate-pulse align-middle" />
+                  <span style={{ display: 'inline-block', width: 3, height: 10, marginLeft: 2, background: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }} />
                 )}
               </button>
               {isThinkBlockOpen && (
-                <div className="pl-3 border-l border-slate-200 text-slate-500 leading-6 whitespace-pre-wrap text-[12px] break-words">
+                <div style={{
+                  paddingLeft: 12, borderLeft: '2px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+                  color: 'var(--lobe-colorTextSecondary, #666)', lineHeight: 1.8,
+                  whiteSpace: 'pre-wrap', fontSize: 12, wordBreak: 'break-word',
+                }}>
                   {thinkResponse}
                 </div>
               )}
             </div>
           ) : (
             stage === 'thinking' && status === 'running' && (
-              <div className="mb-2 text-[11px] text-slate-400 italic flex items-center gap-1">
+              <div style={{ marginBottom: 8, fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
                 正在思考...
-                <span className="inline-block w-1 h-2.5 bg-slate-400 animate-pulse align-middle" />
+                <span style={{ display: 'inline-block', width: 3, height: 10, background: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }} />
               </div>
             )
           )}
@@ -199,16 +217,22 @@ export default function ProviderCollapse({
         <Markdown variant="chat" fontSize={13.5}>
           {response}
         </Markdown>
+      ) : status === 'running' && stage !== 'responding' ? (
+        <Skeleton active paragraph={{ rows: 2 }} title={false} />
       ) : (
-        <div className="text-[13.5px] text-slate-500 leading-7">
-          {status === 'running' ? (stage === 'responding' ? '' : stageLabel)
+        <div style={{ fontSize: 13.5, color: 'var(--lobe-colorTextTertiary, #999)', lineHeight: 1.8 }}>
+          {status === 'running' ? ''
             : status === 'error' ? '执行失败，请查看上面的错误信息。'
             : status === 'completed' ? '本轮未收到可展示内容。'
             : '等待开始...'}
         </div>
       )}
       {response && status === 'running' && stage === 'responding' && (
-        <span className="inline-block w-1.5 h-3.5 ml-0.5 animate-pulse align-middle" style={{ backgroundColor: color }} />
+        <span style={{
+          display: 'inline-block', width: 6, height: 14, marginLeft: 2,
+          backgroundColor: color, animation: 'pulse 1s infinite',
+          verticalAlign: 'middle', borderRadius: 1,
+        }} />
       )}
     </div>
   );

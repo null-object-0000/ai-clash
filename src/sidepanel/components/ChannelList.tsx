@@ -1,5 +1,6 @@
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
-import { Avatar, Button, Tag } from '@lobehub/ui';
+import { Avatar, Button, List, Tag } from '@lobehub/ui';
+import { Switch } from 'antd';
 import { Settings } from 'lucide-react';
 import { PROVIDER_META } from '../../shared/config.js';
 import { useStore } from '../store';
@@ -22,74 +23,76 @@ export default function ChannelList() {
     setIsHistoryPanelOpen, openProviderSettings, toggleProvider, goToProvider,
   } = useStore.getState();
 
+  const listItems = PROVIDER_META.map((provider: any) => {
+    const Icon = iconMap[provider.id];
+    const enabled = enabledMap[provider.id as ProviderId];
+    const modeValue = modeMap[provider.id as ProviderId];
+    const modeText = modeValue === 'api' ? 'API' : '网页';
+
+    return {
+      key: provider.id,
+      avatar: Icon ? (
+        <Avatar
+          avatar={<Icon.Color size={16} />}
+          size={28}
+          shape="circle"
+          style={{ flexShrink: 0 }}
+        />
+      ) : undefined,
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, fontWeight: 500 }}>{provider.name}</span>
+          <Tag size="small">{modeText}模式</Tag>
+        </div>
+      ),
+      active: enabled,
+      actions: (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          {modeValue === 'web' && (
+            <Button size="small" onClick={() => goToProvider(provider.id)} style={{ fontSize: 11 }} data-testid={`provider-goto-${provider.id}`}>
+              前往
+            </Button>
+          )}
+          <Button
+            type="text"
+            size="small"
+            icon={Settings}
+            onClick={() => openProviderSettings(provider.id as ProviderId)}
+            style={{ fontSize: 11 }}
+            data-testid={`provider-settings-${provider.id}`}
+          >
+            设置
+          </Button>
+          <Switch
+            checked={enabled}
+            onChange={() => toggleProvider(provider.id)}
+            size="small"
+            data-testid={`provider-toggle-${provider.id}`}
+          />
+        </div>
+      ),
+      showAction: true,
+    };
+  });
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-200 px-4 py-2.5">
-        <div className="text-[12px] font-semibold text-slate-700">通道列表</div>
+    <div style={{
+      borderRadius: 16, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+      background: 'var(--lobe-colorBgContainer, #fff)',
+      boxShadow: '0 1px 2px rgba(0,0,0,0.04)', overflow: 'hidden',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        borderBottom: '1px solid var(--lobe-colorBorderSecondary, #f0f0f0)',
+        padding: '10px 16px',
+      }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--lobe-colorText, #1f1f1f)' }}>通道列表</div>
         <Button type="text" size="small" onClick={() => setIsHistoryPanelOpen(true)} style={{ fontSize: 11, padding: '0 4px' }}>
           查看历史
         </Button>
       </div>
 
-      <div className="divide-y divide-slate-100">
-        {PROVIDER_META.map((provider: any) => {
-          const Icon = iconMap[provider.id];
-          const enabled = enabledMap[provider.id as ProviderId];
-          const modeValue = modeMap[provider.id as ProviderId];
-          const modeText = modeValue === 'api' ? 'API' : '网页';
-
-          return (
-            <div key={provider.id} className="px-4 py-2.5">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 flex items-center gap-2">
-                  {Icon && (
-                    <Avatar
-                      avatar={<Icon.Color size={16} />}
-                      size={24}
-                      shape="circle"
-                      style={{ flexShrink: 0 }}
-                    />
-                  )}
-                  <span className="text-[13px] font-medium text-slate-800">{provider.name}</span>
-                  <Tag size="small">{modeText}模式</Tag>
-                </div>
-
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {modeValue === 'web' && (
-                    <Button type="primary" size="small" onClick={() => goToProvider(provider.id)} style={{ fontSize: 11 }}>
-                      前往
-                    </Button>
-                  )}
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={Settings}
-                    onClick={() => openProviderSettings(provider.id as ProviderId)}
-                    style={{ fontSize: 11 }}
-                  >
-                    设置
-                  </Button>
-                  <button
-                    type="button"
-                    onClick={() => toggleProvider(provider.id)}
-                    className={`relative inline-flex h-6 w-10 items-center rounded-full transition-colors ${
-                      enabled ? 'bg-indigo-500' : 'bg-slate-300'
-                    }`}
-                    role="switch"
-                    aria-checked={enabled}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                        enabled ? 'translate-x-5' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <List items={listItems} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { Plus, History, MessageSquare, Layers } from 'lucide-react';
 import { ActionIcon, Tag, Modal, Button, Tooltip } from '@lobehub/ui';
+import { ChatHeader, ChatItem, BackBottom } from '@lobehub/ui/chat';
 import { PROVIDER_META } from '../shared/config.js';
 import ProviderCollapse from './components/ProviderCollapse';
 import ChatMessage from './components/ChatMessage';
@@ -21,7 +22,6 @@ const getProviderThemeColor = (id: string) => PROVIDER_THEME_MAP[id as ProviderI
 export default function App() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // ─── Store: only state needed for App's own rendering ───
   const hasAsked = useStore(s => s.hasAsked);
   const currentQuestion = useStore(s => s.currentQuestion);
   const enabledMap = useStore(s => s.enabledMap);
@@ -43,10 +43,8 @@ export default function App() {
 
   const { createNewChat, setIsHistoryPanelOpen, setShowNoChannelTip, init } = useStore.getState();
 
-  // ─── Init ───
   useEffect(() => init(), []);
 
-  // ─── Auto-scroll registration ───
   useEffect(() => {
     buffers.autoScrollFn = () => {
       if (!buffers.userHasScrolled && chatContainerRef.current) {
@@ -56,7 +54,6 @@ export default function App() {
     return () => { buffers.autoScrollFn = null; };
   }, []);
 
-  // ─── Scroll detection ───
   useEffect(() => {
     const el = chatContainerRef.current;
     if (!el) return;
@@ -69,7 +66,6 @@ export default function App() {
     return () => el.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ─── Derived state ───
   const isRunning = useMemo(() => PROVIDER_IDS.some(id => statusMap[id] === 'running'), [statusMap]);
 
   const singleChannelProviderId = useMemo<ProviderId | null>(() => {
@@ -80,71 +76,86 @@ export default function App() {
 
   const enabledCount = useMemo(() => PROVIDER_IDS.filter(id => enabledMap[id]).length, [enabledMap]);
 
-  // ─── Render ───
+  const modeTag = isMultiTurnSession && hasAsked ? (
+    <Tag size="small" color="green">多轮对话</Tag>
+  ) : singleChannelProviderId ? (
+    <Tag size="small" color="green">单通道</Tag>
+  ) : (
+    <Tag size="small">MoE 模式</Tag>
+  );
+
   return (
-    <div className="app-shell flex flex-col h-screen bg-slate-50 text-slate-800 antialiased selection:bg-indigo-100 selection:text-indigo-900">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 bg-white/75 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <Tooltip title="新建对话">
-            <ActionIcon
-              icon={Plus}
-              onClick={createNewChat}
-              disabled={!hasAsked || isRunning}
-              size="small"
-              variant="outlined"
-            />
-          </Tooltip>
-          <Tooltip title="历史对话">
-            <div className="inline-flex items-center gap-1.5 cursor-pointer" onClick={() => setIsHistoryPanelOpen(!isHistoryPanelOpen)}>
-              <ActionIcon icon={History} size="small" variant="outlined" />
-              <span className="text-[11px] text-slate-500">{historyList.length}</span>
-            </div>
-          </Tooltip>
-        </div>
-        <div className="relative flex items-center gap-2">
-          {isMultiTurnSession && hasAsked ? (
-            <Tag size="small" color="green">多轮对话</Tag>
-          ) : singleChannelProviderId ? (
-            <Tag size="small" color="green">单通道</Tag>
-          ) : (
-            <Tag size="small">MoE 模式</Tag>
-          )}
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <ChatHeader
+        style={{ position: 'sticky', top: 0, zIndex: 10, flexShrink: 0 }}
+        left={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Tooltip title="新建对话">
+              <ActionIcon
+                icon={Plus}
+                onClick={createNewChat}
+                disabled={!hasAsked || isRunning}
+                size="small"
+              />
+            </Tooltip>
+            <Tooltip title="历史对话">
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setIsHistoryPanelOpen(!isHistoryPanelOpen)}>
+                <ActionIcon icon={History} size="small" />
+                <span style={{ fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)' }}>{historyList.length}</span>
+              </div>
+            </Tooltip>
+          </div>
+        }
+        right={modeTag}
+      />
 
-        <HistoryPanel />
-      </header>
+      <HistoryPanel />
 
-      {/* Main */}
-      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-6 scroll-smooth" ref={chatContainerRef}>
+      <main
+        ref={chatContainerRef}
+        style={{
+          flex: 1, overflowY: 'auto', padding: '20px 16px',
+          display: 'flex', flexDirection: 'column', gap: 24,
+          position: 'relative',
+        }}
+      >
         {!hasAsked ? (
-          <div className="min-h-full flex items-start justify-center pt-2">
-            <div className="w-full max-w-[360px] mx-auto space-y-3">
-              <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-[18px] leading-7 font-semibold tracking-[-0.02em] text-slate-900">开始新对话</h2>
-                    <p className="mt-1 text-[12px] leading-6 text-slate-500">
+          <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 8 }}>
+            <div style={{ width: '100%', maxWidth: 360, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{
+                borderRadius: 16, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+                background: 'var(--lobe-colorBgContainer, #fff)', padding: '14px 16px',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <h2 style={{ fontSize: 18, lineHeight: '28px', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--lobe-colorText, #1f1f1f)', margin: 0 }}>开始新对话</h2>
+                    <p style={{ marginTop: 4, fontSize: 12, lineHeight: '20px', color: 'var(--lobe-colorTextSecondary, #666)' }}>
                       先选择要参与的通道。单个通道的详细参数，点对应的&ldquo;设置&rdquo;再调。
                     </p>
                   </div>
-                  <div className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                  <div style={{
+                    borderRadius: 999, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
+                    background: 'var(--lobe-colorFillQuaternary, rgba(0,0,0,0.02))',
+                    padding: '2px 10px', fontSize: 11, fontWeight: 500,
+                    color: 'var(--lobe-colorTextSecondary, #666)', whiteSpace: 'nowrap',
+                  }}>
                     {enabledCount}/{PROVIDER_META.length}
                   </div>
                 </div>
-                <div className="mt-2.5 pt-2.5 border-t border-slate-100">
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--lobe-colorBorderSecondary, #f0f0f0)' }}>
                   {enabledCount === 1 ? (
-                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-600">
-                      <MessageSquare className="w-3 h-3 flex-shrink-0" strokeWidth={2.5} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#10b981' }}>
+                      <MessageSquare style={{ width: 12, height: 12, flexShrink: 0 }} strokeWidth={2.5} />
                       单通道模式 · 支持多轮对话，可连续追问
                     </div>
                   ) : enabledCount >= 2 ? (
-                    <div className="flex items-center gap-1.5 text-[11px] text-indigo-500">
-                      <Layers className="w-3 h-3 flex-shrink-0" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--lobe-colorPrimary, #4f46e5)' }}>
+                      <Layers style={{ width: 12, height: 12, flexShrink: 0 }} />
                       MoE 对比模式 · {enabledCount} 个通道并行回答
                     </div>
                   ) : (
-                    <div className="text-[11px] text-slate-400">请至少选择一个通道</div>
+                    <div style={{ fontSize: 11, color: 'var(--lobe-colorTextQuaternary, #bbb)' }}>请至少选择一个通道</div>
                   )}
                 </div>
               </div>
@@ -154,49 +165,51 @@ export default function App() {
           </div>
         ) : (
           <>
-            {/* 多轮历史轮次 */}
             {conversationTurns.length > 0 && (
               <>
                 {conversationTurns.map((turn, idx) => (
-                  <div key={idx}>
-                    <div className="flex justify-end">
-                      <div className="bg-slate-700 text-white text-[13px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] shadow-sm leading-7 break-words tracking-[0.01em] opacity-80">
-                        {turn.question}
-                      </div>
-                    </div>
-                    <div className="mt-6">
-                      <ChatMessage
-                        providerId={turn.providerId}
-                        providerName={getProviderLabel(turn.providerId)}
-                        themeColor={getProviderThemeColor(turn.providerId)}
-                        status="completed"
-                        stage="responding"
-                        response={turn.response}
-                        thinkResponse={turn.thinkResponse}
-                        rawUrl={turn.rawUrl}
-                        isFromHistory
-                        isDeepThinkingEnabled={isDeepThinkingEnabled}
-                        stats={turn.stats}
-                      />
-                    </div>
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <ChatItem
+                      placement="right"
+                      primary
+                      avatar={{ title: '我' }}
+                      showAvatar={false}
+                      message={turn.question}
+                      variant="bubble"
+                      style={{ opacity: 0.85 }}
+                    />
+                    <ChatMessage
+                      providerId={turn.providerId}
+                      providerName={getProviderLabel(turn.providerId)}
+                      themeColor={getProviderThemeColor(turn.providerId)}
+                      status="completed"
+                      stage="responding"
+                      response={turn.response}
+                      thinkResponse={turn.thinkResponse}
+                      rawUrl={turn.rawUrl}
+                      isFromHistory
+                      isDeepThinkingEnabled={isDeepThinkingEnabled}
+                      stats={turn.stats}
+                    />
                   </div>
                 ))}
-                <div className="flex items-center gap-2 my-1 opacity-40">
-                  <div className="flex-1 border-t border-dashed border-slate-300" />
-                  <span className="text-[10px] text-slate-400 whitespace-nowrap">继续对话</span>
-                  <div className="flex-1 border-t border-dashed border-slate-300" />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0', opacity: 0.4 }}>
+                  <div style={{ flex: 1, borderTop: '1px dashed var(--lobe-colorBorder, #d9d9d9)' }} />
+                  <span style={{ fontSize: 10, color: 'var(--lobe-colorTextQuaternary, #bbb)', whiteSpace: 'nowrap' }}>继续对话</span>
+                  <div style={{ flex: 1, borderTop: '1px dashed var(--lobe-colorBorder, #d9d9d9)' }} />
                 </div>
               </>
             )}
 
-            {/* 当前问题 */}
-            <div className="flex justify-end">
-              <div className="bg-slate-900 text-white text-[13px] px-4 py-3 rounded-2xl rounded-tr-sm max-w-[88%] shadow-md leading-7 break-words tracking-[0.01em]">
-                {currentQuestion}
-              </div>
-            </div>
+            <ChatItem
+              placement="right"
+              primary
+              avatar={{ title: '我' }}
+              showAvatar={false}
+              message={currentQuestion}
+              variant="bubble"
+            />
 
-            {/* 单通道模式 */}
             {singleChannelProviderId ? (
               <ChatMessage
                 providerId={singleChannelProviderId}
@@ -236,11 +249,12 @@ export default function App() {
             <SummaryPanel />
           </>
         )}
+
+        <BackBottom target={chatContainerRef} text="回到底部" />
       </main>
 
       <ChannelSettingsModal />
 
-      {/* 未选通道提示 */}
       <Modal
         open={showNoChannelTip}
         onCancel={() => setShowNoChannelTip(false)}
@@ -252,7 +266,9 @@ export default function App() {
           </Button>
         }
       >
-        <p className="text-[14px] leading-6 text-slate-700">请在通道列表中至少开启一个通道后再发送。</p>
+        <p style={{ fontSize: 14, lineHeight: '24px', color: 'var(--lobe-colorText, #1f1f1f)' }}>
+          请在通道列表中至少开启一个通道后再发送。
+        </p>
       </Modal>
 
       <FooterArea />

@@ -19,7 +19,6 @@ export default function ChannelSettingsModal() {
   const apiKeyMap = useStore(s => s.apiKeyMap);
   const modelMap = useStore(s => s.modelMap);
   const testingApiKey = useStore(s => s.testingApiKey);
-  const apiKeyTestResult = useStore(s => s.apiKeyTestResult);
 
   const {
     closeProviderSettings, setProviderMode, setProviderApiKey,
@@ -37,7 +36,6 @@ export default function ChannelSettingsModal() {
   const model = modelMap[pid] || '';
   const modelOptions = getModelOptions(activeProviderId);
   const testing = testingApiKey[activeProviderId] ?? false;
-  const testResult = apiKeyTestResult[activeProviderId] ?? null;
   const apiKeyLink = meta?.apiKeyLink;
   const apiNote = meta?.apiNote;
   const IconSet = iconMap[activeProviderId];
@@ -116,25 +114,14 @@ export default function ChannelSettingsModal() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                onClick={() => testApiKey(activeProviderId, apiKey)}
-                loading={testing}
-                disabled={!apiKey}
-                size="small"
-              >
-                测试 Key
-              </Button>
-              {testResult && (
-                <span
-                  className={`text-[11px] ${
-                    testResult.success ? 'text-emerald-600' : 'text-rose-600'
-                  }`}
-                >
-                  {testResult.message}
-                </span>
-              )}
-            </div>
+            <Button
+              onClick={() => testApiKey(activeProviderId, apiKey)}
+              loading={testing}
+              disabled={!apiKey}
+              size="small"
+            >
+              测试 Key
+            </Button>
 
             <div className="space-y-2">
               <label className="text-[12px] font-medium text-slate-700">模型</label>
