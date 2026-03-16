@@ -1,5 +1,6 @@
-import { X, Trash2 } from 'lucide-react';
+import { X } from 'lucide-react';
 import { ActionIcon, Button, Empty, Tag } from '@lobehub/ui';
+import { useStore } from '../store';
 import type { ChatHistoryItem } from '../types';
 
 function formatHistoryTime(timestamp: number) {
@@ -16,38 +17,29 @@ function getHistoryEnabledCount(item: ChatHistoryItem): number {
   return Object.values(item.providers).filter((p) => p?.enabled).length;
 }
 
-export interface HistoryPanelProps {
-  historyList: ChatHistoryItem[];
-  activeSessionId: string;
-  hasAsked: boolean;
-  isRunning: boolean;
-  onCreateNewChat: () => void;
-  onRestoreSession: (item: ChatHistoryItem) => void;
-  onDeleteItem: (id: string) => void;
-  onClearAll: () => void;
-  onClose: () => void;
-}
+export default function HistoryPanel() {
+  const historyList = useStore(s => s.historyList);
+  const activeSessionId = useStore(s => s.activeSessionId);
+  const isHistoryPanelOpen = useStore(s => s.isHistoryPanelOpen);
 
-export default function HistoryPanel({
-  historyList,
-  activeSessionId,
-  onCreateNewChat,
-  onRestoreSession,
-  onDeleteItem,
-  onClearAll,
-  onClose,
-}: HistoryPanelProps) {
+  const {
+    restoreHistorySession, deleteHistoryItem, clearHistory,
+    setIsHistoryPanelOpen,
+  } = useStore.getState();
+
+  if (!isHistoryPanelOpen) return null;
+
   return (
     <div className="absolute left-4 right-4 top-[calc(100%+8px)] max-h-[320px] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-xl p-2 space-y-1 z-50">
       <div className="flex items-center justify-between px-2 pt-1 pb-2">
         <div className="text-[12px] font-semibold text-slate-700">历史对话</div>
         <div className="flex items-center gap-2">
           {historyList.length > 0 && (
-            <Button type="text" size="small" danger onClick={onClearAll} style={{ fontSize: 11, padding: '0 4px' }}>
+            <Button type="text" size="small" danger onClick={clearHistory} style={{ fontSize: 11, padding: '0 4px' }}>
               清除全部
             </Button>
           )}
-          <ActionIcon icon={X} size="small" onClick={onClose} title="关闭" />
+          <ActionIcon icon={X} size="small" onClick={() => setIsHistoryPanelOpen(false)} title="关闭" />
         </div>
       </div>
 
@@ -66,7 +58,7 @@ export default function HistoryPanel({
             <button
               type="button"
               className="w-full text-left px-3 py-2.5 pr-8"
-              onClick={() => onRestoreSession(item)}
+              onClick={() => restoreHistorySession(item)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
@@ -92,7 +84,7 @@ export default function HistoryPanel({
                 danger
                 onClick={(e) => {
                   e.stopPropagation();
-                  onDeleteItem(item.id);
+                  deleteHistoryItem(item.id);
                 }}
                 title="删除此记录"
               />

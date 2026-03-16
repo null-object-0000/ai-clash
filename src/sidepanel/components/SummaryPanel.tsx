@@ -1,26 +1,23 @@
 import { useState } from 'react';
 import { CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
 import { Markdown, Tag } from '@lobehub/ui';
-import type { ProviderStats } from '../types';
+import { useStore } from '../store';
 
-export interface SummaryPanelProps {
-  status: 'idle' | 'running' | 'completed' | 'error';
-  stage: 'thinking' | 'responding';
-  response: string;
-  thinkResponse?: string;
-  operationStatus?: string;
-  stats?: ProviderStats | null;
-}
+export default function SummaryPanel() {
+  const status = useStore(s => s.summaryStatus);
+  const stage = useStore(s => s.summaryStage);
+  const response = useStore(s => s.summaryResponse);
+  const thinkResponse = useStore(s => s.summaryThinkResponse);
+  const operationStatus = useStore(s => s.summaryOperationStatus);
+  const stats = useStore(s => s.summaryStats);
+  const hasAsked = useStore(s => s.hasAsked);
+  const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
 
-export default function SummaryPanel({
-  status,
-  stage,
-  response,
-  thinkResponse,
-  operationStatus,
-  stats,
-}: SummaryPanelProps) {
+  const { summaryBlockReason } = useStore.getState();
+
   const [isThinkBlockOpen, setIsThinkBlockOpen] = useState(true);
+
+  if (!hasAsked || !isSummaryEnabled || summaryBlockReason()) return null;
 
   return (
     <div className="relative bg-white rounded-xl border border-indigo-100 shadow-sm overflow-hidden ring-1 ring-indigo-50">

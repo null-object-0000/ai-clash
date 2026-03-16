@@ -1,53 +1,27 @@
 import { Brain, ClipboardList, Settings, MessageSquare, X, SlidersHorizontal, Send } from 'lucide-react';
 import { ActionIcon, Button, Select, Tag, Tooltip, TextArea } from '@lobehub/ui';
+import { useStore } from '../store';
+import { PROVIDER_IDS, type ProviderId } from '../types';
 
-export interface FooterAreaProps {
-  inputValue: string;
-  isRunning: boolean;
-  isDeepThinkingEnabled: boolean;
-  isSummaryEnabled: boolean;
-  isSummarySettingsOpen: boolean;
-  isDebugEnabled: boolean;
-  summaryProviderId: string;
-  summaryModel: string;
-  summaryBlockReason: string | null;
-  getSummaryProviderOptions: () => Array<{ value: string; label: string }>;
-  getSummaryModelOptions: () => Array<{ value: string; label: string }>;
-  isMultiTurnSession: boolean;
-  hasAsked: boolean;
-  onUpdateInputValue: (value: string) => void;
-  onSubmit: () => void;
-  onToggleDeepThinking: () => void;
-  onToggleSummaryEnabled: () => void;
-  onToggleSummarySettings: () => void;
-  onUpdateSummaryProviderId: (value: string) => void;
-  onUpdateSummaryModel: (value: string) => void;
-  onToggleDebugEnabled: () => void;
-}
+export default function FooterArea() {
+  const inputStr = useStore(s => s.inputStr);
+  const isDeepThinkingEnabled = useStore(s => s.isDeepThinkingEnabled);
+  const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
+  const isSummarySettingsOpen = useStore(s => s.isSummarySettingsOpen);
+  const isDebugEnabled = useStore(s => s.isDebugEnabled);
+  const summaryProviderId = useStore(s => s.summaryProviderId);
+  const summaryModel = useStore(s => s.summaryModel);
+  const isMultiTurnSession = useStore(s => s.isMultiTurnSession);
+  const hasAsked = useStore(s => s.hasAsked);
+  const isRunning = useStore(s => PROVIDER_IDS.some(id => s.statusMap[id] === 'running'));
 
-export default function FooterArea({
-  inputValue,
-  isRunning,
-  isDeepThinkingEnabled,
-  isSummaryEnabled,
-  isSummarySettingsOpen,
-  isDebugEnabled,
-  summaryProviderId,
-  summaryModel,
-  summaryBlockReason,
-  getSummaryProviderOptions,
-  getSummaryModelOptions,
-  isMultiTurnSession,
-  hasAsked,
-  onUpdateInputValue,
-  onSubmit,
-  onToggleDeepThinking,
-  onToggleSummaryEnabled,
-  onToggleSummarySettings,
-  onUpdateSummaryProviderId,
-  onUpdateSummaryModel,
-  onToggleDebugEnabled,
-}: FooterAreaProps) {
+  const {
+    setInputStr, submit, toggleDeepThinking, toggleSummary,
+    setIsSummarySettingsOpen, setSummaryProviderId, setSummaryModel,
+    toggleDebug, summaryBlockReason, getSummaryProviderOptions, getSummaryModelOptions,
+  } = useStore.getState();
+
+  const blockReason = summaryBlockReason();
   const summaryProviderOptions = getSummaryProviderOptions();
   const summaryModelOptions = getSummaryModelOptions();
 
@@ -57,7 +31,7 @@ export default function FooterArea({
         <Tooltip title="开启后 AI 会先进行深度思考再输出回答">
           <button
             type="button"
-            onClick={onToggleDeepThinking}
+            onClick={toggleDeepThinking}
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
               isDeepThinkingEnabled
                 ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
@@ -70,14 +44,14 @@ export default function FooterArea({
         </Tooltip>
 
         <div className="relative flex items-center gap-0.5">
-          <Tooltip title={summaryBlockReason ?? '多通道完成后自动汇总各通道回答'}>
+          <Tooltip title={blockReason ?? '多通道完成后自动汇总各通道回答'}>
             <button
               type="button"
-              onClick={onToggleSummaryEnabled}
+              onClick={toggleSummary}
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
-                isSummaryEnabled && !summaryBlockReason
+                isSummaryEnabled && !blockReason
                   ? 'bg-purple-50 border-purple-200 text-purple-600'
-                  : !summaryBlockReason
+                  : !blockReason
                     ? 'bg-white border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-500'
                     : 'bg-white border-slate-200 text-slate-300 cursor-default'
               }`}
@@ -90,7 +64,7 @@ export default function FooterArea({
           <ActionIcon
             icon={Settings}
             size={{ blockSize: 24 }}
-            onClick={onToggleSummarySettings}
+            onClick={() => setIsSummarySettingsOpen(!isSummarySettingsOpen)}
             active={isSummarySettingsOpen}
             title="总结设置"
           />
@@ -111,7 +85,7 @@ export default function FooterArea({
             <div className="absolute bottom-full left-0 mb-2 w-[260px] rounded-2xl border border-slate-200 bg-white shadow-xl p-3 space-y-3 z-20">
               <div className="flex items-center justify-between">
                 <div className="text-[12px] font-semibold text-slate-800">设置</div>
-                <ActionIcon icon={X} size="small" onClick={onToggleSummarySettings} title="关闭" />
+                <ActionIcon icon={X} size="small" onClick={() => setIsSummarySettingsOpen(false)} title="关闭" />
               </div>
 
               <div className="flex items-center justify-between">
@@ -121,7 +95,7 @@ export default function FooterArea({
                 </div>
                 <button
                   type="button"
-                  onClick={onToggleDebugEnabled}
+                  onClick={toggleDebug}
                   className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
                     isDebugEnabled ? 'bg-slate-600' : 'bg-slate-200'
                   }`}
@@ -151,7 +125,7 @@ export default function FooterArea({
                     <Select
                       value={summaryProviderId || undefined}
                       options={[{ label: '请选择通道', value: '' }, ...summaryProviderOptions]}
-                      onChange={(value) => onUpdateSummaryProviderId(value)}
+                      onChange={(value) => setSummaryProviderId(value)}
                       style={{ width: '100%' }}
                       size="small"
                     />
@@ -163,7 +137,7 @@ export default function FooterArea({
                       <Select
                         value={summaryModel || undefined}
                         options={summaryModelOptions}
-                        onChange={(value) => onUpdateSummaryModel(value)}
+                        onChange={(value) => setSummaryModel(value)}
                         style={{ width: '100%' }}
                         size="small"
                       />
@@ -182,12 +156,12 @@ export default function FooterArea({
 
       <div className="relative flex items-end gap-2">
         <TextArea
-          value={inputValue}
-          onChange={(e) => onUpdateInputValue(e.target.value)}
+          value={inputStr}
+          onChange={(e) => setInputStr(e.target.value)}
           onPressEnter={(e) => {
             if (!e.shiftKey) {
               e.preventDefault();
-              onSubmit();
+              submit();
             }
           }}
           placeholder="输入问题，按 Enter 发送..."
@@ -197,8 +171,8 @@ export default function FooterArea({
         <Tooltip title="发送">
           <Button
             type="primary"
-            onClick={onSubmit}
-            disabled={isRunning || !inputValue.trim()}
+            onClick={submit}
+            disabled={isRunning || !inputStr.trim()}
             icon={Send}
             style={{ height: 36, width: 36, flexShrink: 0 }}
           />

@@ -1,7 +1,9 @@
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
-import { ExternalLink, Info } from 'lucide-react';
-import { Modal, Segmented, Input, InputPassword, Select, Button, Alert } from '@lobehub/ui';
-import type { ProviderMode } from '../types';
+import { ExternalLink } from 'lucide-react';
+import { Modal, Segmented, InputPassword, Select, Button, Alert } from '@lobehub/ui';
+import { PROVIDER_META, getModelOptions } from '../../shared/config.js';
+import { useStore } from '../store';
+import { PROVIDER_NAME_MAP, type ProviderId, type ProviderMode } from '../types';
 
 const iconMap: Record<string, { Color: React.ComponentType<{ size?: number }> }> = {
   deepseek: DeepSeek,
@@ -11,49 +13,33 @@ const iconMap: Record<string, { Color: React.ComponentType<{ size?: number }> }>
   yuanbao: Yuanbao,
 };
 
-export interface ChannelSettingsModalProps {
-  activeProviderId: string | null;
-  providerLabel: string;
-  mode: ProviderMode;
-  supportsApi: boolean;
-  apiKey: string;
-  model: string;
-  modelOptions: Array<{ value: string; label: string }>;
-  showApiKey: boolean;
-  testing: boolean;
-  apiKeyTestResult: { success: boolean; message: string } | null;
-  apiKeyLink?: string;
-  apiNote?: string;
-  onClose: () => void;
-  onUpdateMode: (mode: ProviderMode) => void;
-  onUpdateApiKey: (value: string) => void;
-  onUpdateModel: (value: string) => void;
-  onToggleShowApiKey: () => void;
-  onTestApiKey: () => void;
-}
+export default function ChannelSettingsModal() {
+  const activeProviderId = useStore(s => s.activeProviderSettings);
+  const modeMap = useStore(s => s.modeMap);
+  const apiKeyMap = useStore(s => s.apiKeyMap);
+  const modelMap = useStore(s => s.modelMap);
+  const testingApiKey = useStore(s => s.testingApiKey);
+  const apiKeyTestResult = useStore(s => s.apiKeyTestResult);
 
-export default function ChannelSettingsModal({
-  activeProviderId,
-  providerLabel,
-  mode,
-  supportsApi,
-  apiKey,
-  model,
-  modelOptions,
-  showApiKey,
-  testing,
-  apiKeyTestResult,
-  apiKeyLink,
-  apiNote,
-  onClose,
-  onUpdateMode,
-  onUpdateApiKey,
-  onUpdateModel,
-  onToggleShowApiKey,
-  onTestApiKey,
-}: ChannelSettingsModalProps) {
+  const {
+    closeProviderSettings, setProviderMode, setProviderApiKey,
+    setProviderModel, testApiKey,
+  } = useStore.getState();
+
   if (!activeProviderId) return null;
 
+  const pid = activeProviderId as ProviderId;
+  const providerLabel = PROVIDER_NAME_MAP[pid] || activeProviderId;
+  const meta = PROVIDER_META.find((p: any) => p.id === activeProviderId);
+  const supportsApi = meta?.supportsApi ?? false;
+  const mode = modeMap[pid];
+  const apiKey = apiKeyMap[pid] || '';
+  const model = modelMap[pid] || '';
+  const modelOptions = getModelOptions(activeProviderId);
+  const testing = testingApiKey[activeProviderId] ?? false;
+  const testResult = apiKeyTestResult[activeProviderId] ?? null;
+  const apiKeyLink = meta?.apiKeyLink;
+  const apiNote = meta?.apiNote;
   const IconSet = iconMap[activeProviderId];
 
   const modeOptions = [
@@ -68,7 +54,7 @@ export default function ChannelSettingsModal({
   return (
     <Modal
       open
-      onCancel={onClose}
+      onCancel={closeProviderSettings}
       footer={null}
       width={520}
       title={
@@ -89,7 +75,7 @@ export default function ChannelSettingsModal({
             block
             options={modeOptions}
             value={mode}
-            onChange={(value) => onUpdateMode(value as ProviderMode)}
+            onChange={(value) => setProviderMode(pid, value as ProviderMode)}
           />
         </div>
 
@@ -122,7 +108,7 @@ export default function ChannelSettingsModal({
               <div className="flex items-center gap-2">
                 <InputPassword
                   value={apiKey}
-                  onChange={(e) => onUpdateApiKey(e.target.value)}
+                  onChange={(e) => setProviderApiKey(pid, e.target.value)}
                   placeholder="输入 API Key"
                   style={{ flex: 1 }}
                   visibilityToggle
@@ -132,20 +118,20 @@ export default function ChannelSettingsModal({
 
             <div className="flex flex-wrap items-center gap-2">
               <Button
-                onClick={onTestApiKey}
+                onClick={() => testApiKey(activeProviderId, apiKey)}
                 loading={testing}
                 disabled={!apiKey}
                 size="small"
               >
                 测试 Key
               </Button>
-              {apiKeyTestResult && (
+              {testResult && (
                 <span
                   className={`text-[11px] ${
-                    apiKeyTestResult.success ? 'text-emerald-600' : 'text-rose-600'
+                    testResult.success ? 'text-emerald-600' : 'text-rose-600'
                   }`}
                 >
-                  {apiKeyTestResult.message}
+                  {testResult.message}
                 </span>
               )}
             </div>
@@ -155,7 +141,7 @@ export default function ChannelSettingsModal({
               <Select
                 value={model || undefined}
                 options={modelOptions}
-                onChange={(value) => onUpdateModel(value)}
+                onChange={(value) => setProviderModel(pid, value)}
                 style={{ width: '100%' }}
                 placeholder="选择模型"
               />
