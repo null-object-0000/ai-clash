@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **项目类型**: Chrome 浏览器扩展
 
-**主要功能**: 聚合多个 AI 平台（DeepSeek、豆包、千问、LongCat）的能力，统一接口调用，支持深度思考模式，实现混合专家模式（MoE）
+**主要功能**: 聚合多个 AI 平台（DeepSeek、豆包、千问、LongCat、腾讯元宝）的能力，统一接口调用，支持深度思考模式、API 密钥配置、多 AI 回答自动总结，实现混合专家模式（MoE）
 
 ## 技术栈
 
@@ -44,14 +44,16 @@ src/
 
 ## 开发命令
 
+项目已全面使用 bun 作为包管理器：
+
 ```bash
-npm install                      # 安装依赖
-npm run dev                      # 开发模式 (HMR 热重载)
-npm run typecheck                # 类型检查
-npm run test                     # 运行所有 Playwright 测试
-npm run test:ui                  # 运行 Playwright UI 模式测试
-npm run build                    # 类型检查 + 运行测试 + 生产构建
-npx playwright test <test-file>  # 运行单个测试文件
+bun install                      # 安装依赖
+bun dev                          # 开发模式 (HMR 热重载)
+bun run typecheck                # 类型检查
+bun run test                     # 运行所有 Playwright 测试
+bun run test:ui                  # 运行 Playwright UI 模式测试
+bun run build                    # 类型检查 + 运行测试 + 生产构建
+bunx playwright test <test-file> # 运行单个测试文件
 ```
 
 ## 开发流程
@@ -81,7 +83,7 @@ export const PROVIDERS = [
     matchPattern: 'https://chat.deepseek.com/*',
     // ... 其他配置
   },
-  // 已支持：doubao(豆包), qianwen(千问), longcat
+  // 已支持：doubao(豆包), qianwen(千问), longcat, tencent(腾讯元宝)
 ];
 ```
 
@@ -124,6 +126,12 @@ export const PROVIDERS = [
 - `CHUNK_RECEIVED`: 流式内容块
 - 等等
 
+### API 模式支持
+除了网页模式，还支持配置各个 AI 的 API 密钥，不需要保持 AI 网页打开，响应速度更快、稳定性更高。API 模式的配置在侧边栏设置面板中完成。
+
+### 自动总结功能
+开启总结功能后，会自动把多个 AI 的回答整合成一份精炼的最优答案，无需手动对比整理。默认使用 LongCat 模型进行总结，需配置 LongCat API 密钥。
+
 ## Git 分支
 
 - `main`: 主分支（当前开发分支）
@@ -133,7 +141,12 @@ export const PROVIDERS = [
 1. 修改 providers.js 后需要重新加载扩展
 2. Content script 调试需要在对应网页的开发者工具中查看
 3. Service Worker 调试在扩展管理页面的"Service Worker"链接中
-4. **代码修改完成后必须自动执行 `npm run build` 进行生产构建，确保dist目录是最新版本**
+4. **代码修改完成后必须自动执行 `bun run build` 进行生产构建，确保dist目录是最新版本**
+
+### 常见问题排查
+- 发了问题没反应：检查对应AI网站是否已登录、网页标签页是否打开、网络是否正常
+- 流式响应不完整：尝试刷新对应AI网站页面，或重新加载扩展
+- 深度思考不生效：确认对应AI平台本身支持深度思考功能，且已在网页端开启
 
 ## 新AI通道接入规范
 
@@ -198,7 +211,7 @@ mkdir -p src/content/provider-id
 5. 更新底部支持列表文字
 
 ### 7. 测试验证
-1. 运行 `npm run dev` 重新构建扩展
+1. 运行 `bun run build` 重新构建扩展
 2. 在Chrome扩展管理页面重新加载扩展
 3. 打开目标网站，确认控制台有 `[AI Clash xxx] content script 已在该页运行` 日志
 4. 测试消息发送功能，确认可以正常触发UI操作
