@@ -10,7 +10,6 @@ import { PROVIDERS, deriveProviderConfig } from './src/background/providers.js'
 const contentScripts = PROVIDERS.map(provider => {
   const derived = deriveProviderConfig(provider);
   return ({
-    id: provider.id,
     js: [derived.contentScriptFile],
     matches: [provider.matchPattern],
     run_at: 'document_start',
