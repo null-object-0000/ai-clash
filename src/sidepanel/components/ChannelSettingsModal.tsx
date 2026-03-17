@@ -1,5 +1,5 @@
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
-import { ExternalLink } from 'lucide-react';
+import { ExportOutlined } from '@ant-design/icons';
 import { Modal, Segmented, InputPassword, Select, Button, Alert } from '@lobehub/ui';
 import { PROVIDER_META, getModelOptions } from '../../shared/config.js';
 import { useStore } from '../store';
@@ -62,13 +62,13 @@ export default function ChannelSettingsModal() {
         </div>
       }
     >
-      <div className="space-y-5 pt-2">
-        <p className="text-[13px] text-slate-500 -mt-1">
+      <div style={{ gap: 20, paddingTop: 8 }}>
+        <p style={{ fontSize: 13, color: '#64748b', marginTop: -4 }}>
           调整当前通道的接入模式和详细参数。
         </p>
 
-        <div className="space-y-2">
-          <div className="text-[12px] font-medium text-slate-700">接入模式</div>
+        <div style={{ gap: 8 }}>
+          <div style={{ fontSize: 12, fontWeight: 500, color: '#334155' }}>接入模式</div>
           <Segmented
             block
             options={modeOptions}
@@ -78,32 +78,38 @@ export default function ChannelSettingsModal() {
         </div>
 
         {supportsApi && (
-          <div className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-[12px] font-semibold text-slate-700">API 配置</div>
-              <div className="text-[11px] text-slate-400">可用于接入模式及总结功能</div>
+          <div style={{
+            gap: 16, borderRadius: 16, border: '1px solid #e2e8f0',
+            background: 'rgba(248, 250, 252, 0.7)', padding: 16
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#334155' }}>API 配置</div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>可用于接入模式及总结功能</div>
             </div>
 
             {apiNote && (
               <Alert type="warning" message={apiNote} variant="outlined" />
             )}
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-[12px] font-medium text-slate-700">API Key</label>
+            <div style={{ gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ fontSize: 12, fontWeight: 500, color: '#334155' }}>API Key</label>
                 {apiKeyLink && (
                   <a
                     href={apiKeyLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] text-indigo-500 hover:text-indigo-700 transition-colors"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      fontSize: 11, color: '#6366f1', transition: 'color 0.2s'
+                    }}
                   >
                     前往获取 API Key
-                    <ExternalLink className="h-3 w-3" />
+                    <ExportOutlined style={{ fontSize: 12 }} />
                   </a>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <InputPassword
                   value={apiKey}
                   onChange={(e) => setProviderApiKey(pid, e.target.value)}
@@ -123,8 +129,8 @@ export default function ChannelSettingsModal() {
               测试 Key
             </Button>
 
-            <div className="space-y-2">
-              <label className="text-[12px] font-medium text-slate-700">模型</label>
+            <div style={{ gap: 8 }}>
+              <label style={{ fontSize: 12, fontWeight: 500, color: '#334155' }}>模型</label>
               <Select
                 value={model || undefined}
                 options={modelOptions}

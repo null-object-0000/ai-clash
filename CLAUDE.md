@@ -52,13 +52,14 @@ bun dev                          # 开发模式 (HMR 热重载)
 bun run typecheck                # 类型检查
 bun run test                     # 运行所有 Playwright 测试
 bun run test:ui                  # 运行 Playwright UI 模式测试
-bun run build                    # 类型检查 + 运行测试 + 生产构建
+bun run build                    # 类型检查 + 生产构建（快速构建，不运行测试）
+bun run build:test               # 类型检查 + 运行测试 + 生产构建（全量构建）
 bunx playwright test <test-file> # 运行单个测试文件
 ```
 
 ## 开发流程
 
-1. 运行 `npm run dev` 启动开发服务器
+1. 运行 `bun run dev` 启动开发服务器
 2. 打开 Chrome 扩展管理 `chrome://extensions/`
 3. 开启"开发者模式"，点击"加载已解压的扩展程序"
 4. 选择项目的 `dist` 目录
@@ -112,6 +113,13 @@ export const PROVIDERS = [
 // 自动为 /@crx/client-port 添加错误处理
 ```
 
+### 构建优化配置
+项目已进行深度构建优化：
+- 构建目标针对Chrome 110+，减少兼容代码
+- 代码分块优化，分离核心依赖
+- Brotli压缩，产物体积更小
+- Lobe UI按需导入，避免打包未使用组件
+
 ### Hook 注入机制
 
 - Hook 脚本注入到 MAIN world，在 `document_start` 时运行
@@ -141,7 +149,7 @@ export const PROVIDERS = [
 1. 修改 providers.js 后需要重新加载扩展
 2. Content script 调试需要在对应网页的开发者工具中查看
 3. Service Worker 调试在扩展管理页面的"Service Worker"链接中
-4. **代码修改完成后必须自动执行 `bun run build` 进行生产构建，确保dist目录是最新版本**
+4. **代码修改完成后必须自动执行 `bun run build:test` 进行生产构建，确保dist目录是最新版本并进行自动化测试**
 
 ### 常见问题排查
 - 发了问题没反应：检查对应AI网站是否已登录、网页标签页是否打开、网络是否正常
@@ -211,7 +219,7 @@ mkdir -p src/content/provider-id
 5. 更新底部支持列表文字
 
 ### 7. 测试验证
-1. 运行 `bun run build` 重新构建扩展
+1. 运行 `bun run build:test` 重新构建扩展
 2. 在Chrome扩展管理页面重新加载扩展
 3. 打开目标网站，确认控制台有 `[AI Clash xxx] content script 已在该页运行` 日志
 4. 测试消息发送功能，确认可以正常触发UI操作

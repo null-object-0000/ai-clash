@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { Brain, ClipboardList, Settings, MessageSquare, SlidersHorizontal, Sparkles, ArrowUp } from 'lucide-react';
+import { BulbOutlined, UnorderedListOutlined, SettingOutlined, MessageOutlined, SlidersOutlined, StarOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { ActionIcon, Select, Tooltip } from '@lobehub/ui';
 import { ChatInputArea } from '@lobehub/ui/chat';
 import { Switch, Popover, ConfigProvider } from 'antd';
@@ -32,50 +32,60 @@ export default function FooterArea() {
   // 🎨 总结设置弹窗内容 (保持紧凑优雅)
   // ==========================================
   const summarySettingsContent = (
-    <div className="w-[260px] flex flex-col bg-white">
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50/80 border-b border-slate-100">
-        <div className="flex items-center gap-2 text-slate-700">
-          <SlidersHorizontal className="w-4 h-4 text-slate-400" />
-          <span className="text-[13px] font-medium">调试模式</span>
+    <div style={{ width: 260, display: 'flex', flexDirection: 'column', background: '#fff' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 16px', background: 'rgba(248, 250, 252, 0.8)',
+        borderBottom: '1px solid #f1f5f9'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#334155' }}>
+          <SlidersOutlined style={{ fontSize: 16, color: '#94a3b8' }} />
+          <span style={{ fontSize: 13, fontWeight: 500 }}>调试模式</span>
         </div>
         <Switch checked={isDebugEnabled} onChange={toggleDebug} size="small" />
       </div>
 
-      <div className="p-4 flex flex-col gap-4">
-        <div className="text-[12px] font-semibold text-slate-400 uppercase tracking-wider">
+      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: '#94a3b8',
+          textTransform: 'uppercase', letterSpacing: '0.05em'
+        }}>
           归纳总结配置
         </div>
 
         {summaryProviderOptions.length === 0 ? (
-          <div className="bg-amber-50 border border-amber-100 text-amber-600 text-[12px] rounded-lg p-3 leading-relaxed">
+          <div style={{
+            background: '#fffbeb', border: '1px solid #fef3c7', color: '#d97706',
+            fontSize: 12, borderRadius: 8, padding: 12, lineHeight: 1.6
+          }}>
             请先配置 API Key，才能使用归纳总结功能。
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-medium text-slate-600">汇总通道</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <label style={{ fontSize: 12, fontWeight: 500, color: '#475569' }}>汇总通道</label>
               <Select
                 value={summaryProviderId || undefined}
                 options={[{ label: '请选择通道', value: '' }, ...summaryProviderOptions]}
                 onChange={(value) => setSummaryProviderId(value)}
-                className="w-full"
+                style={{ width: '100%' }}
                 size="middle"
               />
             </div>
 
             {summaryProviderId && (
-              <div className="flex flex-col gap-1.5 animate-fadeIn">
-                <label className="text-[12px] font-medium text-slate-600">汇总模型</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, animation: 'fadeIn 0.3s ease' }}>
+                <label style={{ fontSize: 12, fontWeight: 500, color: '#475569' }}>汇总模型</label>
                 <Select
                   value={summaryModel || undefined}
                   options={summaryModelOptions}
                   onChange={(value) => setSummaryModel(value)}
-                  className="w-full"
+                  style={{ width: '100%' }}
                   size="middle"
                 />
               </div>
             )}
-            <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+            <p style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6, marginTop: 4 }}>
               等所有通道回答完毕后自动发起汇总请求。
             </p>
           </div>
@@ -88,27 +98,36 @@ export default function FooterArea() {
   // 💻 渲染区：一体化现代输入框
   // ==========================================
   return (
-    <div className="relative flex flex-col shrink-0 bg-white border-t border-slate-100 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.03)] z-10 px-4 py-4">
-      
+    <div style={{
+      position: 'relative', display: 'flex', flexDirection: 'column', flexShrink: 0,
+      background: '#fff', borderTop: '1px solid #f1f5f9',
+      boxShadow: '0 -10px 40px -15px rgba(0,0,0,0.03)', zIndex: 10,
+      padding: '16px 16px'
+    }}>
+
       {/* 🚀 核心组件：一体化拟物卡片 */}
-      <div 
-        className={`
-          relative flex flex-col transition-all duration-300 ease-out
-          bg-slate-50 border border-slate-200 rounded-[1.25rem] overflow-hidden
-          focus-within:bg-white focus-within:border-indigo-400 focus-within:shadow-[0_0_0_4px_rgba(79,70,229,0.08)]
-        `}
+      <div
+        style={{
+          position: 'relative', display: 'flex', flexDirection: 'column',
+          transition: 'all 0.3s ease-out', background: '#f8fafc',
+          border: '1px solid #e2e8f0', borderRadius: 20, overflow: 'hidden'
+        }}
       >
-        
+
         {/* 多轮对话指示器 (只在激活时优雅地滑出) */}
         {isMultiTurnSession && hasAsked && !isSummarySettingsOpen && (
-          <div className="flex items-center gap-1.5 px-4 pt-3 pb-1 text-emerald-500 text-[11px] font-medium tracking-wide">
-            <MessageSquare className="w-3.5 h-3.5" />
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '12px 16px 4px 16px', color: '#10b981',
+            fontSize: 11, fontWeight: 500, letterSpacing: '0.02em'
+          }}>
+            <MessageOutlined style={{ fontSize: 14 }} />
             <span>单通道续聊模式</span>
           </div>
         )}
 
         {/* 文本输入区 (剥离默认边框，完全融进卡片) */}
-        <div className="px-3 pt-2 pb-1">
+        <div style={{ padding: '8px 12px 4px 12px' }}>
           <ChatInputArea.Inner
             value={inputStr}
             onInput={(val) => setInputStr(val)}
@@ -116,12 +135,19 @@ export default function FooterArea() {
             loading={isRunning}
             placeholder="输入问题，按 Enter 发送..."
             autoSize={{ minRows: 2, maxRows: 8 }}
-            className="!border-none !shadow-none !bg-transparent !px-2 text-[14px] leading-relaxed placeholder:text-slate-400 focus-within:ring-0"
+            style={{
+              border: 'none !important', boxShadow: 'none !important',
+              background: 'transparent !important', padding: '0 8px !important',
+              fontSize: 14, lineHeight: 1.6
+            }}
           />
         </div>
 
         {/* 卡片底栏：各种开关与发送按钮 */}
-        <div className="flex items-center justify-between px-2 pb-2 pt-1">
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '4px 8px 8px 8px'
+        }}>
           
           {/* 左侧：功能开关组 */}
           <div className="flex items-center gap-1">
@@ -136,7 +162,7 @@ export default function FooterArea() {
                     : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'}
                 `}
               >
-                <Brain className={`w-4 h-4 ${isDeepThinkingEnabled ? 'animate-pulse' : ''}`} />
+                <BulbOutlined className={`w-4 h-4 ${isDeepThinkingEnabled ? 'animate-pulse' : ''}`} />
                 <span className="hidden sm:inline">深度思考</span>
               </button>
             </Tooltip>
@@ -157,9 +183,9 @@ export default function FooterArea() {
                   `}
                 >
                   {isSummaryEnabled && !blockReason ? (
-                    <Sparkles className="w-4 h-4 text-purple-500" />
+                    <StarOutlined className="w-4 h-4 text-purple-500" />
                   ) : (
-                    <ClipboardList className="w-4 h-4" />
+                    <UnorderedListOutlined className="w-4 h-4" />
                   )}
                   <span className="hidden sm:inline">归纳总结</span>
                 </button>
@@ -175,7 +201,7 @@ export default function FooterArea() {
                 content={summarySettingsContent}
               >
                 <button className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition-colors ml-0.5">
-                  <Settings className="w-4 h-4" />
+                  <SettingOutlined className="w-4 h-4" />
                 </button>
               </Popover>
             </div>
@@ -193,7 +219,7 @@ export default function FooterArea() {
                   : 'bg-black text-white hover:bg-slate-800 hover:shadow-md hover:-translate-y-0.5 active:translate-y-0'}
               `}
             >
-              <ArrowUp className="w-4 h-4 stroke-[2.5]" />
+              <ArrowUpOutlined className="w-4 h-4" />
             </button>
           </Tooltip>
         </div>

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { CloseOutlined } from '@ant-design/icons';
 import { ActionIcon, Button, Drawer, Empty, List, Tag } from '@lobehub/ui';
 import { useStore } from '../store';
 import type { ChatHistoryItem } from '../types';
@@ -55,7 +55,7 @@ export default function HistoryPanel() {
     active: item.id === activeSessionId,
     actions: (
       <ActionIcon
-        icon={X}
+        icon={CloseOutlined}
         size={{ blockSize: 20 }}
         onClick={(e: React.MouseEvent) => {
           e.stopPropagation();

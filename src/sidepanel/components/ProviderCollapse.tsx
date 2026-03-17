@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ExternalLink, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { ExportOutlined, CheckCircleOutlined, ExclamationCircleOutlined, RightOutlined } from '@ant-design/icons';
 import { Markdown, Tooltip, Tag, Collapse, Skeleton } from '@lobehub/ui';
 import { LoadingDots } from '@lobehub/ui/chat';
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
@@ -106,9 +106,9 @@ export default function ProviderCollapse({
   const statusIcon = status === 'running' ? (
     <LoadingDots variant="pulse" size={14} color={color} />
   ) : status === 'completed' ? (
-    <CheckCircle style={{ width: 14, height: 14, color: '#10b981', flexShrink: 0 }} />
+    <CheckCircleOutlined style={{ fontSize: 14, color: '#10b981', flexShrink: 0 }} />
   ) : status === 'error' ? (
-    <AlertCircle style={{ width: 14, height: 14, color: '#f43f5e', flexShrink: 0 }} />
+    <ExclamationCircleOutlined style={{ fontSize: 14, color: '#f43f5e', flexShrink: 0 }} />
   ) : (
     <span style={{ display: 'inline-flex', borderRadius: '50%', height: 12, width: 12, background: 'var(--lobe-colorBorder, #d9d9d9)', flexShrink: 0 }} />
   );
@@ -153,7 +153,7 @@ export default function ProviderCollapse({
               transition: 'all 0.2s',
             }}
           >
-            <ExternalLink style={{ width: 12, height: 12, opacity: 0.8 }} />
+            <ExportOutlined style={{ fontSize: 12, opacity: 0.8 }} />
             <span>原文</span>
           </a>
         </Tooltip>
@@ -180,9 +180,9 @@ export default function ProviderCollapse({
                   marginBottom: 4,
                 }}
               >
-                <ChevronRight
+                <RightOutlined
                   style={{
-                    width: 12, height: 12,
+                    fontSize: 12,
                     transition: 'transform 0.2s',
                     transform: isThinkBlockOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                   }}

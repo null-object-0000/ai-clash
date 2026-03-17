@@ -2,8 +2,15 @@ export const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat', 'yuanba
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 export type ProviderMode = 'web' | 'api';
 export type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
-export type StageType = 'connecting' | 'thinking' | 'responding';
+export type StageType = 'idle' | 'connecting' | 'thinking' | 'responding' | 'summarizing' | 'completed';
 export type ThemeColor = 'blue' | 'amber' | 'emerald' | 'violet' | 'teal';
+
+export interface ApiConfig {
+  mode?: ProviderMode;
+  apiKey?: string;
+  model?: string;
+  enabled?: boolean;
+}
 
 export interface ProviderStats {
   ttff: number;
@@ -11,6 +18,26 @@ export interface ProviderStats {
   charCount: number;
   charsPerSec: number;
 }
+
+export interface ProviderResult {
+  providerId: ProviderId;
+  content: string;
+  reasoningContent: string;
+  success: boolean;
+  stats: ProviderStats;
+}
+
+export interface SidepanelSettings {
+  isDeepThinkingEnabled?: boolean;
+  isSummaryEnabled?: boolean;
+  isDebugEnabled?: boolean;
+}
+
+export interface SummaryConfig {
+  providerId?: string;
+  model?: string;
+}
+
 
 export interface ProviderHistoryEntry {
   enabled: boolean;

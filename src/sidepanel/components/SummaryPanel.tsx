@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { CheckCircle, AlertCircle, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { CheckCircleOutlined, ExclamationCircleOutlined, RightOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
 import { Markdown, Tag } from '@lobehub/ui';
 import { LoadingDots } from '@lobehub/ui/chat';
 import { useStore } from '../store';
@@ -49,8 +49,8 @@ export default function SummaryPanel() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {status === 'running' && <LoadingDots variant="pulse" size={14} color="var(--lobe-colorPrimary, #6366f1)" />}
-          {status === 'completed' && <CheckCircle style={{ width: 14, height: 14, color: 'var(--lobe-colorPrimary, #6366f1)' }} />}
-          {status === 'error' && <AlertCircle style={{ width: 14, height: 14, color: '#f43f5e' }} />}
+          {status === 'completed' && <CheckCircleOutlined style={{ fontSize: 14, color: 'var(--lobe-colorPrimary, #6366f1)' }} />}
+          {status === 'error' && <ExclamationCircleOutlined style={{ fontSize: 14, color: '#f43f5e' }} />}
           {status === 'idle' && <span style={{ display: 'inline-flex', borderRadius: '50%', height: 10, width: 10, background: 'var(--lobe-colorBorder, #d9d9d9)' }} />}
           <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--lobe-colorPrimary, #4338ca)', letterSpacing: '0.02em' }}>最终研判结论</span>
           <Tag size="small" color="purple">AI 智能汇总</Tag>
@@ -69,8 +69,8 @@ export default function SummaryPanel() {
             {!operationStatus && !stats && status === 'completed' && <span>已完成</span>}
           </div>
           {isCollapsed
-            ? <ChevronUp style={{ width: 14, height: 14, color: 'var(--lobe-colorTextTertiary, #999)' }} />
-            : <ChevronDown style={{ width: 14, height: 14, color: 'var(--lobe-colorTextTertiary, #999)' }} />
+            ? <UpOutlined style={{ fontSize: 14, color: 'var(--lobe-colorTextTertiary, #999)' }} />
+            : <DownOutlined style={{ fontSize: 14, color: 'var(--lobe-colorTextTertiary, #999)' }} />
           }
         </div>
       </div>
@@ -96,9 +96,9 @@ export default function SummaryPanel() {
                   marginBottom: 4,
                 }}
               >
-                <ChevronRight
+                <RightOutlined
                   style={{
-                    width: 12, height: 12,
+                    fontSize: 12,
                     transition: 'transform 0.2s',
                     transform: isThinkBlockOpen ? 'rotate(90deg)' : 'rotate(0deg)',
                   }}
@@ -129,7 +129,15 @@ export default function SummaryPanel() {
           {status !== 'idle' && (
             <>
               {response ? (
-                <Markdown variant="chat" fontSize={13.5}>
+                <Markdown
+                  variant="chat"
+                  fontSize={13.5}
+                  // 只启用需要的插件，禁用未使用功能
+                  rehypePlugins={[]}
+                  remarkPlugins={[]}
+                  enableLatex={false}
+                  enableMermaid={false}
+                >
                   {response}
                 </Markdown>
               ) : (

@@ -1,5 +1,5 @@
 import { useRef, useEffect, useMemo } from 'react';
-import { Plus, History, MessageSquare, Layers } from 'lucide-react';
+import { PlusOutlined, HistoryOutlined, MessageOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { ActionIcon, Tag, Modal, Button, Tooltip } from '@lobehub/ui';
 import { ChatHeader, ChatItem, BackBottom } from '@lobehub/ui/chat';
 import { PROVIDER_META } from '../shared/config.js';
@@ -92,7 +92,7 @@ export default function App() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Tooltip title="新建对话">
               <ActionIcon
-                icon={Plus}
+                icon={PlusOutlined}
                 onClick={createNewChat}
                 disabled={!hasAsked || isRunning}
                 size="small"
@@ -100,7 +100,7 @@ export default function App() {
             </Tooltip>
             <Tooltip title="历史对话">
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setIsHistoryPanelOpen(!isHistoryPanelOpen)}>
-                <ActionIcon icon={History} size="small" />
+                <ActionIcon icon={HistoryOutlined} size="small" />
                 <span style={{ fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)' }}>{historyList.length}</span>
               </div>
             </Tooltip>
@@ -146,12 +146,12 @@ export default function App() {
                 <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--lobe-colorBorderSecondary, #f0f0f0)' }}>
                   {enabledCount === 1 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#10b981' }}>
-                      <MessageSquare style={{ width: 12, height: 12, flexShrink: 0 }} strokeWidth={2.5} />
+                      <MessageOutlined style={{ fontSize: 12, flexShrink: 0 }} />
                       单通道模式 · 支持多轮对话，可连续追问
                     </div>
                   ) : enabledCount >= 2 ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--lobe-colorPrimary, #4f46e5)' }}>
-                      <Layers style={{ width: 12, height: 12, flexShrink: 0 }} />
+                      <AppstoreOutlined style={{ fontSize: 12, flexShrink: 0 }} />
                       MoE 对比模式 · {enabledCount} 个通道并行回答
                     </div>
                   ) : (

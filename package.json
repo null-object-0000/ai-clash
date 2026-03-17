@@ -7,35 +7,34 @@
     "scripts": {
         "dev": "vite",
         "typecheck": "tsc --noEmit",
-        "build": "tsc --noEmit && vite build && bun run test",
+        "build": "tsc --noEmit && vite build",
+        "build:test": "tsc --noEmit && vite build && bun run test",
         "test": "playwright test",
         "test:ui": "playwright test --ui"
     },
     "dependencies": {
+        "@ant-design/icons": "^6.1.0",
         "@lobehub/icons": "^5.0.1",
-        "@lobehub/icons-static-svg": "^1.82.0",
         "@lobehub/ui": "^5.5.1",
-        "lucide-react": "^0.577.0",
         "motion": "^12.37.0",
         "openai": "^6.31.0",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "zustand": "^5.0.12"
     },
+    "sideEffects": false,
     "devDependencies": {
         "@crxjs/vite-plugin": "^2.4.0",
         "@playwright/test": "^1.58.2",
-        "@tailwindcss/typography": "^0.5.19",
-        "@tailwindcss/vite": "^4.2.1",
         "@types/chrome": "^0.1.38",
         "@types/node": "^24.12.0",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react-swc": "^4.3.0",
         "cross-env": "^10.1.0",
-        "tailwindcss": "^4.2.1",
         "typescript": "~5.8.3",
         "vite": "^7.3.1",
+        "vite-plugin-compression": "^0.5.1",
         "vite-plugin-zip-pack": "^1.2.4"
     }
 }

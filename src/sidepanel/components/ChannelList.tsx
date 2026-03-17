@@ -1,7 +1,7 @@
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
 import { Avatar, Button, List, Tag } from '@lobehub/ui';
 import { Switch } from 'antd';
-import { Settings } from 'lucide-react';
+import { SettingOutlined } from '@ant-design/icons';
 import { PROVIDER_META } from '../../shared/config.js';
 import { useStore } from '../store';
 import type { ProviderId } from '../types';
@@ -56,7 +56,7 @@ export default function ChannelList() {
           <Button
             type="text"
             size="small"
-            icon={Settings}
+            icon={SettingOutlined}
             onClick={() => openProviderSettings(provider.id as ProviderId)}
             style={{ fontSize: 11 }}
             data-testid={`provider-settings-${provider.id}`}
