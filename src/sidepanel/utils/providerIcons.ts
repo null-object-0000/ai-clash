@@ -1,11 +1,5 @@
-export { DeepSeek } from '@lobehub/icons';
-export { Doubao } from '@lobehub/icons';
-export { Qwen } from '@lobehub/icons';
-export { LongCat } from '@lobehub/icons';
-export { Yuanbao } from '@lobehub/icons';
-
-import type { ProviderId } from '../types';
 import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
+import type { ProviderId } from '../types';
 import type { ComponentType } from 'react';
 
 type IconComponent = ComponentType<{ size?: number | string; className?: string }>;
@@ -20,4 +14,9 @@ const PROVIDER_ICON_MAP: Record<string, { Color?: IconComponent; Mono?: IconComp
 
 export function getProviderIconSet(providerId: ProviderId) {
   return PROVIDER_ICON_MAP[providerId];
+}
+
+export function getProviderIcon(providerId: ProviderId) {
+  const iconSet = getProviderIconSet(providerId);
+  return iconSet?.Color || iconSet?.Mono;
 }

@@ -15,21 +15,38 @@ export default function ThinkingBlock({ content, className = '' }: ThinkingBlock
   if (!hasContent) return null;
 
   return (
-    <div className={`mb-3 ${className}`}>
+    <div className={className}>
       <div
-        className="flex items-center gap-1.5 cursor-pointer text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 mb-1.5"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          cursor: 'pointer',
+          fontSize: 13,
+          color: '#6b7280',
+          marginBottom: 8,
+        }}
         onClick={() => setExpanded(!expanded)}
       >
-        <BulbOutlined className="text-yellow-500" />
+        <BulbOutlined style={{ color: '#eab308' }} />
         <span>深度思考中</span>
         {expanded ? (
-          <DownOutlined className="text-xs" />
+          <DownOutlined style={{ fontSize: 12 }} />
         ) : (
-          <RightOutlined className="text-xs" />
+          <RightOutlined style={{ fontSize: 12 }} />
         )}
       </div>
       {expanded && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-3 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+        <div style={{
+          background: '#fefce8',
+          border: '1px solid #fef08a',
+          borderRadius: 8,
+          padding: 12,
+          fontSize: 13,
+          color: '#4b5563',
+          whiteSpace: 'pre-wrap',
+          lineHeight: 1.6,
+        }}>
           {content}
         </div>
       )}

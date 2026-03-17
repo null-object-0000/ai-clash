@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { toast } from '@lobehub/ui';
+import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
 import { PROVIDER_META, getModelOptions } from '../../shared/config.js';
@@ -532,13 +532,13 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
         const message = r?.message || r?.error || '请求失败';
         set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success, message } } }));
         if (success) {
-          toast.success({ title: 'API Key 验证成功', description: message });
+          message.success(message);
         } else {
-          toast.error({ title: 'API Key 验证失败', description: message });
+          message.error(message);
         }
       } catch {
         set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success: false, message: '请求失败' } } }));
-        toast.error({ title: 'API Key 验证失败', description: '请求失败' });
+        message.error('请求失败');
       } finally {
         set(prev => ({ testingApiKey: { ...prev.testingApiKey, [providerId]: false } }));
       }

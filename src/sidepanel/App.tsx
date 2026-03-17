@@ -1,277 +1,390 @@
-import { useRef, useEffect, useMemo } from 'react';
-import { PlusOutlined, HistoryOutlined, MessageOutlined, AppstoreOutlined } from '@ant-design/icons';
-import { ActionIcon, Tag, Modal, Button, Tooltip } from '@lobehub/ui';
-import { ChatHeader, ChatItem, BackBottom } from '@lobehub/ui/chat';
-import { PROVIDER_META } from '../shared/config.js';
-import ProviderCollapse from './components/ProviderCollapse';
-import ChatMessage from './components/ChatMessage';
-import ChannelList from './components/ChannelList';
-import ChannelSettingsModal from './components/ChannelSettingsModal';
-import SummaryPanel from './components/SummaryPanel';
-import HistoryPanel from './components/HistoryPanel';
-import FooterArea from './components/FooterArea';
+import {
+  CloseOutlined,
+  CommentOutlined,
+  CopyOutlined,
+  DislikeOutlined,
+  LikeOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
+import type { BubbleListProps, ConversationItemType } from '@ant-design/x';
+import {
+  Bubble,
+  Conversations,
+  Prompts,
+  Sender,
+  Think,
+  Welcome,
+} from '@ant-design/x';
+import { BubbleListRef } from '@ant-design/x/es/bubble';
+import XMarkdown from '@ant-design/x-markdown';
+import { Button, Popover, Space, Tag, Dropdown, MenuProps, message } from 'antd';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { useStore, buffers } from './store';
+import ChannelSettingsModal from './components/ChannelSettingsModal';
+import HistoryPanel from './components/HistoryPanel';
 import {
   PROVIDER_IDS, PROVIDER_THEME_MAP, PROVIDER_NAME_MAP,
   type ProviderId,
 } from './types';
+import { getProviderIconSet, getProviderThemeColor } from './utils';
 
-const getProviderLabel = (id: string) => PROVIDER_NAME_MAP[id as ProviderId] || id;
-const getProviderThemeColor = (id: string) => PROVIDER_THEME_MAP[id as ProviderId] || 'blue';
+// ════════════════════════════════════════════════════════════════════
+// Constants & Helpers
+// ════════════════════════════════════════════════════════════════════
+
+const DEFAULT_CONVERSATIONS_ITEMS: ConversationItemType[] = [
+  { key: 'new', label: '新会话', group: '当前' },
+];
+
+const ThinkComponent = React.memo((props: any) => {
+  const [title, setTitle] = useState('深度思考...');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (props.streamStatus === 'done' || !props.loading) {
+      setTitle('深度思考完成');
+      setLoading(false);
+    }
+  }, [props.streamStatus, props.loading]);
+
+  return (
+    <Think title={title} loading={loading}>
+      {props.children}
+    </Think>
+  );
+});
+
+const role: BubbleListProps['role'] = {
+  assistant: {
+    placement: 'start',
+    footer: (content, info) => (
+      <div style={{ display: 'flex', marginTop: 8 }}>
+        <Button type="text" size="small" icon={<ReloadOutlined />}>重试</Button>
+        <Button type="text" size="small" icon={<CopyOutlined />}>复制</Button>
+        <Button type="text" size="small" icon={<LikeOutlined />} />
+        <Button type="text" size="small" icon={<DislikeOutlined />} />
+      </div>
+    ),
+    contentRender: (content: string) => (
+      <XMarkdown
+        content={content}
+        components={{
+          think: ThinkComponent,
+        }}
+      />
+    ),
+  },
+  user: { placement: 'end' },
+};
+
+// ════════════════════════════════════════════════════════════════════
+// Main App Component
+// ════════════════════════════════════════════════════════════════════
 
 export default function App() {
-  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<BubbleListRef>(null);
+  const [inputValue, setInputValue] = useState('');
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [conversationsOpen, setConversationsOpen] = useState(false);
 
+  // 从 store 读取状态
   const hasAsked = useStore(s => s.hasAsked);
   const currentQuestion = useStore(s => s.currentQuestion);
-  const enabledMap = useStore(s => s.enabledMap);
   const conversationTurns = useStore(s => s.conversationTurns);
   const isMultiTurnSession = useStore(s => s.isMultiTurnSession);
   const isDeepThinkingEnabled = useStore(s => s.isDeepThinkingEnabled);
-  const isCurrentSessionFromHistory = useStore(s => s.isCurrentSessionFromHistory);
+  const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
   const statusMap = useStore(s => s.statusMap);
-  const stageMap = useStore(s => s.stageMap);
   const responses = useStore(s => s.responses);
   const thinkResponses = useStore(s => s.thinkResponses);
-  const operationStatus = useStore(s => s.operationStatus);
-  const rawUrlMap = useStore(s => s.rawUrlMap);
-  const statsMap = useStore(s => s.statsMap);
-  const openMap = useStore(s => s.openMap);
-  const showNoChannelTip = useStore(s => s.showNoChannelTip);
+  const enabledMap = useStore(s => s.enabledMap);
   const historyList = useStore(s => s.historyList);
-  const isHistoryPanelOpen = useStore(s => s.isHistoryPanelOpen);
+  const summaryStatus = useStore(s => s.summaryStatus);
+  const summaryResponse = useStore(s => s.summaryResponse);
+  const summaryThinkResponse = useStore(s => s.summaryThinkResponse);
 
-  const { createNewChat, setIsHistoryPanelOpen, setShowNoChannelTip, init } = useStore.getState();
+  const {
+    setInputStr, submit, createNewChat, toggleDeepThinking, toggleSummary,
+    restoreHistorySession, setIsHistoryPanelOpen,
+  } = useStore.getState();
 
-  useEffect(() => init(), []);
+  // 构建消息列表
+  const messages = useMemo(() => {
+    const items: any[] = [];
 
-  useEffect(() => {
-    buffers.autoScrollFn = () => {
-      if (!buffers.userHasScrolled && chatContainerRef.current) {
-        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-      }
-    };
-    return () => { buffers.autoScrollFn = null; };
-  }, []);
+    // 历史对话轮次
+    conversationTurns.forEach((turn, idx) => {
+      items.push({
+        id: `user-${idx}`,
+        message: { role: 'user' as const, content: turn.question },
+        status: 'success' as const,
+      });
+      items.push({
+        id: `ai-${turn.providerId}-${idx}`,
+        message: {
+          role: 'assistant' as const,
+          content: turn.response || '等待中...',
+          thinkResponse: turn.thinkResponse,
+        },
+        status: 'success' as const,
+      });
+    });
 
-  useEffect(() => {
-    const el = chatContainerRef.current;
-    if (!el) return;
-    const onScroll = () => {
-      const isRunningNow = PROVIDER_IDS.some(id => useStore.getState().statusMap[id] === 'running');
-      if (!isRunningNow) return;
-      if (el.scrollHeight - el.scrollTop - el.clientHeight > 80) buffers.userHasScrolled = true;
-    };
-    el.addEventListener('scroll', onScroll, { passive: true });
-    return () => el.removeEventListener('scroll', onScroll);
-  }, []);
+    // 当前用户消息
+    if (currentQuestion) {
+      items.push({
+        id: 'user-current',
+        message: { role: 'user' as const, content: currentQuestion },
+        status: 'success' as const,
+      });
+    }
 
-  const isRunning = useMemo(() => PROVIDER_IDS.some(id => statusMap[id] === 'running'), [statusMap]);
+    // 当前 AI 回复
+    const enabledProviderIds = PROVIDER_IDS.filter(id => enabledMap[id]);
+    if (enabledProviderIds.length === 1) {
+      const id = enabledProviderIds[0];
+      items.push({
+        id: `ai-current-${id}`,
+        message: {
+          role: 'assistant' as const,
+          content: responses[id] || (statusMap[id] === 'running' ? '思考中...' : ''),
+          thinkResponse: thinkResponses[id],
+        },
+        status: statusMap[id] === 'error' ? 'error' : 'success' as const,
+        loading: statusMap[id] === 'running',
+      });
+    } else if (enabledProviderIds.length > 1) {
+      enabledProviderIds.forEach(id => {
+        items.push({
+          id: `ai-current-${id}`,
+          message: {
+            role: 'assistant' as const,
+            content: responses[id] || (statusMap[id] === 'running' ? '思考中...' : ''),
+            thinkResponse: thinkResponses[id],
+            providerName: PROVIDER_NAME_MAP[id],
+            themeColor: PROVIDER_THEME_MAP[id],
+          },
+          status: statusMap[id] === 'error' ? 'error' : 'success' as const,
+          loading: statusMap[id] === 'running',
+        });
+      });
+    }
 
-  const singleChannelProviderId = useMemo<ProviderId | null>(() => {
-    if (!hasAsked) return null;
-    const enabled = PROVIDER_IDS.filter(id => enabledMap[id]);
-    return enabled.length === 1 ? enabled[0] : null;
-  }, [hasAsked, enabledMap]);
+    // 总结回复
+    if (isSummaryEnabled && (summaryStatus === 'running' || summaryResponse)) {
+      items.push({
+        id: 'summary',
+        message: {
+          role: 'assistant' as const,
+          content: summaryResponse || '正在生成总结...',
+          thinkResponse: summaryThinkResponse,
+          providerName: '智能总结',
+          themeColor: 'violet',
+        },
+        status: summaryStatus === 'error' ? 'error' : 'success' as const,
+        loading: summaryStatus === 'running',
+      });
+    }
 
-  const enabledCount = useMemo(() => PROVIDER_IDS.filter(id => enabledMap[id]).length, [enabledMap]);
+    return items;
+  }, [
+    conversationTurns, currentQuestion, enabledMap, statusMap,
+    responses, thinkResponses, isSummaryEnabled, summaryStatus,
+    summaryResponse, summaryThinkResponse,
+  ]);
 
-  const modeTag = isMultiTurnSession && hasAsked ? (
-    <Tag size="small" color="green">多轮对话</Tag>
-  ) : singleChannelProviderId ? (
-    <Tag size="small" color="green">单通道</Tag>
-  ) : (
-    <Tag size="small">MoE 模式</Tag>
-  );
+  // 处理用户提交
+  const handleUserSubmit = (val: string) => {
+    setInputStr(val);
+    submit();
+    setInputValue('');
+    listRef.current?.scrollTo({ top: 'bottom' });
+  };
+
+  // 欢迎页快捷问题
+  const MOCK_QUESTIONS = [
+    '今天天气怎么样？',
+    '如何学习 React？',
+    '解释一下量子计算',
+  ];
+
+  // 历史会话菜单
+  const historyMenuItems: MenuProps['items'] = historyList.slice(0, 10).map(item => ({
+    key: item.id,
+    label: item.type === 'multi' ? '多通道对话' : `${PROVIDER_NAME_MAP[item.providerId as ProviderId] || '对话'}`,
+    onClick: () => {
+      restoreHistorySession(item);
+      setConversationsOpen(false);
+    },
+  }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      <ChatHeader
-        style={{ position: 'sticky', top: 0, zIndex: 10, flexShrink: 0 }}
-        left={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Tooltip title="新建对话">
-              <ActionIcon
-                icon={PlusOutlined}
-                onClick={createNewChat}
-                disabled={!hasAsked || isRunning}
-                size="small"
-              />
-            </Tooltip>
-            <Tooltip title="历史对话">
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }} onClick={() => setIsHistoryPanelOpen(!isHistoryPanelOpen)}>
-                <ActionIcon icon={HistoryOutlined} size="small" />
-                <span style={{ fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)' }}>{historyList.length}</span>
+      {/* Header */}
+      <div style={{
+        height: 52,
+        boxSizing: 'border-box',
+        borderBottom: '1px solid #f0f0f0',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0 10px 0 16px',
+        background: '#fff',
+      }}>
+        <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span>✨ AI 对撞机</span>
+        </div>
+        <Space size={0}>
+          <Button
+            type="text"
+            icon={<PlusOutlined />}
+            onClick={createNewChat}
+            style={{ fontSize: 18 }}
+            title="新建对话"
+          />
+          <Popover
+            placement="bottom"
+            open={conversationsOpen}
+            onOpenChange={setConversationsOpen}
+            overlayInnerStyle={{ padding: 0, maxHeight: 600 }}
+            content={
+              <div style={{ width: 280 }}>
+                <Conversations
+                  items={[
+                    { key: 'new', label: hasAsked ? '新建对话' : '新会话' },
+                    ...historyList.slice(0, 9).map((item, idx) => ({
+                      key: item.id,
+                      label: item.type === 'multi'
+                        ? `多通道 · ${new Date(item.createdAt).toLocaleDateString()}`
+                        : `${PROVIDER_NAME_MAP[item.providerId as ProviderId]} · ${new Date(item.createdAt).toLocaleDateString()}`,
+                    })),
+                  ]}
+                  activeKey="new"
+                  onActiveChange={(key) => {
+                    if (key === 'new' && hasAsked) {
+                      createNewChat();
+                    } else if (key !== 'new') {
+                      const item = historyList.find(h => h.id === key);
+                      if (item) {
+                        restoreHistorySession(item);
+                      }
+                    }
+                    setConversationsOpen(false);
+                  }}
+                />
               </div>
-            </Tooltip>
-          </div>
-        }
-        right={modeTag}
-      />
+            }
+          >
+            <Button type="text" icon={<CommentOutlined />} style={{ fontSize: 18 }} title="历史对话" />
+          </Popover>
+          <Button
+            type="text"
+            icon={<SettingOutlined />}
+            onClick={() => setConversationsOpen(false)}
+            style={{ fontSize: 18 }}
+            title="通道设置"
+          />
+        </Space>
+      </div>
 
-      <HistoryPanel />
-
-      <main
-        ref={chatContainerRef}
-        style={{
-          flex: 1, overflowY: 'auto', padding: '20px 16px',
-          display: 'flex', flexDirection: 'column', gap: 24,
-          position: 'relative',
-        }}
-      >
-        {!hasAsked ? (
-          <div style={{ minHeight: '100%', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: 8 }}>
-            <div style={{ width: '100%', maxWidth: 360, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{
-                borderRadius: 16, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
-                background: 'var(--lobe-colorBgContainer, #fff)', padding: '14px 16px',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <h2 style={{ fontSize: 18, lineHeight: '28px', fontWeight: 600, letterSpacing: '-0.02em', color: 'var(--lobe-colorText, #1f1f1f)', margin: 0 }}>开始新对话</h2>
-                    <p style={{ marginTop: 4, fontSize: 12, lineHeight: '20px', color: 'var(--lobe-colorTextSecondary, #666)' }}>
-                      先选择要参与的通道。单个通道的详细参数，点对应的&ldquo;设置&rdquo;再调。
-                    </p>
-                  </div>
-                  <div style={{
-                    borderRadius: 999, border: '1px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
-                    background: 'var(--lobe-colorFillQuaternary, rgba(0,0,0,0.02))',
-                    padding: '2px 10px', fontSize: 11, fontWeight: 500,
-                    color: 'var(--lobe-colorTextSecondary, #666)', whiteSpace: 'nowrap',
-                  }}>
-                    {enabledCount}/{PROVIDER_META.length}
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--lobe-colorBorderSecondary, #f0f0f0)' }}>
-                  {enabledCount === 1 ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#10b981' }}>
-                      <MessageOutlined style={{ fontSize: 12, flexShrink: 0 }} />
-                      单通道模式 · 支持多轮对话，可连续追问
-                    </div>
-                  ) : enabledCount >= 2 ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--lobe-colorPrimary, #4f46e5)' }}>
-                      <AppstoreOutlined style={{ fontSize: 12, flexShrink: 0 }} />
-                      MoE 对比模式 · {enabledCount} 个通道并行回答
-                    </div>
-                  ) : (
-                    <div style={{ fontSize: 11, color: 'var(--lobe-colorTextQuaternary, #bbb)' }}>请至少选择一个通道</div>
-                  )}
-                </div>
-              </div>
-
-              <ChannelList />
-            </div>
-          </div>
+      {/* Main Chat Area */}
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        {messages.length > 0 ? (
+          /* 消息列表 */
+          <Bubble.List
+            ref={listRef}
+            style={{ paddingInline: 16, paddingBlock: 16, overflowY: 'auto', flex: 1 }}
+            items={messages?.map((i) => ({
+              ...i.message,
+              key: i.id,
+              status: i.status,
+              loading: i.loading,
+            }))}
+            role={role}
+          />
         ) : (
+          /* 欢迎页 */
           <>
-            {conversationTurns.length > 0 && (
-              <>
-                {conversationTurns.map((turn, idx) => (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <ChatItem
-                      placement="right"
-                      primary
-                      avatar={{ title: '我' }}
-                      showAvatar={false}
-                      message={turn.question}
-                      variant="bubble"
-                      style={{ opacity: 0.85 }}
-                    />
-                    <ChatMessage
-                      providerId={turn.providerId}
-                      providerName={getProviderLabel(turn.providerId)}
-                      themeColor={getProviderThemeColor(turn.providerId)}
-                      status="completed"
-                      stage="responding"
-                      response={turn.response}
-                      thinkResponse={turn.thinkResponse}
-                      rawUrl={turn.rawUrl}
-                      isFromHistory
-                      isDeepThinkingEnabled={isDeepThinkingEnabled}
-                      stats={turn.stats}
-                    />
-                  </div>
-                ))}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0', opacity: 0.4 }}>
-                  <div style={{ flex: 1, borderTop: '1px dashed var(--lobe-colorBorder, #d9d9d9)' }} />
-                  <span style={{ fontSize: 10, color: 'var(--lobe-colorTextQuaternary, #bbb)', whiteSpace: 'nowrap' }}>继续对话</span>
-                  <div style={{ flex: 1, borderTop: '1px dashed var(--lobe-colorBorder, #d9d9d9)' }} />
-                </div>
-              </>
-            )}
-
-            <ChatItem
-              placement="right"
-              primary
-              avatar={{ title: '我' }}
-              showAvatar={false}
-              message={currentQuestion}
-              variant="bubble"
+            <Welcome
+              variant="borderless"
+              title="👋 你好，我是 AI 对撞机"
+              description="一个问题问多个 AI，获取最全面的答案"
+              style={{
+                marginInline: 16,
+                padding: '12px 16px',
+                borderRadius: '2px 12px 12px 12px',
+                background: '#f5f5f5',
+                marginBottom: 16,
+              }}
             />
 
-            {singleChannelProviderId ? (
-              <ChatMessage
-                providerId={singleChannelProviderId}
-                providerName={getProviderLabel(singleChannelProviderId)}
-                themeColor={getProviderThemeColor(singleChannelProviderId)}
-                status={statusMap[singleChannelProviderId]}
-                stage={stageMap[singleChannelProviderId]}
-                response={responses[singleChannelProviderId]}
-                thinkResponse={thinkResponses[singleChannelProviderId]}
-                operationStatus={operationStatus[singleChannelProviderId]}
-                rawUrl={rawUrlMap[singleChannelProviderId]}
-                isFromHistory={isCurrentSessionFromHistory}
-                isDeepThinkingEnabled={isDeepThinkingEnabled}
-                stats={statsMap[singleChannelProviderId]}
-              />
-            ) : (
-              PROVIDER_IDS.filter(id => enabledMap[id]).map(id => (
-                <ProviderCollapse
-                  key={id}
-                  providerId={id}
-                  providerName={getProviderLabel(id)}
-                  themeColor={getProviderThemeColor(id)}
-                  status={statusMap[id]}
-                  stage={stageMap[id]}
-                  response={responses[id]}
-                  thinkResponse={thinkResponses[id]}
-                  operationStatus={operationStatus[id]}
-                  rawUrl={rawUrlMap[id]}
-                  isFromHistory={isCurrentSessionFromHistory}
-                  isDeepThinkingEnabled={isDeepThinkingEnabled}
-                  defaultOpen={openMap[id]}
-                  stats={statsMap[id]}
-                />
-              ))
-            )}
-
-            <SummaryPanel />
+            <Prompts
+              vertical
+              title="我可以帮助："
+              items={MOCK_QUESTIONS.map((q) => ({ key: q, description: q }))}
+              onItemClick={(info) => handleUserSubmit(info?.data?.description as string)}
+              style={{ marginInline: 16 }}
+              styles={{ title: { fontSize: 14 } }}
+            />
           </>
         )}
+      </div>
 
-        <BackBottom target={chatContainerRef} text="回到底部" />
-      </main>
+      {/* Sender Area */}
+      <div style={{ padding: 16, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
+        <Sender
+          loading={PROVIDER_IDS.some(id => statusMap[id] === 'running')}
+          value={inputValue}
+          onChange={(v) => setInputValue(v)}
+          onSubmit={() => handleUserSubmit(inputValue)}
+          onCancel={() => {
+            // TODO: 添加取消请求逻辑
+            message.info('取消功能待实现');
+          }}
+          placeholder="输入问题，按 Enter 发送..."
+          allowSpeech
+          header={
+            <Sender.Header
+              title="通道设置"
+              styles={{ content: { padding: 0 } }}
+              open={isHistoryOpen}
+              onOpenChange={setIsHistoryOpen}
+              forceRender
+            >
+              <div style={{ padding: 16 }}>
+                <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500 }}>快捷设置</div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <Button
+                    type={isDeepThinkingEnabled ? 'primary' : 'default'}
+                    size="small"
+                    onClick={toggleDeepThinking}
+                  >
+                    深度思考 {isDeepThinkingEnabled ? '已开启' : '已关闭'}
+                  </Button>
+                  <Button
+                    type={isSummaryEnabled ? 'primary' : 'default'}
+                    size="small"
+                    onClick={toggleSummary}
+                  >
+                    智能总结 {isSummaryEnabled ? '已开启' : '已关闭'}
+                  </Button>
+                </div>
+                <div style={{ marginTop: 16, borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+                  <Button block onClick={() => { setIsHistoryPanelOpen(true); setIsHistoryOpen(false); }}>
+                    查看详细历史记录
+                  </Button>
+                </div>
+              </div>
+            </Sender.Header>
+          }
+        />
+      </div>
 
+      {/* Modals */}
       <ChannelSettingsModal />
-
-      <Modal
-        open={showNoChannelTip}
-        onCancel={() => setShowNoChannelTip(false)}
-        title="提示"
-        width={320}
-        footer={
-          <Button type="primary" onClick={() => setShowNoChannelTip(false)} block>
-            确定
-          </Button>
-        }
-      >
-        <p style={{ fontSize: 14, lineHeight: '24px', color: 'var(--lobe-colorText, #1f1f1f)' }}>
-          请在通道列表中至少开启一个通道后再发送。
-        </p>
-      </Modal>
-
-      <FooterArea />
+      <HistoryPanel />
     </div>
   );
 }

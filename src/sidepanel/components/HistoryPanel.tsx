@@ -1,5 +1,5 @@
 import { CloseOutlined } from '@ant-design/icons';
-import { ActionIcon, Button, Drawer, Empty, List, Tag } from '@lobehub/ui';
+import { Drawer, Button, Empty, List, Tag, Avatar, Space } from 'antd';
 import { useStore } from '../store';
 import type { ChatHistoryItem } from '../types';
 
@@ -39,30 +39,18 @@ export default function HistoryPanel() {
   } = useStore.getState();
 
   const listItems = historyList.map((item) => ({
-    key: item.id,
+    id: item.id,
     title: (
-      <span style={{ fontSize: 12 }}>{getHistoryTitle(item)}</span>
+      <span style={{ fontSize: 13 }}>{getHistoryTitle(item)}</span>
     ),
     description: (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-        <span>{formatHistoryTime(getHistoryDate(item))}</span>
-        {item.type === 'single' && <span>· {item.turns.length} 轮</span>}
-        <Tag size="small">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: '#9ca3af' }}>{formatHistoryTime(getHistoryDate(item))}</span>
+        {item.type === 'single' && <span style={{ fontSize: 12, color: '#9ca3af' }}>· {item.turns.length} 轮</span>}
+        <Tag style={{ fontSize: 12 }}>
           {item.type === 'single' ? '单通道' : `${getHistoryEnabledCount(item)} 通道`}
         </Tag>
       </div>
-    ),
-    active: item.id === activeSessionId,
-    actions: (
-      <ActionIcon
-        icon={CloseOutlined}
-        size={{ blockSize: 20 }}
-        onClick={(e: React.MouseEvent) => {
-          e.stopPropagation();
-          deleteHistoryItem(item.id);
-        }}
-        title="删除此记录"
-      />
     ),
   }));
 
@@ -75,22 +63,65 @@ export default function HistoryPanel() {
       width={340}
       extra={
         historyList.length > 0 ? (
-          <Button type="text" size="small" danger onClick={clearHistory} style={{ fontSize: 11 }}>
+          <Button
+            type="text"
+            size="small"
+            danger
+            onClick={clearHistory}
+            style={{ fontSize: 12 }}
+          >
             清除全部
           </Button>
         ) : null
       }
+      styles={{
+        body: { padding: 0 },
+      }}
     >
       {historyList.length === 0 ? (
         <Empty description="暂无历史对话" style={{ padding: '48px 0' }} />
       ) : (
         <List
-          activeKey={activeSessionId}
-          items={listItems}
-          onClick={({ key }: { key: string }) => {
-            const item = historyList.find(h => h.id === key);
-            if (item) restoreHistorySession(item);
-          }}
+          dataSource={historyList}
+          renderItem={(item) => (
+            <List.Item
+              onClick={() => restoreHistorySession(item)}
+              style={{
+                padding: '12px 16px',
+                cursor: 'pointer',
+                background: item.id === activeSessionId ? '#f5f5f5' : 'transparent',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                if (item.id !== activeSessionId) {
+                  e.currentTarget.style.background = '#f9fafb';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (item.id !== activeSessionId) {
+                  e.currentTarget.style.background = 'transparent';
+                }
+              }}
+              actions={[
+                <Button
+                  key="delete"
+                  type="text"
+                  size="small"
+                  danger
+                  icon={<CloseOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteHistoryItem(item.id);
+                  }}
+                />,
+              ]}
+            >
+              <List.Item.Meta
+                title={listItems.find(i => i.id === item.id)?.title}
+                description={listItems.find(i => i.id === item.id)?.description}
+              />
+            </List.Item>
+          )}
         />
       )}
     </Drawer>

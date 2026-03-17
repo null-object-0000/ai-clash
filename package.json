@@ -14,12 +14,16 @@
     },
     "dependencies": {
         "@ant-design/icons": "^6.1.0",
+        "@ant-design/x": "^2.4.0",
+        "@ant-design/x-markdown": "^2.4.0",
+        "@ant-design/x-sdk": "^2.4.0",
         "@lobehub/icons": "^5.0.1",
-        "@lobehub/ui": "^5.5.1",
+        "antd": "^6.3.3",
         "motion": "^12.37.0",
         "openai": "^6.31.0",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
+        "react-markdown": "^10.1.0",
         "zustand": "^5.0.12"
     },
     "sideEffects": false,

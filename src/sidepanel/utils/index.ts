@@ -1,5 +1,5 @@
 import { PROVIDER_NAME_MAP, type ProviderId } from '../types';
-import { getProviderIconSet } from './providerIcons';
+import { getProviderIconSet, getProviderIcon } from './providerIcons';
 
 /**
  * 获取提供者的显示名称
@@ -25,10 +25,7 @@ export function getProviderThemeColor(providerId: ProviderId): string {
 /**
  * 获取提供者的图标组件
  */
-export function getProviderIcon(providerId: ProviderId) {
-  const iconSet = getProviderIconSet(providerId);
-  return iconSet?.Color || iconSet?.Mono;
-}
+export { getProviderIcon, getProviderIconSet } from './providerIcons';
 
 /**
  * 激活或打开指定的标签页

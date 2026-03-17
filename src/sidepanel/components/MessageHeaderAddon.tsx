@@ -1,4 +1,4 @@
-import TagBadge from './common/TagBadge';
+import { Tag } from 'antd';
 import { formatDuration } from '../utils';
 
 import type { ProviderStats } from '../types';
@@ -15,19 +15,19 @@ export default function MessageHeaderAddon({
   hasError,
 }: MessageHeaderAddonProps) {
   if (hasError) {
-    return <TagBadge tagVariant="error">响应失败</TagBadge>;
+    return <Tag color="red">响应失败</Tag>;
   }
 
   if (status === 'running') {
-    return <TagBadge tagVariant="processing">正在响应</TagBadge>;
+    return <Tag color="blue">正在响应</Tag>;
   }
 
   if (status === 'completed' && stats) {
     const duration = stats.totalTime;
     return (
-      <div className="flex items-center gap-1.5">
-        <TagBadge tagVariant="success">已完成</TagBadge>
-        <span className="text-xs text-gray-500">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Tag color="green">已完成</Tag>
+        <span style={{ fontSize: 12, color: '#9ca3af' }}>
           首字 {(stats.ttff / 1000).toFixed(1)}s · 总耗时 {(duration / 1000).toFixed(1)}s · {stats.charCount.toLocaleString('zh-CN')}字 · {stats.charsPerSec}字/s
         </span>
       </div>

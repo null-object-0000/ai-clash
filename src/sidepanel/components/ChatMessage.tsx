@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { ExportOutlined } from '@ant-design/icons';
-import { Markdown, Tooltip, Tag, Skeleton } from '@lobehub/ui';
-import { ChatItem, LoadingDots } from '@lobehub/ui/chat';
+import { Avatar, Tag, Skeleton, Typography } from 'antd';
+import { Bubble, Think } from '@ant-design/x';
+import { XMarkdown } from '@ant-design/x-markdown';
 import type { ProviderStats, ProviderStatus, StageType, ProviderId, ThemeColor } from '../types';
-import ThinkingBlock from './ThinkingBlock';
 import MessageHeaderAddon from './MessageHeaderAddon';
-import { getProviderIcon, getProviderThemeColor, activateOrOpenTab } from '../utils';
+import { getProviderIconSet, getProviderIcon, getProviderThemeColor, activateOrOpenTab } from '../utils';
+
+const { Text } = Typography;
 
 const STAGE_LABELS: Record<string, string> = {
   connecting: '等待连接网页端...',
@@ -45,6 +47,7 @@ export default function ChatMessage({
   const [isThinkBlockOpen, setIsThinkBlockOpen] = useState(true);
 
   const stageLabel = STAGE_LABELS[stage] ?? STAGE_LABELS.connecting;
+  const IconSet = getProviderIconSet(providerId);
   const Icon = getProviderIcon(providerId);
 
   const isLoading = status === 'running' && !response && stage !== 'responding';
@@ -57,17 +60,24 @@ export default function ChatMessage({
     }
   };
 
-  const titleAddon = (
-    <div className="flex items-center gap-1.5 flex-wrap">
+  const headerContent = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       {status === 'running' && (
-        <LoadingDots variant="pulse" size={12} color={themeColor} />
+        <span style={{
+          display: 'inline-block',
+          width: 12,
+          height: 12,
+          borderRadius: '50%',
+          background: themeColor,
+          animation: 'pulse 1s infinite',
+        }} />
       )}
 
       {operationStatus && (
-        <span className="text-xs text-orange-500 animate-pulse">{operationStatus}</span>
+        <Text style={{ fontSize: 12, color: '#f59e0b', animation: 'pulse 1s infinite' }}>{operationStatus}</Text>
       )}
       {!operationStatus && status === 'running' && (
-        <span className="text-xs text-gray-500 animate-pulse">{stageLabel}</span>
+        <Text style={{ fontSize: 12, color: '#9ca3af', animation: 'pulse 1s infinite' }}>{stageLabel}</Text>
       )}
 
       <MessageHeaderAddon
@@ -77,31 +87,36 @@ export default function ChatMessage({
       />
 
       {rawUrl && rawUrl !== 'api' && (
-        <Tooltip title={isFromHistory ? '在新标签页打开对话页' : '激活已有标签或打开对话页'}>
-          <a
-            href={rawUrl}
-            target={isFromHistory ? '_blank' : undefined}
-            rel="noopener noreferrer"
-            onClick={handleOriginalClick}
-            className="ml-auto inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-600 no-underline hover:bg-gray-100 transition-smooth"
-          >
-            <ExportOutlined className="text-xs opacity-80" />
-            <span>原文</span>
-          </a>
-        </Tooltip>
+        <a
+          href={rawUrl}
+          target={isFromHistory ? '_blank' : undefined}
+          rel="noopener noreferrer"
+          onClick={handleOriginalClick}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            marginLeft: 'auto',
+            padding: '2px 8px',
+            borderRadius: 999,
+            border: '1px solid #e5e7eb',
+            background: '#f9fafb',
+            fontSize: 11,
+            fontWeight: 500,
+            color: '#6b7280',
+            textDecoration: 'none',
+            transition: 'all 0.2s',
+          }}
+        >
+          <ExportOutlined style={{ fontSize: 12, opacity: 0.8 }} />
+          <span>原文</span>
+        </a>
       )}
       {rawUrl === 'api' && (
-        <Tag size="small" className="ml-auto">API</Tag>
+        <Tag style={{ marginLeft: 'auto', fontSize: 12 }}>API</Tag>
       )}
     </div>
   );
-
-  const aboveMessage = isDeepThinkingEnabled && thinkResponse ? (
-    <ThinkingBlock
-      content={thinkResponse}
-      className="mb-2"
-    />
-  ) : null;
 
   const fallbackText = status === 'running'
     ? (stage === 'responding' ? '' : stageLabel)
@@ -112,47 +127,72 @@ export default function ChatMessage({
         : '等待开始...';
 
   const messageContent = response ? (
-    <>
-      <Markdown
-        variant="chat"
-        fontSize={13.5}
-        rehypePlugins={[]}
-        remarkPlugins={[]}
-        enableLatex={false}
-        enableMermaid={false}
-      >
-        {response}
-      </Markdown>
+    <div style={{ fontSize: 13.5, lineHeight: 1.8 }}>
+      <XMarkdown content={response} />
       {status === 'running' && stage === 'responding' && (
         <span
-          className="inline-block w-1.5 h-3.5 ml-0.5 align-middle rounded-sm animate-pulse"
-          style={{ backgroundColor: themeColor }}
+          style={{
+            display: 'inline-block',
+            width: 6,
+            height: 14,
+            marginLeft: 4,
+            verticalAlign: 'middle',
+            borderRadius: 2,
+            backgroundColor: themeColor,
+            animation: 'pulse 1s infinite',
+          }}
         />
       )}
-    </>
+    </div>
   ) : isLoading ? (
     <Skeleton active paragraph={{ rows: 2 }} title={false} />
   ) : (
-    <div className="text-sm text-gray-500 leading-relaxed">
+    <div style={{ fontSize: 13.5, color: '#9ca3af', lineHeight: 1.8 }}>
       {fallbackText}
     </div>
   );
 
   return (
-    <ChatItem
-      placement="left"
-      avatar={{
-        avatar: Icon ? <Icon size={20} /> : undefined,
-        backgroundColor: themeColor,
-        title: providerName,
-      }}
-      showTitle
-      titleAddon={titleAddon}
-      aboveMessage={aboveMessage}
-      renderMessage={() => messageContent}
-      message=" "
-      variant="bubble"
-      markdownProps={{ variant: 'chat', fontSize: 13.5 }}
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* 思考过程 - 使用 Think 组件 */}
+      {isDeepThinkingEnabled && thinkResponse && (
+        <Think
+          expanded={isThinkBlockOpen}
+          onExpand={setIsThinkBlockOpen}
+          title="深度思考"
+          style={{ marginBottom: 8 }}
+        >
+          <div style={{ whiteSpace: 'pre-wrap' }}>{thinkResponse}</div>
+        </Think>
+      )}
+
+      <Bubble
+        content={messageContent}
+        avatar={
+          <Avatar
+            style={{ backgroundColor: themeColor }}
+            icon={IconSet?.Color ? <IconSet.Color size={20} /> : undefined}
+          />
+        }
+        header={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: '#1f1f1f' }}>{providerName}</span>
+            {headerContent}
+          </div>
+        }
+        placement="start"
+        variant="shadow"
+        styles={{
+          body: {
+            padding: '12px 16px',
+            fontSize: 13.5,
+            lineHeight: 1.8,
+          },
+          header: {
+            marginBottom: 8,
+          },
+        }}
+      />
+    </div>
   );
 }

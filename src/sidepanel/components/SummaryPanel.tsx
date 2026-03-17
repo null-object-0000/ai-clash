@@ -1,8 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { CheckCircleOutlined, ExclamationCircleOutlined, RightOutlined, DownOutlined, UpOutlined } from '@ant-design/icons';
-import { Markdown, Tag } from '@lobehub/ui';
-import { LoadingDots } from '@lobehub/ui/chat';
+import { CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { Tag, Typography } from 'antd';
+import { Think } from '@ant-design/x';
+import { XMarkdown } from '@ant-design/x-markdown';
 import { useStore } from '../store';
+
+const { Text } = Typography;
 
 export default function SummaryPanel() {
   const status = useStore(s => s.summaryStatus);
@@ -32,31 +35,61 @@ export default function SummaryPanel() {
     <div
       ref={panelRef}
       style={{
-        position: 'sticky', bottom: 0, zIndex: 5,
-        borderRadius: 12, overflow: 'hidden',
-        border: '1px solid var(--lobe-colorPrimaryBorder, #c7d2fe)',
+        position: 'sticky',
+        bottom: 0,
+        zIndex: 5,
+        borderRadius: 12,
+        overflow: 'hidden',
+        border: '1px solid #c7d2fe',
         boxShadow: '0 -2px 12px rgba(99,102,241,0.08), 0 1px 2px rgba(0,0,0,0.04)',
       }}
     >
       <div
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 16px', cursor: 'pointer', userSelect: 'none',
-          background: 'linear-gradient(to right, var(--lobe-colorPrimaryBg, #eef2ff), #faf5ff)',
-          borderBottom: isCollapsed ? 'none' : '1px solid var(--lobe-colorPrimaryBorder, #c7d2fe)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '10px 16px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          background: 'linear-gradient(to right, #eef2ff, #faf5ff)',
+          borderBottom: isCollapsed ? 'none' : '1px solid #c7d2fe',
         }}
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {status === 'running' && <LoadingDots variant="pulse" size={14} color="var(--lobe-colorPrimary, #6366f1)" />}
-          {status === 'completed' && <CheckCircleOutlined style={{ fontSize: 14, color: 'var(--lobe-colorPrimary, #6366f1)' }} />}
-          {status === 'error' && <ExclamationCircleOutlined style={{ fontSize: 14, color: '#f43f5e' }} />}
-          {status === 'idle' && <span style={{ display: 'inline-flex', borderRadius: '50%', height: 10, width: 10, background: 'var(--lobe-colorBorder, #d9d9d9)' }} />}
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--lobe-colorPrimary, #4338ca)', letterSpacing: '0.02em' }}>最终研判结论</span>
-          <Tag size="small" color="purple">AI 智能汇总</Tag>
+          {status === 'running' && (
+            <span style={{
+              display: 'inline-block',
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              background: '#6366f1',
+              animation: 'pulse 1s infinite',
+            }} />
+          )}
+          {status === 'completed' && (
+            <CheckCircleOutlined style={{ fontSize: 14, color: '#6366f1' }} />
+          )}
+          {status === 'error' && (
+            <ExclamationCircleOutlined style={{ fontSize: 14, color: '#f43f5e' }} />
+          )}
+          {status === 'idle' && (
+            <span style={{
+              display: 'inline-flex',
+              borderRadius: '50%',
+              height: 10,
+              width: 10,
+              background: '#d9d9d9',
+            }} />
+          )}
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#4338ca', letterSpacing: '0.02em' }}>
+            最终研判结论
+          </span>
+          <Tag color="purple" style={{ fontSize: 12 }}>AI 智能汇总</Tag>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ fontSize: 11, color: 'var(--lobe-colorPrimaryText, #818cf8)' }}>
+          <Text style={{ fontSize: 11, color: '#818cf8' }}>
             {operationStatus && <span style={{ animation: 'pulse 1s infinite' }}>{operationStatus}</span>}
             {!operationStatus && status === 'running' && stage === 'thinking' && <span>正在思考...</span>}
             {!operationStatus && status === 'running' && stage !== 'thinking' && <span>正在输出...</span>}
@@ -67,86 +100,89 @@ export default function SummaryPanel() {
               </span>
             )}
             {!operationStatus && !stats && status === 'completed' && <span>已完成</span>}
-          </div>
-          {isCollapsed
-            ? <UpOutlined style={{ fontSize: 14, color: 'var(--lobe-colorTextTertiary, #999)' }} />
-            : <DownOutlined style={{ fontSize: 14, color: 'var(--lobe-colorTextTertiary, #999)' }} />
-          }
+          </Text>
+          <span style={{ fontSize: 14, color: '#9ca3af' }}>
+            {isCollapsed ? '收起' : '展开'}
+          </span>
         </div>
       </div>
 
       {!isCollapsed && (
         <div style={{
-          padding: 16, background: 'var(--lobe-colorBgContainer, #fff)',
-          maxHeight: '50vh', overflowY: 'auto',
+          padding: 16,
+          background: '#fff',
+          maxHeight: '50vh',
+          overflowY: 'auto',
         }}>
           {status === 'idle' && (
-            <div style={{ fontSize: 13, color: 'var(--lobe-colorTextQuaternary, #bbb)', fontStyle: 'italic' }}>等待各通道回答完毕后自动归纳...</div>
+            <div style={{ fontSize: 13, color: '#9ca3af', fontStyle: 'italic' }}>
+              等待各通道回答完毕后自动归纳...
+            </div>
           )}
 
+          {/* 思考过程 - 使用 Think 组件 */}
           {thinkResponse && status !== 'idle' && (
-            <div style={{ marginBottom: 12 }}>
-              <button
-                type="button"
-                onClick={() => setIsThinkBlockOpen(!isThinkBlockOpen)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)',
-                  background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  marginBottom: 4,
-                }}
-              >
-                <RightOutlined
-                  style={{
-                    fontSize: 12,
-                    transition: 'transform 0.2s',
-                    transform: isThinkBlockOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-                  }}
-                />
-                <span>思考过程</span>
-                {stage === 'thinking' && status === 'running' && (
-                  <span style={{ display: 'inline-block', width: 3, height: 10, marginLeft: 2, background: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }} />
-                )}
-              </button>
-              {isThinkBlockOpen && (
-                <div style={{
-                  paddingLeft: 12, borderLeft: '2px solid var(--lobe-colorBorderSecondary, #e8e8e8)',
-                  color: 'var(--lobe-colorTextSecondary, #666)', lineHeight: 1.8,
-                  whiteSpace: 'pre-wrap', fontSize: 12, wordBreak: 'break-word',
-                }}>
-                  {thinkResponse}
-                </div>
-              )}
-            </div>
+            <Think
+              expanded={isThinkBlockOpen}
+              onExpand={setIsThinkBlockOpen}
+              title="深度思考"
+              style={{ marginBottom: 12 }}
+            >
+              <div style={{ whiteSpace: 'pre-wrap' }}>{thinkResponse}</div>
+            </Think>
           )}
+
+          {/* 思考中标记 */}
           {!thinkResponse && stage === 'thinking' && status === 'running' && (
-            <div style={{ marginBottom: 12, fontSize: 11, color: 'var(--lobe-colorTextTertiary, #999)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <div style={{
+              marginBottom: 12,
+              fontSize: 12,
+              color: '#9ca3af',
+              fontStyle: 'italic',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}>
               正在思考...
-              <span style={{ display: 'inline-block', width: 3, height: 10, background: 'var(--lobe-colorTextQuaternary, #bbb)', animation: 'pulse 1s infinite' }} />
+              <span style={{
+                display: 'inline-block',
+                width: 3,
+                height: 10,
+                background: '#9ca3af',
+                animation: 'pulse 1s infinite',
+              }} />
             </div>
           )}
 
+          {/* 回答内容 - 使用 XMarkdown */}
           {status !== 'idle' && (
             <>
               {response ? (
-                <Markdown
-                  variant="chat"
-                  fontSize={13.5}
-                  // 只启用需要的插件，禁用未使用功能
-                  rehypePlugins={[]}
-                  remarkPlugins={[]}
-                  enableLatex={false}
-                  enableMermaid={false}
-                >
-                  {response}
-                </Markdown>
+                <XMarkdown content={response} />
               ) : (
                 status === 'running' && stage === 'responding' && (
-                  <span style={{ display: 'inline-block', width: 6, height: 14, background: 'var(--lobe-colorPrimary, #6366f1)', animation: 'pulse 1s infinite', verticalAlign: 'middle', borderRadius: 1 }} />
+                  <span style={{
+                    display: 'inline-block',
+                    width: 6,
+                    height: 14,
+                    background: '#6366f1',
+                    animation: 'pulse 1s infinite',
+                    verticalAlign: 'middle',
+                    borderRadius: 2,
+                  }} />
                 )
               )}
               {response && status === 'running' && stage === 'responding' && (
-                <span style={{ display: 'inline-block', width: 6, height: 14, marginLeft: 2, background: 'var(--lobe-colorPrimary, #6366f1)', animation: 'pulse 1s infinite', verticalAlign: 'middle', borderRadius: 1 }} />
+                <span style={{
+                  display: 'inline-block',
+                  width: 6,
+                  height: 14,
+                  marginLeft: 4,
+                  background: '#6366f1',
+                  animation: 'pulse 1s infinite',
+                  verticalAlign: 'middle',
+                  borderRadius: 2,
+                }} />
               )}
             </>
           )}
