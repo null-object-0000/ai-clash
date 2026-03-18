@@ -34,7 +34,7 @@ import {
   XModelResponse,
   XRequest,
 } from '@ant-design/x-sdk';
-import { Button, Flex, GetProp, GetRef, message, Popover, Space } from 'antd';
+import { Button, Drawer, Flex, GetProp, GetRef, message } from 'antd';
 import { createStyles } from 'antd-style';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
@@ -122,6 +122,7 @@ const MOCK_QUESTIONS = [
 const useStyles = createStyles(({ token, css }) => {
   return {
     copilotChat: css`
+      position: relative;
       display: flex;
       flex-direction: column;
       height: 100vh;
@@ -129,31 +130,79 @@ const useStyles = createStyles(({ token, css }) => {
       background: ${token.colorBgContainer};
       color: ${token.colorText};
     `,
-    chatHeader: css`
-      flex-shrink: 0;
-      height: 52px;
-      box-sizing: border-box;
-      border-bottom: 1px solid ${token.colorBorder};
+    floatingToolbar: css`
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 50;
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0 10px 0 16px;
+      gap: 6px;
     `,
-    headerTitle: css`
-      font-weight: 600;
+    floatingBtn: css`
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: ${token.colorTextSecondary};
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
       font-size: 15px;
+
+      &:hover {
+        color: ${token.colorPrimary};
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+      }
     `,
-    headerButton: css`
-      font-size: 18px;
+    floatingBtnWithText: css`
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 12px;
+      height: 32px;
+      width: auto;
+      border-radius: 16px;
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: ${token.colorTextSecondary};
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+
+      &:hover {
+        color: ${token.colorPrimary};
+        background: rgba(255, 255, 255, 0.95);
+        border-color: ${token.colorPrimaryBorder};
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transform: translateY(-1px);
+      }
+
+      .anticon {
+        font-size: 14px;
+      }
     `,
     conversations: css`
-      width: 300px;
+      width: 100%;
       .ant-conversations-list {
         padding-inline-start: 0;
       }
     `,
     chatList: css`
-      margin-block-start: ${token.margin}px;
+      padding-block-start: 48px;
       display: flex;
       flex: 1;
       min-height: 0;
@@ -276,6 +325,7 @@ const App = () => {
   const [files, setFiles] = useState<GetProp<AttachmentsProps, 'items'>>([]);
 
   const [inputValue, setInputValue] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const listRef = useRef<BubbleListRef>(null);
 
@@ -325,12 +375,11 @@ const App = () => {
 
   // ==================== Nodes ====================
   const chatHeader = (
-    <div className={styles.chatHeader}>
-      <div className={styles.headerTitle}>✨ AI 助手</div>
-      <Space size={0}>
-        <Button
-          type="text"
-          icon={<PlusOutlined />}
+    <>
+      <div className={styles.floatingToolbar}>
+        <button
+          className={styles.floatingBtnWithText}
+          title="新对话"
           onClick={() => {
             if (messages?.length) {
               const timeNow = dayjs().valueOf().toString();
@@ -340,28 +389,40 @@ const App = () => {
               message.error('当前已经是新会话');
             }
           }}
-          className={styles.headerButton}
-        />
-        <Popover
-          placement="bottom"
-          styles={{ container: { padding: 0, maxHeight: 600 } }}
-          content={
-            <Conversations
-              items={conversations?.map((i) =>
-                i.key === activeConversationKey ? { ...i, label: `[当前] ${i.label}` } : i,
-              )}
-              activeKey={activeConversationKey}
-              groupable
-              onActiveChange={setActiveConversationKey}
-              styles={{ item: { padding: '0 8px' } }}
-              className={styles.conversations}
-            />
-          }
         >
-          <Button type="text" icon={<CommentOutlined />} className={styles.headerButton} />
-        </Popover>
-      </Space>
-    </div>
+          <PlusOutlined />
+        </button>
+        <button
+          className={styles.floatingBtn}
+          title="历史记录"
+          onClick={() => setHistoryOpen(true)}
+        >
+          <CommentOutlined />
+        </button>
+      </div>
+      <Drawer
+        title="历史记录"
+        placement="right"
+        width="85%"
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        styles={{ body: { padding: 0 } }}
+      >
+        <Conversations
+          items={conversations?.map((i) =>
+            i.key === activeConversationKey ? { ...i, label: `[当前] ${i.label}` } : i,
+          )}
+          activeKey={activeConversationKey}
+          groupable
+          onActiveChange={(key) => {
+            setActiveConversationKey(key);
+            setHistoryOpen(false);
+          }}
+          styles={{ item: { padding: '0 8px' } }}
+          className={styles.conversations}
+        />
+      </Drawer>
+    </>
   );
   const chatList = (
     <div className={styles.chatList}>
