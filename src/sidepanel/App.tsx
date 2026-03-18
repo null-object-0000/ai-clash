@@ -18,7 +18,7 @@ import XMarkdown from '@ant-design/x-markdown';
 import { Flex, message, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useStore } from './store';
+import { useStore, buffers } from './store';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type StageType,
@@ -194,33 +194,37 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus }: {
 
 // ─── ThoughtChain helpers ───
 
-const STAGE_ORDER: StageType[] = ['connecting', 'thinking', 'responding'];
+const STAGE_ORDER: StageType[] = ['opening', 'loading', 'connecting', 'thinking', 'responding'];
 const STAGE_LABELS: Record<string, string> = {
+  opening: '打开页面',
+  loading: '加载页面',
   connecting: '连接通道',
   thinking: '深度思考',
   responding: '生成回答',
 };
 
-function buildThoughtChainItems(stage: StageType, opStatus?: string) {
-  const currentIdx = STAGE_ORDER.indexOf(stage);
+function buildThoughtChainItems(stage: StageType, opStatus?: string, visitedStages?: Set<string>) {
+  const visited = new Set(visitedStages);
+  visited.add(stage);
+
   return STAGE_ORDER
-    .filter((_, i) => i <= Math.max(currentIdx, 0))
+    .filter(s => visited.has(s))
     .map((s) => {
       const isCurrent = s === stage;
-      const status: 'success' | 'loading' = isCurrent ? 'loading' : 'success';
       return {
         key: s,
         title: STAGE_LABELS[s],
-        status,
+        status: (isCurrent ? 'loading' : 'success') as 'loading' | 'success',
         description: isCurrent && opStatus ? opStatus : undefined,
       };
     });
 }
 
-function StageThoughtChain({ stage, opStatus }: { stage: StageType; opStatus?: string }) {
+function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; opStatus?: string; providerId?: string }) {
+  const visited = providerId ? buffers.visitedStages[providerId as ProviderId] : undefined;
   return (
     <ThoughtChain
-      items={buildThoughtChainItems(stage, opStatus)}
+      items={buildThoughtChainItems(stage, opStatus, visited)}
       style={{ padding: '4px 0' }}
     />
   );
@@ -326,7 +330,7 @@ const App = () => {
           />,
           ...(isRunning && !hasContent ? {
             loadingRender: () => (
-              <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} />
+              <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} providerId={id} />
             ),
           } : {}),
         });

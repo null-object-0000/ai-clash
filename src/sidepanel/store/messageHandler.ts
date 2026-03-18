@@ -6,6 +6,20 @@ import type { AppStore } from './types';
 type StoreGet = () => AppStore;
 type StoreSet = (partial: Partial<AppStore> | ((prev: AppStore) => Partial<AppStore>)) => void;
 
+const STAGE_INDEX: Record<string, number> = {
+  opening: 0, loading: 1, connecting: 2, thinking: 3, responding: 4,
+};
+
+function trackStageTransition(prov: ProviderId, newStage: string, get: StoreGet) {
+  const prevStage = get().stageMap[prov];
+  const prevIdx = STAGE_INDEX[prevStage] ?? -1;
+  const newIdx = STAGE_INDEX[newStage] ?? -1;
+  if (prevIdx >= 0 && newIdx > prevIdx) {
+    buffers.visitedStages[prov].add(prevStage);
+  }
+  buffers.visitedStages[prov].add(newStage);
+}
+
 export function createMessageListener(
   get: StoreGet,
   set: StoreSet,
@@ -30,10 +44,20 @@ export function createMessageListener(
       }
       const prov = provider as ProviderId;
       if (!prov) return;
-      if (p.isStatus) { set((prev: AppStore) => ({ operationStatus: { ...prev.operationStatus, [prov]: p.text } })); get().schedulePersist(); return; }
+      if (p.isStatus) {
+        set((prev: AppStore) => ({ operationStatus: { ...prev.operationStatus, [prov]: p.text } }));
+        if (p.stage) buffers.visitedStages[prov].add(p.stage);
+        get().schedulePersist();
+        return;
+      }
       if (!p.isThink && p.text && !buffers.timing[prov].firstContentTime) buffers.timing[prov].firstContentTime = Date.now();
-      if (p.stage) set((prev: AppStore) => ({ stageMap: { ...prev.stageMap, [prov]: p.stage } }));
-      else if (p.text?.length > 0) set((prev: AppStore) => ({ stageMap: { ...prev.stageMap, [prov]: 'responding' } }));
+      if (p.stage) {
+        trackStageTransition(prov, p.stage, get);
+        set((prev: AppStore) => ({ stageMap: { ...prev.stageMap, [prov]: p.stage } }));
+      } else if (p.text?.length > 0) {
+        trackStageTransition(prov, 'responding', get);
+        set((prev: AppStore) => ({ stageMap: { ...prev.stageMap, [prov]: 'responding' } }));
+      }
       setTimeout(() => {
         if (p.isThink) {
           if (!get().isDeepThinkingEnabled) return;
@@ -49,7 +73,13 @@ export function createMessageListener(
       if (provider === '_summary') { set({ summaryStatus: 'running', summaryOperationStatus: request.payload.text || '' }); return; }
       const prov = provider as ProviderId;
       if (!prov) return;
-      set((prev: AppStore) => ({ statusMap: { ...prev.statusMap, [prov]: 'running' }, operationStatus: { ...prev.operationStatus, [prov]: request.payload.text || '' } }));
+      const stage = request.payload.stage;
+      if (stage) trackStageTransition(prov, stage, get);
+      set((prev: AppStore) => ({
+        statusMap: { ...prev.statusMap, [prov]: 'running' },
+        operationStatus: { ...prev.operationStatus, [prov]: request.payload.text || '' },
+        ...(stage ? { stageMap: { ...prev.stageMap, [prov]: stage } } : {}),
+      }));
       get().schedulePersist();
 
     } else if (request.type === MSG_TYPES.TASK_COMPLETED) {

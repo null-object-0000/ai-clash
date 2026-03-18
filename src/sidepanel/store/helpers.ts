@@ -53,6 +53,10 @@ export const buffers = {
   userHasScrolled: false,
 
   autoScrollFn: null as (() => void) | null,
+
+  visitedStages: Object.fromEntries(
+    PROVIDER_IDS.map(id => [id, new Set<string>()]),
+  ) as Record<ProviderId, Set<string>>,
 };
 
 export function resetBuffers() {
@@ -62,6 +66,7 @@ export function resetBuffers() {
     buffers.displayedLen[id] = 0;
     buffers.thinkDisplayedLen[id] = 0;
     buffers.timing[id] = { startTime: 0, firstContentTime: 0 };
+    buffers.visitedStages[id] = new Set();
   }
   buffers.summaryFull = '';
   buffers.summaryThink = '';
