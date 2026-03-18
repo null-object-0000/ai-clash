@@ -10,203 +10,24 @@ import {
   type CompletedTurn, type ChatHistoryItem, type MultiChannelHistoryItem,
   type SingleChannelHistoryItem,
 } from '../types';
+import {
+  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY,
+  HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE,
+  MAX_HISTORY_COUNT, CHARS_PER_FRAME,
+  createSessionId, createDefaultRecord,
+  buffers, resetBuffers,
+} from './helpers';
+import type { AppStore, SidepanelSettings, SummaryConfig, ApiConfig } from './types';
+import { createMessageListener } from './messageHandler';
 
-// ════════════════════════════════════════════════════════════════════
-// Types
-// ════════════════════════════════════════════════════════════════════
-
-type SidepanelSettings = { isDeepThinkingEnabled?: boolean; isSummaryEnabled?: boolean; isDebugEnabled?: boolean };
-type SummaryConfig = { providerId?: string; model?: string };
-type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
-
-// ════════════════════════════════════════════════════════════════════
-// Constants
-// ════════════════════════════════════════════════════════════════════
-
-const SETTINGS_KEY = 'aiclash.sidepanel.settings';
-const API_CONFIG_KEY = 'aiclash.api.config';
-const SUMMARY_CONFIG_KEY = 'aiclash.summary.config';
-const HISTORY_STORAGE_KEY = 'aiclash.chat.history';
-const HISTORY_STORAGE_KEY_SINGLE = 'aiclash.chat.history.single';
-const MAX_HISTORY_COUNT = 30;
-const CHARS_PER_FRAME = 8;
-
-// ════════════════════════════════════════════════════════════════════
-// Helpers
-// ════════════════════════════════════════════════════════════════════
-
-function createSessionId() {
-  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function createDefaultRecord<T>(defaultValue: T): Record<ProviderId, T> {
-  return Object.fromEntries(PROVIDER_IDS.map(id => [id, defaultValue])) as Record<ProviderId, T>;
-}
-
-// ════════════════════════════════════════════════════════════════════
-// Non-reactive mutable buffers (streaming, timers, etc.)
-// These intentionally live OUTSIDE the store to avoid re-renders.
-// ════════════════════════════════════════════════════════════════════
-
-export const buffers = {
-  fullText: createDefaultRecord(''),
-  thinkText: createDefaultRecord(''),
-  displayedLen: createDefaultRecord(0),
-  thinkDisplayedLen: createDefaultRecord(0),
-  timing: Object.fromEntries(
-    PROVIDER_IDS.map(id => [id, { startTime: 0, firstContentTime: 0 }]),
-  ) as Record<ProviderId, { startTime: number; firstContentTime: number }>,
-
-  summaryFull: '',
-  summaryThink: '',
-  summaryDisplayedLen: 0,
-  summaryThinkDisplayedLen: 0,
-  summaryTriggered: false,
-  summaryTiming: { startTime: 0, firstContentTime: 0 },
-
-  animationId: null as number | null,
-  persistTimer: null as number | null,
-  pendingRawUrlOverrides: {} as Partial<Record<ProviderId, string>>,
-  userHasScrolled: false,
-
-  autoScrollFn: null as (() => void) | null,
-};
-
-function resetBuffers() {
-  for (const id of PROVIDER_IDS) {
-    buffers.fullText[id] = '';
-    buffers.thinkText[id] = '';
-    buffers.displayedLen[id] = 0;
-    buffers.thinkDisplayedLen[id] = 0;
-    buffers.timing[id] = { startTime: 0, firstContentTime: 0 };
-  }
-  buffers.summaryFull = '';
-  buffers.summaryThink = '';
-  buffers.summaryDisplayedLen = 0;
-  buffers.summaryThinkDisplayedLen = 0;
-  buffers.summaryTriggered = false;
-  buffers.summaryTiming = { startTime: 0, firstContentTime: 0 };
-  if (buffers.animationId != null) {
-    cancelAnimationFrame(buffers.animationId);
-    buffers.animationId = null;
-  }
-}
-
-// ════════════════════════════════════════════════════════════════════
-// Store interface
-// ════════════════════════════════════════════════════════════════════
-
-interface AppState {
-  // ─── Settings (persisted) ───
-  isDeepThinkingEnabled: boolean;
-  isDebugEnabled: boolean;
-  isSummaryEnabled: boolean;
-  summaryProviderId: string;
-  summaryModel: string;
-
-  // ─── Provider Config (persisted) ───
-  enabledMap: Record<ProviderId, boolean>;
-  modeMap: Record<ProviderId, ProviderMode>;
-  apiKeyMap: Record<ProviderId, string>;
-  modelMap: Record<ProviderId, string>;
-
-  // ─── Session ───
-  inputStr: string;
-  currentQuestion: string;
-  hasAsked: boolean;
-  activeSessionId: string;
-  isCurrentSessionFromHistory: boolean;
-  conversationTurns: CompletedTurn[];
-  isMultiTurnSession: boolean;
-
-  // ─── Provider Responses ───
-  statusMap: Record<ProviderId, ProviderStatus>;
-  stageMap: Record<ProviderId, StageType>;
-  responses: Record<ProviderId, string>;
-  thinkResponses: Record<ProviderId, string>;
-  operationStatus: Record<ProviderId, string>;
-  rawUrlMap: Record<ProviderId, string>;
-  statsMap: Record<ProviderId, ProviderStats | null>;
-  openMap: Record<ProviderId, boolean>;
-
-  // ─── Summary ───
-  summaryStatus: 'idle' | 'running' | 'completed' | 'error';
-  summaryStage: 'thinking' | 'responding';
-  summaryResponse: string;
-  summaryThinkResponse: string;
-  summaryOperationStatus: string;
-  summaryStats: ProviderStats | null;
-
-  // ─── UI Panels ───
-  isHistoryPanelOpen: boolean;
-  activeProviderSettings: ProviderId | '';
-  showNoChannelTip: boolean;
-  isSummarySettingsOpen: boolean;
-  testingApiKey: Record<string, boolean>;
-  apiKeyTestResult: Record<string, { success: boolean; message: string }>;
-  showApiKey: Record<string, boolean>;
-
-  // ─── History ───
-  historyList: ChatHistoryItem[];
-}
-
-interface AppActions {
-  // ─── Settings ───
-  toggleDeepThinking: () => void;
-  toggleDebug: () => void;
-  toggleSummary: () => void;
-  setSummaryProviderId: (v: string) => void;
-  setSummaryModel: (v: string) => void;
-
-  // ─── Provider Config ───
-  toggleProvider: (id: string) => Promise<void>;
-  setProviderMode: (id: ProviderId, mode: ProviderMode) => void;
-  setProviderApiKey: (id: ProviderId, value: string) => void;
-  setProviderModel: (id: ProviderId, value: string) => void;
-  testApiKey: (providerId: string, apiKey: string) => Promise<void>;
-
-  // ─── Session ───
-  setInputStr: (v: string) => void;
-  submit: () => void;
-  createNewChat: () => void;
-  restoreHistorySession: (item: ChatHistoryItem) => void;
-
-  // ─── UI ───
-  setIsHistoryPanelOpen: (v: boolean) => void;
-  openProviderSettings: (id: ProviderId) => void;
-  closeProviderSettings: () => void;
-  setShowNoChannelTip: (v: boolean) => void;
-  setIsSummarySettingsOpen: (v: boolean) => void;
-  toggleShowApiKey: (id: string) => void;
-
-  // ─── History ───
-  deleteHistoryItem: (id: string) => void;
-  renameHistoryItem: (id: string, label: string) => void;
-  clearHistory: () => void;
-
-  // ─── Internal ───
-  resetTaskState: () => void;
-  tickStreamDisplay: () => void;
-  schedulePersist: (delay?: number, rawUrlOverrides?: Partial<Record<ProviderId, string>>) => void;
-  triggerSummary: () => void;
-  goToProvider: (id: string, activate?: boolean) => Promise<any>;
-  init: () => (() => void);
-
-  // ─── Derived getters ───
-  getEnabledProviderIds: () => ProviderId[];
-  isSummaryConfigValid: () => boolean;
-  summaryBlockReason: () => string | null;
-  getSummaryProviderOptions: () => Array<{ value: string; label: string }>;
-  getSummaryModelOptions: () => Array<{ value: string; label: string }>;
-}
+export { buffers } from './helpers';
+export type { AppStore } from './types';
 
 // ════════════════════════════════════════════════════════════════════
 // Store
 // ════════════════════════════════════════════════════════════════════
 
-export const useStore = create<AppState & AppActions>()((set, get) => {
+export const useStore = create<AppStore>()((set, get) => {
 
   // ─── Chrome storage helpers ───
 
@@ -922,6 +743,7 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
                 ...(item.providers?.[id] || {}),
               }])) as Record<ProviderId, ProviderHistoryEntry>,
               summary: item.summary ?? null,
+              customLabel: item.customLabel,
               conversationTurns: Array.isArray(item.conversationTurns) ? item.conversationTurns : undefined,
             }))
             .filter((item: any) => item.question.trim());
@@ -938,6 +760,7 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
                 providerId: item.providerId || 'deepseek', providerName: item.providerName || 'DeepSeek',
                 createdAt: item.createdAt || Date.now(), updatedAt: item.updatedAt || Date.now(),
                 turns, summary: item.summary ?? null,
+                customLabel: item.customLabel,
               };
             })
             .filter((item: any) => item.turns.length > 0);
@@ -962,115 +785,7 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
         },
       );
 
-      // Chrome message listener
-      const listener = (request: any) => {
-        const { provider } = request.payload || {};
-        const store = get();
-
-        if (request.type === MSG_TYPES.CHUNK_RECEIVED) {
-          const p = request.payload;
-          if (provider === '_summary') {
-            if (p.isStatus) { set({ summaryOperationStatus: p.text }); return; }
-            if (p.stage) set({ summaryStage: p.stage });
-            if (!p.isThink && p.text && !buffers.summaryTiming.firstContentTime) buffers.summaryTiming.firstContentTime = Date.now();
-            setTimeout(() => {
-              if (p.isThink) buffers.summaryThink += p.text;
-              else buffers.summaryFull += p.text;
-              if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
-            }, 0);
-            return;
-          }
-          const prov = provider as ProviderId;
-          if (!prov) return;
-          if (p.isStatus) { set(prev => ({ operationStatus: { ...prev.operationStatus, [prov]: p.text } })); get().schedulePersist(); return; }
-          if (!p.isThink && p.text && !buffers.timing[prov].firstContentTime) buffers.timing[prov].firstContentTime = Date.now();
-          if (p.stage) set(prev => ({ stageMap: { ...prev.stageMap, [prov]: p.stage } }));
-          else if (p.text?.length > 0) set(prev => ({ stageMap: { ...prev.stageMap, [prov]: 'responding' } }));
-          setTimeout(() => {
-            if (p.isThink) {
-              if (!get().isDeepThinkingEnabled) return;
-              buffers.thinkText[prov] = (buffers.thinkText[prov] || '') + p.text;
-            } else {
-              buffers.fullText[prov] = (buffers.fullText[prov] || '') + p.text;
-            }
-            if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
-            get().schedulePersist();
-          }, 0);
-
-        } else if (request.type === MSG_TYPES.TASK_STATUS_UPDATE) {
-          if (provider === '_summary') { set({ summaryStatus: 'running', summaryOperationStatus: request.payload.text || '' }); return; }
-          const prov = provider as ProviderId;
-          if (!prov) return;
-          set(prev => ({ statusMap: { ...prev.statusMap, [prov]: 'running' }, operationStatus: { ...prev.operationStatus, [prov]: request.payload.text || '' } }));
-          get().schedulePersist();
-
-        } else if (request.type === MSG_TYPES.TASK_COMPLETED) {
-          if (provider === '_summary') {
-            set({ summaryStatus: 'completed', summaryOperationStatus: '' });
-            if (buffers.summaryTiming.startTime > 0 && buffers.summaryTiming.firstContentTime > 0) {
-              const now = Date.now();
-              const charCount = buffers.summaryFull?.length || 0;
-              const ttff = buffers.summaryTiming.firstContentTime - buffers.summaryTiming.startTime;
-              const totalTime = now - buffers.summaryTiming.startTime;
-              const outputSecs = (now - buffers.summaryTiming.firstContentTime) / 1000;
-              set({ summaryStats: { ttff, totalTime, charCount, charsPerSec: outputSecs > 0.1 ? Math.round(charCount / outputSecs) : 0 } });
-            }
-            get().schedulePersist();
-            return;
-          }
-          const prov = provider as ProviderId;
-          if (!prov) return;
-          set(prev => ({ statusMap: { ...prev.statusMap, [prov]: 'completed' }, operationStatus: { ...prev.operationStatus, [prov]: '' } }));
-          const timing = buffers.timing[prov];
-          if (timing.startTime > 0 && timing.firstContentTime > 0) {
-            const now = Date.now();
-            const charCount = buffers.fullText[prov]?.length || 0;
-            const ttff = timing.firstContentTime - timing.startTime;
-            const totalTime = now - timing.startTime;
-            const outputSecs = (now - timing.firstContentTime) / 1000;
-            set(prev => ({ statsMap: { ...prev.statsMap, [prov]: { ttff, totalTime, charCount, charsPerSec: outputSecs > 0.1 ? Math.round(charCount / outputSecs) : 0 } } }));
-          }
-          syncProviderRawUrls([prov]);
-          get().schedulePersist();
-
-          setTimeout(() => {
-            const s = get();
-            const stillRunning = PROVIDER_IDS.some(id => s.statusMap[id] === 'running');
-            if (!stillRunning) {
-              setTimeout(() => set({ openMap: createDefaultRecord(false) }), 1500);
-              if (s.isSummaryEnabled && s.hasAsked && !s.isCurrentSessionFromHistory) get().triggerSummary();
-            }
-          }, 50);
-
-        } else if (request.type === MSG_TYPES.ERROR) {
-          if (provider === '_summary') {
-            const errMsg = request.payload.message || request.payload.error || '未知错误';
-            buffers.summaryFull = `[归纳总结出错] ${errMsg}`;
-            buffers.summaryDisplayedLen = buffers.summaryFull.length;
-            set({ summaryStatus: 'error', summaryOperationStatus: '', summaryResponse: buffers.summaryFull });
-            return;
-          }
-          const prov = provider as ProviderId;
-          if (!prov) return;
-          const errText = `[系统报错] ${request.payload.message || request.payload.error || '未知错误'}`;
-          buffers.fullText[prov] = errText;
-          buffers.displayedLen[prov] = errText.length;
-          set(prev => ({
-            statusMap: { ...prev.statusMap, [prov]: 'error' },
-            operationStatus: { ...prev.operationStatus, [prov]: '' },
-            responses: { ...prev.responses, [prov]: errText },
-          }));
-          syncProviderRawUrls([prov]);
-          get().schedulePersist();
-
-          setTimeout(() => {
-            const s = get();
-            const stillRunning = PROVIDER_IDS.some(id => s.statusMap[id] === 'running');
-            if (!stillRunning && s.isSummaryEnabled && s.hasAsked && !s.isCurrentSessionFromHistory) get().triggerSummary();
-          }, 50);
-        }
-      };
-
+      const listener = createMessageListener(get, set, syncProviderRawUrls);
       chrome.runtime?.onMessage.addListener(listener);
       return () => { chrome.runtime?.onMessage.removeListener(listener); };
     },
