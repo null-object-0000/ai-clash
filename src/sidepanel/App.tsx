@@ -197,8 +197,18 @@ const useStyles = createStyles(({ token, css }) => {
     `,
     conversations: css`
       width: 100%;
+      overflow: hidden;
       .ant-conversations-list {
         padding-inline-start: 0;
+      }
+      .ant-conversations-item {
+        font-size: 12px;
+        overflow: hidden;
+        .ant-conversations-item-label {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
       }
     `,
     chatList: css`
@@ -401,12 +411,12 @@ const App = () => {
         </button>
       </div>
       <Drawer
-        title="历史记录"
         placement="right"
-        width="85%"
+        width="clamp(200px, 75%, 320px)"
         open={historyOpen}
         onClose={() => setHistoryOpen(false)}
-        styles={{ body: { padding: 0 } }}
+        closable={false}
+        styles={{ body: { padding: 0, overflow: 'hidden auto' } }}
       >
         <Conversations
           items={conversations?.map((i) =>
