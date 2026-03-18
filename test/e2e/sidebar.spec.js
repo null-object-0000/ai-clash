@@ -42,8 +42,8 @@ test('侧边栏打开无报错且正常渲染', async () => {
 
   expect(errors).toHaveLength(0, `侧边栏运行时错误: ${errors.join(', ')}`)
 
-  await expect(page.getByPlaceholder('提问或输入 / 使用技能')).toBeVisible({ timeout: 5000 })
-  await expect(page.getByText('AI 助手')).toBeVisible()
+  await expect(page.getByPlaceholder('输入你的问题...')).toBeVisible({ timeout: 5000 })
+  await expect(page.getByText('AI 对撞机')).toBeVisible()
 
   await page.close()
 })
@@ -53,8 +53,8 @@ test('发送消息功能正常', async () => {
   await page.goto(`chrome-extension://${extensionId}/src/sidepanel/index.html`)
   await expect(page.locator('#app')).toBeVisible({ timeout: 10000 })
 
-  await page.getByPlaceholder('提问或输入 / 使用技能').fill('你好')
-  await page.getByPlaceholder('提问或输入 / 使用技能').press('Enter')
+  await page.getByPlaceholder('输入你的问题...').fill('你好')
+  await page.getByPlaceholder('输入你的问题...').press('Enter')
 
   await expect(page.getByText('你好', { exact: true })).toBeVisible({ timeout: 5000 })
 

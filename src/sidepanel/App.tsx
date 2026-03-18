@@ -1,31 +1,26 @@
 import {
-  AppstoreAddOutlined,
   CloudUploadOutlined,
   CommentOutlined,
   CopyOutlined,
   DislikeOutlined,
   LikeOutlined,
-  OpenAIFilled,
   PaperClipOutlined,
   PlusOutlined,
-  ProductOutlined,
   ReloadOutlined,
-  ScheduleOutlined,
 } from '@ant-design/icons';
-import type { AttachmentsProps, BubbleListProps, ConversationItemType } from '@ant-design/x';
+import type { AttachmentsProps, BubbleListProps } from '@ant-design/x';
 import {
   Attachments,
   Bubble,
   Conversations,
   Prompts,
   Sender,
-  Suggestion,
   Think,
   Welcome,
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown';
-import type { DefaultMessageInfo, SSEFields, XModelMessage } from '@ant-design/x-sdk';
+import type { SSEFields, XModelMessage } from '@ant-design/x-sdk';
 import {
   DeepSeekChatProvider,
   useXChat,
@@ -39,84 +34,10 @@ import { createStyles } from 'antd-style';
 import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
 
-const DEFAULT_CONVERSATIONS_ITEMS: ConversationItemType[] = [
-  { key: '5', label: '新会话', group: '今天' },
-  { key: '4', label: 'Ant Design X 有哪些升级？', group: '今天' },
-  { key: '3', label: '新的 AGI 混合界面', group: '今天' },
-  { key: '2', label: '如何快速安装和导入组件？', group: '昨天' },
-  { key: '1', label: '什么是 Ant Design X？', group: '昨天' },
-];
-
-const HISTORY_MESSAGES: Record<string, DefaultMessageInfo<XModelMessage>[]> = {
-  '5': [
-    { message: { role: 'user', content: '新会话' }, status: 'success' },
-    {
-      message: {
-        role: 'assistant',
-        content: '你好，我是 Ant Design X！基于 Ant Design，AGI 产品界面解决方案，创造更智能的视觉体验~',
-      },
-      status: 'success',
-    },
-  ],
-  '4': [
-    { message: { role: 'user', content: 'Ant Design X 有哪些升级？' }, status: 'success' },
-    {
-      message: { role: 'assistant', content: 'RICH 设计范式 \n [查看详情](/docs/spec/introduce-cn})' },
-      status: 'success',
-    },
-  ],
-  '3': [
-    { message: { role: 'user', content: '新的 AGI 混合界面' }, status: 'success' },
-    {
-      message: {
-        role: 'assistant',
-        content: `# 快速安装和导入组件 \n\n \`npm install @ant-design/x --save \` \n\n [查看详情](/components/introduce-cn/)\n\n \n\n## 导入方式 \n\n \`\`\`tsx \n\n import { Bubble } from '@ant-design/x';\n\n \`\`\`\n\n ## 组件使用 \n\n \`\`\`tsx\n\n import React from 'react';\n\nimport { Bubble } from '@ant-design/x';\n\nconst App: React.FC = () => ( \n\n \n\n \n\n \n\n );\n\n export default App;`,
-      },
-      status: 'success',
-    },
-  ],
-  '2': [
-    { message: { role: 'user', content: '如何快速安装和导入组件？' }, status: 'success' },
-    {
-      message: {
-        role: 'assistant',
-        content:
-          "Ant Design X 提供了丰富的组件库。安装很简单：`npm install @ant-design/x --save`。然后你可以导入需要的组件，比如：`import { Bubble, Sender, Conversations } from '@ant-design/x'`。每个组件都有详细的文档和示例。",
-      },
-      status: 'success',
-    },
-  ],
-  '1': [
-    { message: { role: 'user', content: '什么是 Ant Design X？' }, status: 'success' },
-    {
-      message: {
-        role: 'assistant',
-        content:
-          '什么是 Ant Design X？ 它是基于 Ant Design 的 AGI 产品界面解决方案，专为 AI 时代设计的 React 组件库。包含了对话、气泡、发送器等核心组件，帮助开发者快速构建智能对话界面。',
-      },
-      status: 'success',
-    },
-  ],
-};
-
-const MOCK_SUGGESTIONS = [
-  { label: '写报告', value: 'report' },
-  { label: '画图', value: 'draw' },
-  {
-    label: '查看知识',
-    value: 'knowledge',
-    icon: <OpenAIFilled />,
-    children: [
-      { label: '关于 React', value: 'react' },
-      { label: '关于 Ant Design', value: 'antd' },
-    ],
-  },
-];
-
-const MOCK_QUESTIONS = [
-  'Ant Design X 有哪些升级？',
-  'Ant Design X 中有哪些组件？',
-  '如何快速安装和导入组件？',
+const WELCOME_QUESTIONS = [
+  '今天天气怎么样？',
+  '如何学习 React？',
+  '解释一下量子计算',
 ];
 
 const useStyles = createStyles(({ token, css }) => {
@@ -328,8 +249,8 @@ const App = () => {
     getConversation,
     setConversation,
   } = useXConversations({
-    defaultConversations: DEFAULT_CONVERSATIONS_ITEMS,
-    defaultActiveConversationKey: DEFAULT_CONVERSATIONS_ITEMS[0].key,
+    defaultConversations: [{ key: 'default', label: '新会话', group: '今天' }],
+    defaultActiveConversationKey: 'default',
   });
   const [attachmentsOpen, setAttachmentsOpen] = useState(false);
   const [files, setFiles] = useState<GetProp<AttachmentsProps, 'items'>>([]);
@@ -344,9 +265,8 @@ const App = () => {
   const { onRequest, messages, isRequesting, abort } = useXChat({
     provider: providerFactory(activeConversationKey),
     conversationKey: activeConversationKey,
-    defaultMessages: HISTORY_MESSAGES[activeConversationKey] || [],
     requestPlaceholder: () => ({
-      content: '暂无数据',
+      content: '思考中...',
       role: 'assistant',
     }),
     requestFallback: (_, { error, errorInfo, messageInfo }) => {
@@ -452,15 +372,15 @@ const App = () => {
         <>
           <Welcome
             variant="borderless"
-            title="👋 你好，我是 Ant Design X"
-            description="基于 Ant Design，AGI 产品界面解决方案，创造更智能的视觉体验~"
+            title="👋 你好，我是 AI 对撞机"
+            description="一个问题问多个 AI，获取最全面的答案"
             className={styles.chatWelcome}
           />
 
           <Prompts
             vertical
-            title="我可以帮助："
-            items={MOCK_QUESTIONS.map((i) => ({ key: i, description: i }))}
+            title="试试问我："
+            items={WELCOME_QUESTIONS.map((i) => ({ key: i, description: i }))}
             onItemClick={(info) => handleUserSubmit(info?.data?.description as string)}
             style={{ marginInline: 16 }}
             styles={{ title: { fontSize: 14 } }}
@@ -495,53 +415,30 @@ const App = () => {
     </Sender.Header>
   );
   const chatSender = (
-    <Flex vertical gap={12} className={styles.chatSend}>
-      <Flex gap={12} align="center">
-        <Button
-          icon={<ScheduleOutlined />}
-          onClick={() => handleUserSubmit('Ant Design X 有哪些升级？')}
-        >
-          升级
-        </Button>
-        <Button
-          icon={<ProductOutlined />}
-          onClick={() => handleUserSubmit('Ant Design X 中有哪些组件？')}
-        >
-          组件
-        </Button>
-        <Button icon={<AppstoreAddOutlined />}>更多</Button>
-      </Flex>
-      <Suggestion items={MOCK_SUGGESTIONS} onSelect={(itemVal) => setInputValue(`[${itemVal}]:`)}>
-        {({ onTrigger, onKeyDown }) => (
-          <Sender
-            loading={isRequesting}
-            value={inputValue}
-            onChange={(v) => {
-              onTrigger(v === '/');
-              setInputValue(v);
-            }}
-            onSubmit={() => {
-              handleUserSubmit(inputValue);
-              setInputValue('');
-            }}
-            onCancel={() => {
-              abort();
-            }}
-            allowSpeech
-            placeholder="提问或输入 / 使用技能"
-            onKeyDown={onKeyDown}
-            header={sendHeader}
-            prefix={
-              <Button
-                type="text"
-                icon={<PaperClipOutlined style={{ fontSize: 18 }} />}
-                onClick={() => setAttachmentsOpen(!attachmentsOpen)}
-              />
-            }
-            onPasteFile={onPasteFile}
+    <Flex vertical className={styles.chatSend}>
+      <Sender
+        loading={isRequesting}
+        value={inputValue}
+        onChange={setInputValue}
+        onSubmit={() => {
+          handleUserSubmit(inputValue);
+          setInputValue('');
+        }}
+        onCancel={() => {
+          abort();
+        }}
+        allowSpeech
+        placeholder="输入你的问题..."
+        header={sendHeader}
+        prefix={
+          <Button
+            type="text"
+            icon={<PaperClipOutlined style={{ fontSize: 18 }} />}
+            onClick={() => setAttachmentsOpen(!attachmentsOpen)}
           />
-        )}
-      </Suggestion>
+        }
+        onPasteFile={onPasteFile}
+      />
     </Flex>
   );
 
