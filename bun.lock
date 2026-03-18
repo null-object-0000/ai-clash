@@ -11,6 +11,8 @@
         "@ant-design/x-sdk": "^2.4.0",
         "@lobehub/icons": "^5.0.1",
         "antd": "^6.3.3",
+        "antd-style": "^4.1.0",
+        "dayjs": "^1.11.20",
         "motion": "^12.37.0",
         "openai": "^6.31.0",
         "react": "^19.2.4",

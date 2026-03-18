@@ -1,0 +1,128 @@
+button:not(:disabled),
+[role="button"]:not(:disabled),
+[role="switch"]:not(:disabled),
+a[href],
+select:not(:disabled),
+label:has(input[type="radio"]:not(:disabled)),
+label:has(input[type="checkbox"]:not(:disabled)) {
+  cursor: pointer;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--lobe-colorBorder, #d9d9d9);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--lobe-colorTextQuaternary, #bfbfbf);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 通用布局类
+ * ════════════════════════════════════════════════════════════════════ */
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-col-gap-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flex-col-gap-3 {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.flex-col-gap-4 {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.padded-container {
+  padding: 1rem;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 通用文本类
+ * ════════════════════════════════════════════════════════════════════ */
+
+.text-secondary {
+  color: var(--lobe-colorTextSecondary, #6b7280);
+}
+
+.text-tertiary {
+  color: var(--lobe-colorTextTertiary, #9ca3af);
+}
+
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 通用卡片类
+ * ════════════════════════════════════════════════════════════════════ */
+
+.card-container {
+  background: var(--lobe-colorBgContainer, #ffffff);
+  border: 1px solid var(--lobe-colorBorder, #e5e7eb);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--lobe-colorBorder, #e5e7eb);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-content {
+  padding: 1rem;
+}
+
+.card-shadow {
+  box-shadow: var(--lobe-boxShadow, 0 1px 3px 0 rgba(0, 0, 0, 0.1));
+}
+
+/* ════════════════════════════════════════════════════════════════════
+ * 通用交互动画类
+ * ════════════════════════════════════════════════════════════════════ */
+
+.transition-smooth {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--lobe-boxShadowSecondary, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}

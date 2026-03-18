@@ -6,16 +6,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **项目名称**: AI 对撞机 (AI Clash) - 一个问题问多个 AI
 
+**项目仓库**: https://github.com/null-object-0000/ai-clash/
+
 **项目类型**: Chrome 浏览器扩展
 
 **主要功能**: 聚合多个 AI 平台（DeepSeek、豆包、千问、LongCat、腾讯元宝）的能力，统一接口调用，支持深度思考模式、API 密钥配置、多 AI 回答自动总结，实现混合专家模式（MoE）
+
+### 当前支持状态
+- ✅ 稳定可用：DeepSeek（回答质量高，深度思考很靠谱）
+- 🧪 测试优化中：豆包、通义千问、LongCat、腾讯元宝
+
+### 开发路线图
+- 🔜 即将支持：Google Gemini 接入
+- 🚀 规划中：对话无缝迁移功能、对话记录导出备份
 
 ## 技术栈
 
 - **前端框架**: React 19 (TSX + TypeScript)
 - **构建工具**: Vite + @crxjs/vite-plugin
 - **语言**: TypeScript
-- **UI**: Tailwind CSS + Lobe UI
+- **UI**: Ant Design 6 + Ant Design X
 - **扩展清单**: Manifest V3
 - **测试框架**: Playwright
 
@@ -118,7 +128,7 @@ export const PROVIDERS = [
 - 构建目标针对Chrome 110+，减少兼容代码
 - 代码分块优化，分离核心依赖
 - Brotli压缩，产物体积更小
-- Lobe UI按需导入，避免打包未使用组件
+- Ant Design 按需导入，避免打包未使用组件
 
 ### Hook 注入机制
 

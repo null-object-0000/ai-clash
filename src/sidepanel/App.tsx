@@ -1,53 +1,199 @@
 import {
-  CloseOutlined,
+  AppstoreAddOutlined,
+  CloudUploadOutlined,
   CommentOutlined,
   CopyOutlined,
   DislikeOutlined,
   LikeOutlined,
+  OpenAIFilled,
+  PaperClipOutlined,
   PlusOutlined,
+  ProductOutlined,
   ReloadOutlined,
-  SettingOutlined,
+  ScheduleOutlined,
 } from '@ant-design/icons';
-import type { BubbleListProps, ConversationItemType } from '@ant-design/x';
+import type { AttachmentsProps, BubbleListProps, ConversationItemType } from '@ant-design/x';
 import {
+  Attachments,
   Bubble,
   Conversations,
   Prompts,
   Sender,
+  Suggestion,
   Think,
   Welcome,
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
-import XMarkdown from '@ant-design/x-markdown';
-import { Button, Popover, Space, Tag, Dropdown, MenuProps, message } from 'antd';
-import React, { useRef, useState, useMemo, useEffect } from 'react';
-import { useStore, buffers } from './store';
-import ChannelSettingsModal from './components/ChannelSettingsModal';
-import HistoryPanel from './components/HistoryPanel';
+import XMarkdown, { type ComponentProps } from '@ant-design/x-markdown';
+import type { DefaultMessageInfo, SSEFields, XModelMessage } from '@ant-design/x-sdk';
 import {
-  PROVIDER_IDS, PROVIDER_THEME_MAP, PROVIDER_NAME_MAP,
-  type ProviderId,
-} from './types';
-import { getProviderIconSet, getProviderThemeColor } from './utils';
-
-// ════════════════════════════════════════════════════════════════════
-// Constants & Helpers
-// ════════════════════════════════════════════════════════════════════
+  DeepSeekChatProvider,
+  useXChat,
+  useXConversations,
+  XModelParams,
+  XModelResponse,
+  XRequest,
+} from '@ant-design/x-sdk';
+import { Button, Flex, GetProp, GetRef, message, Popover, Space } from 'antd';
+import { createStyles } from 'antd-style';
+import dayjs from 'dayjs';
+import React, { useRef, useState } from 'react';
 
 const DEFAULT_CONVERSATIONS_ITEMS: ConversationItemType[] = [
-  { key: 'new', label: '新会话', group: '当前' },
+  { key: '5', label: '新会话', group: '今天' },
+  { key: '4', label: 'Ant Design X 有哪些升级？', group: '今天' },
+  { key: '3', label: '新的 AGI 混合界面', group: '今天' },
+  { key: '2', label: '如何快速安装和导入组件？', group: '昨天' },
+  { key: '1', label: '什么是 Ant Design X？', group: '昨天' },
 ];
 
-const ThinkComponent = React.memo((props: any) => {
-  const [title, setTitle] = useState('深度思考...');
-  const [loading, setLoading] = useState(true);
+const HISTORY_MESSAGES: Record<string, DefaultMessageInfo<XModelMessage>[]> = {
+  '5': [
+    { message: { role: 'user', content: '新会话' }, status: 'success' },
+    {
+      message: {
+        role: 'assistant',
+        content: '你好，我是 Ant Design X！基于 Ant Design，AGI 产品界面解决方案，创造更智能的视觉体验~',
+      },
+      status: 'success',
+    },
+  ],
+  '4': [
+    { message: { role: 'user', content: 'Ant Design X 有哪些升级？' }, status: 'success' },
+    {
+      message: { role: 'assistant', content: 'RICH 设计范式 \n [查看详情](/docs/spec/introduce-cn})' },
+      status: 'success',
+    },
+  ],
+  '3': [
+    { message: { role: 'user', content: '新的 AGI 混合界面' }, status: 'success' },
+    {
+      message: {
+        role: 'assistant',
+        content: `# 快速安装和导入组件 \n\n \`npm install @ant-design/x --save \` \n\n [查看详情](/components/introduce-cn/)\n\n \n\n## 导入方式 \n\n \`\`\`tsx \n\n import { Bubble } from '@ant-design/x';\n\n \`\`\`\n\n ## 组件使用 \n\n \`\`\`tsx\n\n import React from 'react';\n\nimport { Bubble } from '@ant-design/x';\n\nconst App: React.FC = () => ( \n\n \n\n \n\n \n\n );\n\n export default App;`,
+      },
+      status: 'success',
+    },
+  ],
+  '2': [
+    { message: { role: 'user', content: '如何快速安装和导入组件？' }, status: 'success' },
+    {
+      message: {
+        role: 'assistant',
+        content:
+          "Ant Design X 提供了丰富的组件库。安装很简单：`npm install @ant-design/x --save`。然后你可以导入需要的组件，比如：`import { Bubble, Sender, Conversations } from '@ant-design/x'`。每个组件都有详细的文档和示例。",
+      },
+      status: 'success',
+    },
+  ],
+  '1': [
+    { message: { role: 'user', content: '什么是 Ant Design X？' }, status: 'success' },
+    {
+      message: {
+        role: 'assistant',
+        content:
+          '什么是 Ant Design X？ 它是基于 Ant Design 的 AGI 产品界面解决方案，专为 AI 时代设计的 React 组件库。包含了对话、气泡、发送器等核心组件，帮助开发者快速构建智能对话界面。',
+      },
+      status: 'success',
+    },
+  ],
+};
 
-  useEffect(() => {
-    if (props.streamStatus === 'done' || !props.loading) {
+const MOCK_SUGGESTIONS = [
+  { label: '写报告', value: 'report' },
+  { label: '画图', value: 'draw' },
+  {
+    label: '查看知识',
+    value: 'knowledge',
+    icon: <OpenAIFilled />,
+    children: [
+      { label: '关于 React', value: 'react' },
+      { label: '关于 Ant Design', value: 'antd' },
+    ],
+  },
+];
+
+const MOCK_QUESTIONS = [
+  'Ant Design X 有哪些升级？',
+  'Ant Design X 中有哪些组件？',
+  '如何快速安装和导入组件？',
+];
+
+const useStyles = createStyles(({ token, css }) => {
+  return {
+    copilotChat: css`
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      background: ${token.colorBgContainer};
+      color: ${token.colorText};
+    `,
+    chatHeader: css`
+      flex-shrink: 0;
+      height: 52px;
+      box-sizing: border-box;
+      border-bottom: 1px solid ${token.colorBorder};
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px 0 16px;
+    `,
+    headerTitle: css`
+      font-weight: 600;
+      font-size: 15px;
+    `,
+    headerButton: css`
+      font-size: 18px;
+    `,
+    conversations: css`
+      width: 300px;
+      .ant-conversations-list {
+        padding-inline-start: 0;
+      }
+    `,
+    chatList: css`
+      margin-block-start: ${token.margin}px;
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+      flex-direction: column;
+    `,
+    chatWelcome: css`
+      margin-inline: ${token.margin}px;
+      padding: 12px 16px;
+      border-radius: 2px 12px 12px 12px;
+      background: ${token.colorBgTextHover};
+      margin-bottom: ${token.margin}px;
+    `,
+    loadingMessage: css`
+      background-image: linear-gradient(90deg, #ff6b23 0%, #af3cb8 31%, #53b6ff 89%);
+      background-size: 100% 2px;
+      background-repeat: no-repeat;
+      background-position: bottom;
+    `,
+    chatSend: css`
+      flex-shrink: 0;
+      padding: ${token.padding}px;
+    `,
+    speechButton: css`
+      font-size: 18px;
+      color: ${token.colorText} !important;
+    `,
+  };
+});
+
+const ThinkComponent = React.memo((props: ComponentProps) => {
+  const [title, setTitle] = React.useState('深度思考中...');
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (props.streamStatus === 'done') {
       setTitle('深度思考完成');
       setLoading(false);
     }
-  }, [props.streamStatus, props.loading]);
+  }, [props.streamStatus]);
 
   return (
     <Think title={title} loading={loading}>
@@ -56,335 +202,285 @@ const ThinkComponent = React.memo((props: any) => {
   );
 });
 
+/**
+ * 🔔 Please replace the BASE_URL, MODEL with your own values.
+ */
+const providerCaches = new Map<string, DeepSeekChatProvider>();
+const providerFactory = (conversationKey: string) => {
+  if (!providerCaches.get(conversationKey)) {
+    providerCaches.set(
+      conversationKey,
+      new DeepSeekChatProvider({
+        request: XRequest<XModelParams, Partial<Record<SSEFields, XModelResponse>>>(
+          'https://api.x.ant.design/api/big_model_glm-4.5-flash',
+          {
+            manual: true,
+            params: {
+              stream: true,
+              thinking: {
+                type: 'disabled',
+              },
+              model: 'glm-4.5-flash',
+            },
+          },
+        ),
+      }),
+    );
+  }
+  return providerCaches.get(conversationKey);
+};
+
 const role: BubbleListProps['role'] = {
   assistant: {
     placement: 'start',
-    footer: (content, info) => (
-      <div style={{ display: 'flex', marginTop: 8 }}>
-        <Button type="text" size="small" icon={<ReloadOutlined />}>重试</Button>
-        <Button type="text" size="small" icon={<CopyOutlined />}>复制</Button>
+    footer: (
+      <div style={{ display: 'flex' }}>
+        <Button type="text" size="small" icon={<ReloadOutlined />} />
+        <Button type="text" size="small" icon={<CopyOutlined />} />
         <Button type="text" size="small" icon={<LikeOutlined />} />
         <Button type="text" size="small" icon={<DislikeOutlined />} />
       </div>
     ),
-    contentRender: (content: string) => (
-      <XMarkdown
-        content={content}
-        components={{
-          think: ThinkComponent,
-        }}
-      />
-    ),
+    contentRender(content: string) {
+      const newContent = content.replace(/\n\n/g, '<br/><br/>');
+      return (
+        <XMarkdown
+          content={newContent}
+          components={{
+            think: ThinkComponent,
+          }}
+        />
+      );
+    },
   },
   user: { placement: 'end' },
 };
 
-// ════════════════════════════════════════════════════════════════════
-// Main App Component
-// ════════════════════════════════════════════════════════════════════
+const App = () => {
+  const { styles } = useStyles();
+  const attachmentsRef = useRef<GetRef<typeof Attachments>>(null);
 
-export default function App() {
-  const listRef = useRef<BubbleListRef>(null);
-  const [inputValue, setInputValue] = useState('');
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [conversationsOpen, setConversationsOpen] = useState(false);
-
-  // 从 store 读取状态
-  const hasAsked = useStore(s => s.hasAsked);
-  const currentQuestion = useStore(s => s.currentQuestion);
-  const conversationTurns = useStore(s => s.conversationTurns);
-  const isMultiTurnSession = useStore(s => s.isMultiTurnSession);
-  const isDeepThinkingEnabled = useStore(s => s.isDeepThinkingEnabled);
-  const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
-  const statusMap = useStore(s => s.statusMap);
-  const responses = useStore(s => s.responses);
-  const thinkResponses = useStore(s => s.thinkResponses);
-  const enabledMap = useStore(s => s.enabledMap);
-  const historyList = useStore(s => s.historyList);
-  const summaryStatus = useStore(s => s.summaryStatus);
-  const summaryResponse = useStore(s => s.summaryResponse);
-  const summaryThinkResponse = useStore(s => s.summaryThinkResponse);
-
+  // ==================== State ====================
   const {
-    setInputStr, submit, createNewChat, toggleDeepThinking, toggleSummary,
-    restoreHistorySession, setIsHistoryPanelOpen,
-  } = useStore.getState();
+    conversations,
+    activeConversationKey,
+    setActiveConversationKey,
+    addConversation,
+    getConversation,
+    setConversation,
+  } = useXConversations({
+    defaultConversations: DEFAULT_CONVERSATIONS_ITEMS,
+    defaultActiveConversationKey: DEFAULT_CONVERSATIONS_ITEMS[0].key,
+  });
+  const [attachmentsOpen, setAttachmentsOpen] = useState(false);
+  const [files, setFiles] = useState<GetProp<AttachmentsProps, 'items'>>([]);
 
-  // 构建消息列表
-  const messages = useMemo(() => {
-    const items: any[] = [];
+  const [inputValue, setInputValue] = useState('');
 
-    // 历史对话轮次
-    conversationTurns.forEach((turn, idx) => {
-      items.push({
-        id: `user-${idx}`,
-        message: { role: 'user' as const, content: turn.question },
-        status: 'success' as const,
-      });
-      items.push({
-        id: `ai-${turn.providerId}-${idx}`,
-        message: {
-          role: 'assistant' as const,
-          content: turn.response || '等待中...',
-          thinkResponse: turn.thinkResponse,
-        },
-        status: 'success' as const,
-      });
-    });
+  const listRef = useRef<BubbleListRef>(null);
 
-    // 当前用户消息
-    if (currentQuestion) {
-      items.push({
-        id: 'user-current',
-        message: { role: 'user' as const, content: currentQuestion },
-        status: 'success' as const,
-      });
-    }
+  // ==================== Runtime ====================
 
-    // 当前 AI 回复
-    const enabledProviderIds = PROVIDER_IDS.filter(id => enabledMap[id]);
-    if (enabledProviderIds.length === 1) {
-      const id = enabledProviderIds[0];
-      items.push({
-        id: `ai-current-${id}`,
-        message: {
-          role: 'assistant' as const,
-          content: responses[id] || (statusMap[id] === 'running' ? '思考中...' : ''),
-          thinkResponse: thinkResponses[id],
-        },
-        status: statusMap[id] === 'error' ? 'error' : 'success' as const,
-        loading: statusMap[id] === 'running',
-      });
-    } else if (enabledProviderIds.length > 1) {
-      enabledProviderIds.forEach(id => {
-        items.push({
-          id: `ai-current-${id}`,
-          message: {
-            role: 'assistant' as const,
-            content: responses[id] || (statusMap[id] === 'running' ? '思考中...' : ''),
-            thinkResponse: thinkResponses[id],
-            providerName: PROVIDER_NAME_MAP[id],
-            themeColor: PROVIDER_THEME_MAP[id],
-          },
-          status: statusMap[id] === 'error' ? 'error' : 'success' as const,
-          loading: statusMap[id] === 'running',
-        });
-      });
-    }
+  const { onRequest, messages, isRequesting, abort } = useXChat({
+    provider: providerFactory(activeConversationKey),
+    conversationKey: activeConversationKey,
+    defaultMessages: HISTORY_MESSAGES[activeConversationKey] || [],
+    requestPlaceholder: () => ({
+      content: '暂无数据',
+      role: 'assistant',
+    }),
+    requestFallback: (_, { error, errorInfo, messageInfo }) => {
+      if (error.name === 'AbortError') {
+        return {
+          content: messageInfo?.message?.content || '请求已中止',
+          role: 'assistant',
+        };
+      }
+      return {
+        content: errorInfo?.error?.message || '请求失败，请重试！',
+        role: 'assistant',
+      };
+    },
+  });
 
-    // 总结回复
-    if (isSummaryEnabled && (summaryStatus === 'running' || summaryResponse)) {
-      items.push({
-        id: 'summary',
-        message: {
-          role: 'assistant' as const,
-          content: summaryResponse || '正在生成总结...',
-          thinkResponse: summaryThinkResponse,
-          providerName: '智能总结',
-          themeColor: 'violet',
-        },
-        status: summaryStatus === 'error' ? 'error' : 'success' as const,
-        loading: summaryStatus === 'running',
-      });
-    }
-
-    return items;
-  }, [
-    conversationTurns, currentQuestion, enabledMap, statusMap,
-    responses, thinkResponses, isSummaryEnabled, summaryStatus,
-    summaryResponse, summaryThinkResponse,
-  ]);
-
-  // 处理用户提交
+  // ==================== Event ====================
   const handleUserSubmit = (val: string) => {
-    setInputStr(val);
-    submit();
-    setInputValue('');
+    onRequest({
+      messages: [{ role: 'user', content: val }],
+    });
     listRef.current?.scrollTo({ top: 'bottom' });
+
+    const conversation = getConversation(activeConversationKey);
+    if (conversation?.label === '新会话') {
+      setConversation(activeConversationKey, { ...conversation, label: val?.slice(0, 20) });
+    }
   };
 
-  // 欢迎页快捷问题
-  const MOCK_QUESTIONS = [
-    '今天天气怎么样？',
-    '如何学习 React？',
-    '解释一下量子计算',
-  ];
+  const onPasteFile = (files: FileList) => {
+    for (const file of files) {
+      attachmentsRef.current?.upload(file);
+    }
+    setAttachmentsOpen(true);
+  };
 
-  // 历史会话菜单
-  const historyMenuItems: MenuProps['items'] = historyList.slice(0, 10).map(item => ({
-    key: item.id,
-    label: item.type === 'multi' ? '多通道对话' : `${PROVIDER_NAME_MAP[item.providerId as ProviderId] || '对话'}`,
-    onClick: () => {
-      restoreHistorySession(item);
-      setConversationsOpen(false);
-    },
-  }));
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
-      {/* Header */}
-      <div style={{
-        height: 52,
-        boxSizing: 'border-box',
-        borderBottom: '1px solid #f0f0f0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 10px 0 16px',
-        background: '#fff',
-      }}>
-        <div style={{ fontWeight: 600, fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span>✨ AI 对撞机</span>
-        </div>
-        <Space size={0}>
-          <Button
-            type="text"
-            icon={<PlusOutlined />}
-            onClick={createNewChat}
-            style={{ fontSize: 18 }}
-            title="新建对话"
-          />
-          <Popover
-            placement="bottom"
-            open={conversationsOpen}
-            onOpenChange={setConversationsOpen}
-            overlayInnerStyle={{ padding: 0, maxHeight: 600 }}
-            content={
-              <div style={{ width: 280 }}>
-                <Conversations
-                  items={[
-                    { key: 'new', label: hasAsked ? '新建对话' : '新会话' },
-                    ...historyList.slice(0, 9).map((item, idx) => ({
-                      key: item.id,
-                      label: item.type === 'multi'
-                        ? `多通道 · ${new Date(item.createdAt).toLocaleDateString()}`
-                        : `${PROVIDER_NAME_MAP[item.providerId as ProviderId]} · ${new Date(item.createdAt).toLocaleDateString()}`,
-                    })),
-                  ]}
-                  activeKey="new"
-                  onActiveChange={(key) => {
-                    if (key === 'new' && hasAsked) {
-                      createNewChat();
-                    } else if (key !== 'new') {
-                      const item = historyList.find(h => h.id === key);
-                      if (item) {
-                        restoreHistorySession(item);
-                      }
-                    }
-                    setConversationsOpen(false);
-                  }}
-                />
-              </div>
+  // ==================== Nodes ====================
+  const chatHeader = (
+    <div className={styles.chatHeader}>
+      <div className={styles.headerTitle}>✨ AI 助手</div>
+      <Space size={0}>
+        <Button
+          type="text"
+          icon={<PlusOutlined />}
+          onClick={() => {
+            if (messages?.length) {
+              const timeNow = dayjs().valueOf().toString();
+              addConversation({ key: timeNow, label: '新会话', group: '今天' });
+              setActiveConversationKey(timeNow);
+            } else {
+              message.error('当前已经是新会话');
             }
-          >
-            <Button type="text" icon={<CommentOutlined />} style={{ fontSize: 18 }} title="历史对话" />
-          </Popover>
-          <Button
-            type="text"
-            icon={<SettingOutlined />}
-            onClick={() => setConversationsOpen(false)}
-            style={{ fontSize: 18 }}
-            title="通道设置"
-          />
-        </Space>
-      </div>
-
-      {/* Main Chat Area */}
-      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {messages.length > 0 ? (
-          /* 消息列表 */
-          <Bubble.List
-            ref={listRef}
-            style={{ paddingInline: 16, paddingBlock: 16, overflowY: 'auto', flex: 1 }}
-            items={messages?.map((i) => ({
-              ...i.message,
-              key: i.id,
-              status: i.status,
-              loading: i.loading,
-            }))}
-            role={role}
-          />
-        ) : (
-          /* 欢迎页 */
-          <>
-            <Welcome
-              variant="borderless"
-              title="👋 你好，我是 AI 对撞机"
-              description="一个问题问多个 AI，获取最全面的答案"
-              style={{
-                marginInline: 16,
-                padding: '12px 16px',
-                borderRadius: '2px 12px 12px 12px',
-                background: '#f5f5f5',
-                marginBottom: 16,
-              }}
-            />
-
-            <Prompts
-              vertical
-              title="我可以帮助："
-              items={MOCK_QUESTIONS.map((q) => ({ key: q, description: q }))}
-              onItemClick={(info) => handleUserSubmit(info?.data?.description as string)}
-              style={{ marginInline: 16 }}
-              styles={{ title: { fontSize: 14 } }}
-            />
-          </>
-        )}
-      </div>
-
-      {/* Sender Area */}
-      <div style={{ padding: 16, background: '#fff', borderTop: '1px solid #f0f0f0' }}>
-        <Sender
-          loading={PROVIDER_IDS.some(id => statusMap[id] === 'running')}
-          value={inputValue}
-          onChange={(v) => setInputValue(v)}
-          onSubmit={() => handleUserSubmit(inputValue)}
-          onCancel={() => {
-            // TODO: 添加取消请求逻辑
-            message.info('取消功能待实现');
           }}
-          placeholder="输入问题，按 Enter 发送..."
-          allowSpeech
-          header={
-            <Sender.Header
-              title="通道设置"
-              styles={{ content: { padding: 0 } }}
-              open={isHistoryOpen}
-              onOpenChange={setIsHistoryOpen}
-              forceRender
-            >
-              <div style={{ padding: 16 }}>
-                <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 500 }}>快捷设置</div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Button
-                    type={isDeepThinkingEnabled ? 'primary' : 'default'}
-                    size="small"
-                    onClick={toggleDeepThinking}
-                  >
-                    深度思考 {isDeepThinkingEnabled ? '已开启' : '已关闭'}
-                  </Button>
-                  <Button
-                    type={isSummaryEnabled ? 'primary' : 'default'}
-                    size="small"
-                    onClick={toggleSummary}
-                  >
-                    智能总结 {isSummaryEnabled ? '已开启' : '已关闭'}
-                  </Button>
-                </div>
-                <div style={{ marginTop: 16, borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
-                  <Button block onClick={() => { setIsHistoryPanelOpen(true); setIsHistoryOpen(false); }}>
-                    查看详细历史记录
-                  </Button>
-                </div>
-              </div>
-            </Sender.Header>
-          }
+          className={styles.headerButton}
         />
-      </div>
-
-      {/* Modals */}
-      <ChannelSettingsModal />
-      <HistoryPanel />
+        <Popover
+          placement="bottom"
+          styles={{ container: { padding: 0, maxHeight: 600 } }}
+          content={
+            <Conversations
+              items={conversations?.map((i) =>
+                i.key === activeConversationKey ? { ...i, label: `[当前] ${i.label}` } : i,
+              )}
+              activeKey={activeConversationKey}
+              groupable
+              onActiveChange={setActiveConversationKey}
+              styles={{ item: { padding: '0 8px' } }}
+              className={styles.conversations}
+            />
+          }
+        >
+          <Button type="text" icon={<CommentOutlined />} className={styles.headerButton} />
+        </Popover>
+      </Space>
     </div>
   );
-}
+  const chatList = (
+    <div className={styles.chatList}>
+      {messages?.length ? (
+        <Bubble.List
+          ref={listRef}
+          style={{ paddingInline: 16 }}
+          items={messages?.map((i) => ({
+            ...i.message,
+            key: i.id,
+            status: i.status,
+            loading: i.status === 'loading',
+          }))}
+          role={role}
+        />
+      ) : (
+        <>
+          <Welcome
+            variant="borderless"
+            title="👋 你好，我是 Ant Design X"
+            description="基于 Ant Design，AGI 产品界面解决方案，创造更智能的视觉体验~"
+            className={styles.chatWelcome}
+          />
+
+          <Prompts
+            vertical
+            title="我可以帮助："
+            items={MOCK_QUESTIONS.map((i) => ({ key: i, description: i }))}
+            onItemClick={(info) => handleUserSubmit(info?.data?.description as string)}
+            style={{ marginInline: 16 }}
+            styles={{ title: { fontSize: 14 } }}
+          />
+        </>
+      )}
+    </div>
+  );
+  const sendHeader = (
+    <Sender.Header
+      title="上传文件"
+      styles={{ content: { padding: 0 } }}
+      open={attachmentsOpen}
+      onOpenChange={setAttachmentsOpen}
+      forceRender
+    >
+      <Attachments
+        ref={attachmentsRef}
+        beforeUpload={() => false}
+        items={files}
+        onChange={({ fileList }) => setFiles(fileList)}
+        placeholder={(type) =>
+          type === 'drop'
+            ? { title: '将文件拖到此处' }
+            : {
+                icon: <CloudUploadOutlined />,
+                title: '上传文件',
+                description: '点击或将文件拖到此处上传',
+              }
+        }
+      />
+    </Sender.Header>
+  );
+  const chatSender = (
+    <Flex vertical gap={12} className={styles.chatSend}>
+      <Flex gap={12} align="center">
+        <Button
+          icon={<ScheduleOutlined />}
+          onClick={() => handleUserSubmit('Ant Design X 有哪些升级？')}
+        >
+          升级
+        </Button>
+        <Button
+          icon={<ProductOutlined />}
+          onClick={() => handleUserSubmit('Ant Design X 中有哪些组件？')}
+        >
+          组件
+        </Button>
+        <Button icon={<AppstoreAddOutlined />}>更多</Button>
+      </Flex>
+      <Suggestion items={MOCK_SUGGESTIONS} onSelect={(itemVal) => setInputValue(`[${itemVal}]:`)}>
+        {({ onTrigger, onKeyDown }) => (
+          <Sender
+            loading={isRequesting}
+            value={inputValue}
+            onChange={(v) => {
+              onTrigger(v === '/');
+              setInputValue(v);
+            }}
+            onSubmit={() => {
+              handleUserSubmit(inputValue);
+              setInputValue('');
+            }}
+            onCancel={() => {
+              abort();
+            }}
+            allowSpeech
+            placeholder="提问或输入 / 使用技能"
+            onKeyDown={onKeyDown}
+            header={sendHeader}
+            prefix={
+              <Button
+                type="text"
+                icon={<PaperClipOutlined style={{ fontSize: 18 }} />}
+                onClick={() => setAttachmentsOpen(!attachmentsOpen)}
+              />
+            }
+            onPasteFile={onPasteFile}
+          />
+        )}
+      </Suggestion>
+    </Flex>
+  );
+
+  return (
+    <div className={styles.copilotChat}>
+      {chatHeader}
+      {chatList}
+      {chatSender}
+    </div>
+  );
+};
+
+export default App;

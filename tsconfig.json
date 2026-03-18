@@ -34,5 +34,8 @@
     "src/**/*.js",
     "manifest.config.js",
     "vite.config.js"
+  ],
+  "exclude": [
+    "src/sidepanel/_backup"
   ]
 }
