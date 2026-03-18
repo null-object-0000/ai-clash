@@ -183,6 +183,7 @@ interface AppActions {
 
   // ─── History ───
   deleteHistoryItem: (id: string) => void;
+  renameHistoryItem: (id: string, label: string) => void;
   clearHistory: () => void;
 
   // ─── Internal ───
@@ -529,12 +530,12 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
       try {
         const r = await chrome.runtime?.sendMessage({ type: MSG_TYPES.TEST_API_KEY, payload: { providerId, apiKey } });
         const success = !!r?.success;
-        const message = r?.message || r?.error || '请求失败';
-        set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success, message } } }));
+        const msg = r?.message || r?.error || '请求失败';
+        set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success, message: msg } } }));
         if (success) {
-          message.success(message);
+          message.success(msg);
         } else {
-          message.error(message);
+          message.error(msg);
         }
       } catch {
         set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success: false, message: '请求失败' } } }));
@@ -742,6 +743,16 @@ export const useStore = create<AppState & AppActions>()((set, get) => {
     deleteHistoryItem: (id) => {
       set(prev => {
         const next = prev.historyList.filter(h => h.id !== id);
+        saveHistory(next);
+        return { historyList: next };
+      });
+    },
+
+    renameHistoryItem: (id, label) => {
+      set(prev => {
+        const next = prev.historyList.map(h =>
+          h.id === id ? { ...h, customLabel: label } : h,
+        );
         saveHistory(next);
         return { historyList: next };
       });

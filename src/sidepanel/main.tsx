@@ -1,16 +1,12 @@
 import { createRoot } from 'react-dom/client';
-import { ConfigProvider } from 'antd';
-import { App as AntdApp } from 'antd';
-import { XProvider } from '@ant-design/x';
+import { ConfigProvider, App as AntdApp } from 'antd';
 import App from './App';
 import './style.css';
 
 createRoot(document.getElementById('app')!).render(
   <ConfigProvider>
     <AntdApp>
-      <XProvider>
-        <App />
-      </XProvider>
+      <App />
     </AntdApp>
   </ConfigProvider>
 );

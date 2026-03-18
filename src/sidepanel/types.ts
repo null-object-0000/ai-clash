@@ -75,6 +75,7 @@ export interface MultiChannelHistoryItem {
   providers: Record<ProviderId, ProviderHistoryEntry>;
   summary: SummaryHistoryEntry | null;
   conversationTurns?: CompletedTurn[];
+  customLabel?: string;
 }
 
 export interface SingleChannelHistoryItem {
@@ -84,6 +85,7 @@ export interface SingleChannelHistoryItem {
   providerName: string;
   createdAt: number;
   updatedAt: number;
+  customLabel?: string;
   turns: Array<{
     question: string;
     response: string;

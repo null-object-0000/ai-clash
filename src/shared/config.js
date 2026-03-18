@@ -26,23 +26,25 @@ export function getModelOptions(providerId) {
     return [{ value: '', label: '默认模型（仅支持网页模式）' }];
   }
 
-  const { apiConfig } = provider;
-  const defaultModel = apiConfig.defaultModel;
+  return provider.apiConfig.models.map(model => {
+    let label = `${model.id}`;
+    if (model.desc) label += `（${model.desc}）`;
+    if (model.maxTokens) {
+      const tokensLabel = model.maxTokens >= 1024
+        ? `${(model.maxTokens / 1024).toFixed(0)}K`
+        : `${model.maxTokens}`;
+      label += `，输出最大 ${tokensLabel}`;
+    }
+    return { value: model.id, label };
+  });
+}
 
-  return [
-    { value: '', label: `默认模型 (${defaultModel})` },
-    ...provider.apiConfig.models.map(model => {
-      let label = `${model.id}`;
-      if (model.desc) label += `（${model.desc}）`;
-      if (model.maxTokens) {
-        const tokensLabel = model.maxTokens >= 1024
-          ? `${(model.maxTokens / 1024).toFixed(0)}K`
-          : `${model.maxTokens}`;
-        label += `，输出最大 ${tokensLabel}`;
-      }
-      return { value: model.id, label };
-    }),
-  ];
+/**
+ * 获取提供者的默认模型 ID
+ */
+export function getDefaultModel(providerId) {
+  const provider = getProvider(providerId);
+  return provider?.apiConfig?.defaultModel || '';
 }
 
 /**
