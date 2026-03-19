@@ -143,7 +143,7 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
           setRenameTarget(null);
         }}
         onCancel={() => setRenameTarget(null)}
-        destroyOnClose
+        destroyOnHidden
       >
         <Input
           autoFocus

@@ -228,7 +228,7 @@ export default function ChannelSettingsDrawer() {
         open
         onClose={closeProviderSettings}
         placement="bottom"
-        height="65vh"
+        size="65vh"
         title={titleNode}
         styles={{ wrapper: { borderRadius: '16px 16px 0 0' } }}
       >

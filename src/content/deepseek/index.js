@@ -43,35 +43,35 @@ function buildDisplayText() {
   return "<think>" + think + "</think>\n\n" + resp;
 }
 
-window.addEventListener('message', (event) => {
-  if (event.source !== window) return;
+// 使用同步 dispatchEvent 通信（而非 postMessage 宏任务），
+// 确保在 ReadableStream 微任务链中每个 chunk 都能立即被投递
+window.addEventListener('__aiclash_ds_chunk', () => {
+  const commEl = document.getElementById('__aiclash_ds_comm');
+  if (!commEl) return;
+  domCtx.hookDataReceived = true;
+  const text = commEl.dataset.text ?? '';
+  const isThink = commEl.dataset.think === '1';
+  if (!thinkContent && !responseContent) logger.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
+  if (isThink) thinkContent += text; else responseContent += text;
 
-  if (event.data.type === 'DEEPSEEK_HOOK_CHUNK') {
-    domCtx.hookDataReceived = true;
-    const payload = event.data.payload;
-    const isThink = typeof payload === 'object' && payload && payload.isThink === true;
-    const text = typeof payload === 'string' ? payload : (payload?.text ?? "");
-    if (!thinkContent && !responseContent) logger.log(`[AI Clash ${PROVIDER}] content 收到首包 CHUNK`);
-    if (isThink) thinkContent += text; else responseContent += text;
+  const stage = responseContent ? 'responding' : 'thinking';
+  safeSend({
+    type: MSG_TYPES.CHUNK_RECEIVED,
+    payload: { provider: PROVIDER, text, stage, isThink }
+  });
+});
 
-    const stage = responseContent ? 'responding' : 'thinking';
+window.addEventListener('__aiclash_ds_end', () => {
+  logger.log(`[AI Clash ${PROVIDER}] content 收到 END`);
+  stopDomObserver(domCtx);
+  const full = buildDisplayText();
+  if (!full) {
     safeSend({
       type: MSG_TYPES.CHUNK_RECEIVED,
-      payload: { provider: PROVIDER, text, stage, isThink }
+      payload: { provider: PROVIDER, text: '（网页端已结束，但未抓取到流式内容，可能接口格式已变更）' }
     });
   }
-  else if (event.data.type === 'DEEPSEEK_HOOK_END') {
-    logger.log(`[AI Clash ${PROVIDER}] content 收到 END`);
-    stopDomObserver(domCtx);
-    const full = buildDisplayText();
-    if (!full) {
-      safeSend({
-        type: MSG_TYPES.CHUNK_RECEIVED,
-        payload: { provider: PROVIDER, text: '（网页端已结束，但未抓取到流式内容，可能接口格式已变更）' }
-      });
-    }
-    sendCompleted(PROVIDER);
-  }
+  sendCompleted(PROVIDER);
 });
 
 // ============================================================================

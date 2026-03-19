@@ -28,6 +28,20 @@
 
     logger.log('%c[AI Clash hook v4]%c MAIN world 注入成功', 'color:#6366f1;font-weight:bold', 'color:inherit');
 
+    // ====== MAIN→ISOLATED 同步通信桥 ======
+    // dispatchEvent 是同步的，事件处理函数在调用时立即内联执行，
+    // 不像 postMessage（宏任务）会被 ReadableStream 微任务链阻塞
+    var _commEl = document.createElement('div');
+    _commEl.id = '__aiclash_ds_comm';
+    _commEl.style.display = 'none';
+    (document.documentElement || document.head).appendChild(_commEl);
+
+    function emitChunk(text, isThink) {
+        _commEl.dataset.text = text;
+        _commEl.dataset.think = isThink ? '1' : '0';
+        window.dispatchEvent(new Event('__aiclash_ds_chunk'));
+    }
+
     // ====== SSE 解析核心 ======
     var _phase = 'RESPONSE';
     var _chunkCount = 0;
@@ -37,7 +51,7 @@
         if (_endSentThisSession) return;
         _endSentThisSession = true;
         logger.log('[AI Clash v4] → END (chunks=' + _chunkCount + ')');
-        window.postMessage({ type: 'DEEPSEEK_HOOK_END' }, '*');
+        window.dispatchEvent(new Event('__aiclash_ds_end'));
     }
 
     function parseSSE(line) {
@@ -84,7 +98,7 @@
                 }
                 _chunkCount++;
                 if (_chunkCount <= 3) logger.log('[AI Clash v4] chunk#' + _chunkCount, JSON.stringify(text).slice(0, 80));
-                window.postMessage({ type: 'DEEPSEEK_HOOK_CHUNK', payload: { text: text, isThink: isThink } }, '*');
+                emitChunk(text, isThink);
             }
         } catch (_) {}
     }
@@ -101,13 +115,16 @@
 
     // =====================================================================
     //  策略 0（最强）：fetch 拦截 — 在页面 JS 运行前 patch，保证被缓存
-    //  使用 response.clone() + 主动 pump 读流，既不影响页面消费又能实时拿数据
+    //  使用 pull-based ReadableStream 透传：拦截原始 body，逐块解析 SSE 后
+    //  原样转发给页面，避免 clone tee 导致的缓冲停滞
     // =====================================================================
     var _origFetch = window.fetch;
     // 保存原始 getReader 以避免策略 3 的 hook 产生递归
     var _rawGetReader = ReadableStream.prototype.getReader;
     // 保存原始 TextDecoder.decode 以避免策略 2 的 hook 产生递归
     var _rawDecode = TextDecoder.prototype.decode;
+    // 当策略 0（fetch）已命中时，阻止策略 2/3 重复处理同一 SSE 流
+    var _fetchIntercepted = false;
 
     window.fetch = function () {
         var url = '';
@@ -116,27 +133,39 @@
             url = typeof arg0 === 'string' ? arg0 : (arg0 && (arg0.url || ''));
         } catch (_) {}
 
-        var p = _origFetch.apply(this, arguments);
+        if (!isCompletionUrl(url)) {
+            return _origFetch.apply(this, arguments);
+        }
 
-        if (isCompletionUrl(url)) {
-            logger.log('[AI Clash v4] ★ fetch 命中:', url);
-            resetSession();
-            p.then(function (response) {
-                if (!response.body) return;
-                try {
-                    var clone = response.clone();
-                    var reader = _rawGetReader.call(clone.body);
-                    var dec = new TextDecoder('utf-8');
-                    var buf = '';
-                    (function pump() {
-                        reader.read().then(function (res) {
-                            if (res.done) {
-                                if (buf.trim()) parseSSE(buf.trim());
-                                emitEnd();
-                                return;
-                            }
-                            var chunk;
-                            try { chunk = _rawDecode.call(dec, res.value, { stream: true }); } catch (_) { return; }
+        logger.log('[AI Clash v4] ★ fetch 命中:', url);
+        resetSession();
+        _fetchIntercepted = true;
+
+        return _origFetch.apply(this, arguments).then(function (response) {
+            if (!response.body) {
+                _fetchIntercepted = false;
+                return response;
+            }
+
+            var dec = new TextDecoder('utf-8');
+            var buf = '';
+            var sourceReader = _rawGetReader.call(response.body);
+
+            // pull-based ReadableStream：页面每次读取时，从原始流取一块数据，
+            // 经我们的 SSE 解析后原样转发，彻底消除 clone tee 的缓冲停滞问题
+            var readable = new ReadableStream({
+                pull: function (controller) {
+                    return sourceReader.read().then(function (result) {
+                        if (result.done) {
+                            try { if (buf.trim()) parseSSE(buf.trim()); } catch (_) {}
+                            emitEnd();
+                            _fetchIntercepted = false;
+                            controller.close();
+                            return;
+                        }
+                        controller.enqueue(result.value);
+                        try {
+                            var chunk = _rawDecode.call(dec, result.value, { stream: true });
                             buf += chunk;
                             var lines = buf.split('\n');
                             buf = lines.pop() || '';
@@ -144,13 +173,28 @@
                                 var t = lines[i].trim();
                                 if (t) parseSSE(t);
                             }
-                            pump();
-                        }).catch(function () { emitEnd(); });
-                    })();
-                } catch (_) {}
-            }).catch(function () {});
-        }
-        return p;
+                        } catch (_) {}
+                    }).catch(function (err) {
+                        emitEnd();
+                        _fetchIntercepted = false;
+                        try { controller.error(err); } catch (_) {}
+                    });
+                },
+                cancel: function () {
+                    _fetchIntercepted = false;
+                    sourceReader.cancel();
+                }
+            });
+
+            return new Response(readable, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+            });
+        }).catch(function (err) {
+            _fetchIntercepted = false;
+            throw err;
+        });
     };
 
     // =====================================================================
@@ -221,6 +265,7 @@
     TextDecoder.prototype.decode = function (input, options) {
         var result = _origDecode.apply(this, arguments);
         if (!result || result.length < 5) return result;
+        if (_fetchIntercepted) return result;
 
         var st = _decoderStates.get(this);
         if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; _decoderStates.set(this, st); }
@@ -254,7 +299,7 @@
 
         reader.read = function () {
             return origRead().then(function (res) {
-                if (st.rejected) return res;
+                if (st.rejected || _fetchIntercepted) return res;
                 if (res.done) {
                     if (st.tracked) { if (st.buf.trim()) parseSSE(st.buf.trim()); emitEnd(); }
                     return res;
