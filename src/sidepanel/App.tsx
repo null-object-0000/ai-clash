@@ -243,6 +243,7 @@ const App = () => {
 
   // ==================== Store ====================
   const hasAsked = useStore(s => s.hasAsked);
+  const isCurrentSessionFromHistory = useStore(s => s.isCurrentSessionFromHistory);
   const currentQuestion = useStore(s => s.currentQuestion);
   const conversationTurns = useStore(s => s.conversationTurns);
   const statusMap = useStore(s => s.statusMap);
@@ -432,53 +433,55 @@ const App = () => {
       </div>
 
       {/* ─── Sender ─── */}
-      <Flex vertical className={styles.chatSend}>
-        <Sender
-          loading={isAnyRunning}
-          value={inputValue}
-          onChange={setInputValue}
-          autoSize
-          placeholder="输入你的问题，按 Enter 发送"
-          onSubmit={() => handleUserSubmit(inputValue)}
-          onCancel={() => message.info('取消功能待实现')}
-          suffix={false}
-          footer={(_, { components }) => {
-            const { SendButton, LoadingButton } = components;
-            return (
-              <Flex justify="space-between" align="center">
-                <Flex gap="small" align="center">
-                  <Sender.Switch
-                    icon={<BulbOutlined />}
-                    value={isDeepThinkingEnabled}
-                    onChange={toggleDeepThinking}
-                  >
-                    深度思考
-                  </Sender.Switch>
-                  <Tooltip title={summaryBlockReason || undefined}>
-                    <span>
-                      <Sender.Switch
-                        icon={<MergeCellsOutlined />}
-                        value={enabledCount >= 2 && isSummaryEnabled}
-                        disabled={enabledCount < 2}
-                        onChange={toggleSummary}
-                      >
-                        归纳总结
-                      </Sender.Switch>
-                    </span>
-                  </Tooltip>
+      {!isCurrentSessionFromHistory && (
+        <Flex vertical className={styles.chatSend}>
+          <Sender
+            loading={isAnyRunning}
+            value={inputValue}
+            onChange={setInputValue}
+            autoSize
+            placeholder="输入你的问题，按 Enter 发送"
+            onSubmit={() => handleUserSubmit(inputValue)}
+            onCancel={() => message.info('取消功能待实现')}
+            suffix={false}
+            footer={(_, { components }) => {
+              const { SendButton, LoadingButton } = components;
+              return (
+                <Flex justify="space-between" align="center">
+                  <Flex gap="small" align="center">
+                    <Sender.Switch
+                      icon={<BulbOutlined />}
+                      value={isDeepThinkingEnabled}
+                      onChange={toggleDeepThinking}
+                    >
+                      深度思考
+                    </Sender.Switch>
+                    <Tooltip title={summaryBlockReason || undefined}>
+                      <span>
+                        <Sender.Switch
+                          icon={<MergeCellsOutlined />}
+                          value={enabledCount >= 2 && isSummaryEnabled}
+                          disabled={enabledCount < 2}
+                          onChange={toggleSummary}
+                        >
+                          归纳总结
+                        </Sender.Switch>
+                      </span>
+                    </Tooltip>
+                  </Flex>
+                  <Flex align="center">
+                    {isAnyRunning ? (
+                      <LoadingButton type="default" />
+                    ) : (
+                      <SendButton type="primary" disabled={false} />
+                    )}
+                  </Flex>
                 </Flex>
-                <Flex align="center">
-                  {isAnyRunning ? (
-                    <LoadingButton type="default" />
-                  ) : (
-                    <SendButton type="primary" disabled={false} />
-                  )}
-                </Flex>
-              </Flex>
-            );
-          }}
-        />
-      </Flex>
+              );
+            }}
+          />
+        </Flex>
+      )}
 
       {/* ─── Modals & Drawers ─── */}
       <ChannelSettingsDrawer />
