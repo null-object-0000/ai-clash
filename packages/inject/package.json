@@ -1,0 +1,65 @@
+{
+  "name": "@ai-clash/inject",
+  "version": "0.1.0",
+  "description": "AI Clash Inject - A standalone injection library for controlling AI chat interfaces",
+  "type": "module",
+  "main": "./dist/index.umd.js",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.umd.js"
+    },
+    "./standalone": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/standalone.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "vite --mode serve",
+    "dev:lib": "vite build --watch",
+    "build": "vite build && vite build --mode standalone",
+    "build:esm": "vite build",
+    "build:standalone": "vite build --mode standalone",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "ai",
+    "injection",
+    "automation",
+    "deepseek",
+    "doubao",
+    "qianwen",
+    "longcat",
+    "yuanbao"
+  ],
+  "author": "AI Clash Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/null-object-0000/ai-clash.git",
+    "directory": "packages/inject"
+  },
+  "bugs": {
+    "url": "https://github.com/null-object-0000/ai-clash/issues"
+  },
+  "homepage": "https://github.com/null-object-0000/ai-clash#readme",
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.3.1"
+  },
+  "peerDependencies": {
+    "@types/chrome": "*"
+  },
+  "peerDependenciesMeta": {
+    "@types/chrome": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Clash Inject - ESM 代码生成</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      min-height: 100vh; padding: 40px 20px;
+    }
+    .container { max-width: 700px; margin: 0 auto; }
+    h1 { color: white; text-align: center; margin-bottom: 10px; font-size: 2.2rem; }
+    .subtitle { color: rgba(255,255,255,0.9); text-align: center; margin-bottom: 30px; }
+    .card {
+      background: white; border-radius: 16px; padding: 25px; margin-bottom: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    .card h2 { color: #333; margin-bottom: 15px; font-size: 1.2rem; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; color: #666; margin-bottom: 5px; font-size: 0.9rem; }
+    .form-group select, .form-group input {
+      width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1rem;
+    }
+    .form-group select:focus, .form-group input:focus { outline: none; border-color: #f093fb; }
+    .code-block {
+      background: #1e1e1e; color: #d4d4d4; padding: 15px; border-radius: 8px;
+      font-family: 'Consolas', monospace; font-size: 0.85rem;
+      overflow-x: auto; white-space: pre-wrap; word-break: break-all;
+    }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px; font-size: 0.9rem;
+      font-weight: 500; cursor: pointer; transition: all 0.2s; margin-right: 10px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(240,147,251,0.4); }
+    .btn-secondary { background: #f0f0f0; color: #333; }
+    .nav-links { text-align: center; margin-bottom: 20px; }
+    .nav-links a { color: white; text-decoration: none; margin: 0 10px; opacity: 0.9; }
+    .nav-links a:hover { opacity: 1; }
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.8); color: white; padding: 12px 24px;
+      border-radius: 8px; opacity: 0; transition: opacity 0.3s; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+    .note { background: #fff3cd; padding: 12px; border-radius: 8px; margin: 15px 0; color: #856404; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📦 ESM 代码生成</h1>
+    <p class="subtitle">用于 Puppeteer/Playwright 或 网页 Console</p>
+
+    <div class="nav-links">
+      <a href="/">← 返回首页</a>
+      <a href="/test-standalone.html">Standalone 注入 →</a>
+    </div>
+
+    <div class="card">
+      <h2>配置选项</h2>
+
+      <div class="form-group">
+        <label>Provider (AI 平台)</label>
+        <select id="provider">
+          <option value="deepseek">DeepSeek</option>
+          <option value="doubao">豆包</option>
+          <option value="qianwen">通义千问</option>
+          <option value="longcat">LongCat (天工)</option>
+          <option value="yuanbao">腾讯元宝</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>适配器类型</label>
+        <select id="adapter">
+          <option value="window">Window (全局变量)</option>
+          <option value="extension">Extension (Chrome 扩展)</option>
+          <option value="broadcast">BroadcastChannel</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>模块 URL (本地开发)</label>
+        <input type="text" id="moduleUrl" value="http://localhost:5173/index.esm.js">
+      </div>
+
+      <button class="btn btn-primary" onclick="generateCode()">生成代码</button>
+      <button class="btn btn-secondary" onclick="resetForm()">重置</button>
+    </div>
+
+    <div class="card">
+      <h2>📜 ES Module 代码</h2>
+      <div class="note">
+        💡 适用于：Puppeteer、Playwright、Vite 项目、或直接在浏览器 Console 中使用 <code>type="module"</code>
+      </div>
+      <div class="code-block" id="output">// 点击"生成代码"按钮生成</div>
+      <div style="margin-top: 15px;">
+        <button class="btn btn-primary" onclick="copyCode()">📋 复制</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 Puppeteer 示例</h2>
+      <div class="code-block">
+// Puppeteer 中使用
+await page.evaluateOnNewDocument(() => {
+  // 这里可以预先注入配置
+});
+
+await page.addScriptTag({ url: 'http://localhost:5173/index.esm.js' });
+
+await page.evaluate(async () => {
+  const { createInjector } = window.AIClashInject;
+  const injector = createInjector({ provider: 'deepseek' });
+  await injector.inject();
+
+  // 测试能力
+  const state = await injector.call('thinking', 'getState');
+  console.log('Thinking state:', state);
+});
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 Playwright 示例</h2>
+      <div class="code-block">
+// Playwright 中使用
+await page.addInitScript(() => {
+  // 预加载脚本
+});
+
+await page.addScriptTag({ url: 'http://localhost:5173/index.esm.js' });
+
+await page.evaluate(async () => {
+  const { createInjector } = window.AIClashInject;
+  const injector = createInjector({ provider: 'deepseek', adapter: 'window' });
+  await injector.inject();
+
+  await window.__AI_CLASH.input.fill('Hello from Playwright!');
+  await window.__AI_CLASH.send.send();
+});
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">已复制</div>
+
+  <script>
+    function generateCode() {
+      const provider = document.getElementById('provider').value;
+      const adapter = document.getElementById('adapter').value;
+      const moduleUrl = document.getElementById('moduleUrl').value;
+
+      const code = `// ES Module 方式加载
+import { createInjector } from '${moduleUrl}';
+
+// 创建注入器
+const injector = createInjector({
+  provider: '${provider}',
+  adapter: '${adapter}'
+});
+
+// 执行注入
+await injector.inject();
+
+console.log('✅ 注入完成');
+
+// 使用能力
+await injector.call('thinking', 'getState');
+await injector.call('input', 'fill', 'Hello AI');
+await injector.call('send', 'send');
+
+// 或者通过全局变量 (window 适配器)
+await window.__AI_CLASH.thinking.getState();
+await window.__AI_CLASH.input.fill('Hello AI');
+await window.__AI_CLASH.send.send();`;
+
+      document.getElementById('output').textContent = code;
+    }
+
+    function resetForm() {
+      document.getElementById('provider').value = 'deepseek';
+      document.getElementById('adapter').value = 'window';
+      document.getElementById('moduleUrl').value = 'http://localhost:5173/index.esm.js';
+      generateCode();
+    }
+
+    function copyCode() {
+      const code = document.getElementById('output').textContent;
+      navigator.clipboard.writeText(code).then(() => showToast());
+    }
+
+    function showToast() {
+      document.getElementById('toast').classList.add('show');
+      setTimeout(() => document.getElementById('toast').classList.remove('show'), 2000);
+    }
+
+    // 初始生成
+    generateCode();
+  </script>
+</body>
+</html>
