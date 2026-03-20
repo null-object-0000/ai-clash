@@ -269,51 +269,18 @@ function createSendCapability(provider: ProviderConfig): Capabilities['send'] {
     events.forEach(ev => element.dispatchEvent(ev));
   }
 
-  function findSendButton(inputEl: Element | null): Element | null {
-    // 1. 优先级选择器
+  function findSendButton(): Element | null {
     for (const sel of selectors.sendButton) {
       const el = document.querySelector(sel);
       if (el) return el;
     }
-
-    // 2. 通用选择器
-    const genericSelectors = [
-      '[data-testid*="send"]',
-      '[data-testid*="submit"]',
-      '[aria-label*="发送"]',
-      '[aria-label*="send"]',
-      '[aria-label*="Send"]',
-    ];
-    for (const sel of genericSelectors) {
-      const el = document.querySelector(sel);
-      if (el) return el;
-    }
-
-    // 3. 文字匹配
-    const sendLabels = ['发送', 'Send', '发送消息'];
-    for (const label of sendLabels) {
-      const el = Array.from(document.querySelectorAll('button, [role="button"]'))
-        .find(e => e.textContent?.trim() === label);
-      if (el) return el;
-    }
-
-    // 4. 父级遍历
-    if (inputEl) {
-      let container = inputEl.parentElement;
-      for (let i = 0; i < 6 && container; i++) {
-        const btns = container.querySelectorAll('button, [role="button"]');
-        if (btns.length > 0) return btns[btns.length - 1];
-        container = container.parentElement;
-      }
-    }
-
     return null;
   }
 
   return {
     async send() {
       const inputEl = await waitForAnyElement(selectors.input, 2000);
-      const sendBtn = findSendButton(inputEl);
+      const sendBtn = findSendButton();
 
       if (sendBtn) {
         simulateRealClick(sendBtn);
@@ -337,17 +304,11 @@ function createNewChatCapability(provider: ProviderConfig): Capabilities['newCha
   const { selectors } = provider;
   const newChatSelectors = selectors.newChat;
 
-  function findClickable(el: Element | null): Element | null {
-    if (!el) return null;
-    if (el.matches?.('[role="button"], button, a, [tabindex="0"]')) return el;
-    return el.closest('[role="button"], button, a, [tabindex="0"]') || el;
-  }
-
   function findBySelectors(): Element | null {
     if (!newChatSelectors) return null;
     for (const sel of newChatSelectors) {
       const el = document.querySelector(sel);
-      if (el) return findClickable(el);
+      if (el) return el;
     }
     return null;
   }
