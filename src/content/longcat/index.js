@@ -7,6 +7,11 @@ import {
   fillTextInput, fillContentEditable, simulateEnter,
   sendStatus, sendConnecting, sendError, sendCompleted,
 } from '../shared/utils.js';
+import { thinkingToggle } from './thinking.js';
+import { inputFiller } from './input.js';
+import { messageSender } from './send.js';
+import { newChat } from './new-chat.js';
+import { exposeDebugGlobal } from '../shared/debug-bridge.js';
 
 const PROVIDER = 'longcat';
 
@@ -23,6 +28,11 @@ if (isContextValid()) {
     }
   });
 }
+
+// ============================================================================
+// DEBUG: 暴露能力到全局变量
+// ============================================================================
+exposeDebugGlobal(PROVIDER, { thinking: thinkingToggle, input: inputFiller, sender: messageSender, newChat });
 
 // ============================================================================
 // 流式数据接收

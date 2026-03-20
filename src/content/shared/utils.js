@@ -246,6 +246,20 @@ export async function fillContentEditable(el, text) {
   el.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
+/** 模拟真实用户点击（完整 pointer/mouse 事件序列），用于 Radix UI 等框架 */
+export function simulateRealClick(element) {
+  if (!element) return;
+  element.focus();
+  const events = [
+    new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
+    new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
+    new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
+    new MouseEvent('mouseup', { bubbles: true, cancelable: true }),
+    new MouseEvent('click', { bubbles: true, cancelable: true }),
+  ];
+  events.forEach(ev => element.dispatchEvent(ev));
+}
+
 /** 模拟 Enter 键发送 */
 export function simulateEnter(el) {
   el.dispatchEvent(new KeyboardEvent('keydown', {

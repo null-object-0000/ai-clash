@@ -420,6 +420,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    // ---- 在 MAIN world 注入 debug 代理（绕过 CSP）----
+    if (request.type === MSG_TYPES.INJECT_DEBUG_GLOBAL && sender.tab?.id) {
+        const { provider, methods } = request.payload;
+        chrome.scripting.executeScript({
+            target: { tabId: sender.tab.id },
+            world: 'MAIN',
+            func: (provider, methods) => {
+                var seq = 0;
+                function rpc(path, args) {
+                    return new Promise(function(resolve, reject) {
+                        var id = ++seq;
+                        function h(e) {
+                            if (e.detail && e.detail.callId === id) {
+                                window.removeEventListener('__aiclash_result', h);
+                                if (e.detail.error) reject(new Error(e.detail.error));
+                                else resolve(e.detail.result);
+                            }
+                        }
+                        window.addEventListener('__aiclash_result', h);
+                        window.dispatchEvent(new CustomEvent('__aiclash_call', {
+                            detail: { callId: id, path: path, args: args }
+                        }));
+                    });
+                }
+                var obj = { provider: provider };
+                Object.keys(methods).forEach(function(cap) {
+                    obj[cap] = {};
+                    methods[cap].forEach(function(fn) {
+                        obj[cap][fn] = function() {
+                            return rpc(cap + '.' + fn, Array.prototype.slice.call(arguments));
+                        };
+                    });
+                });
+                window.__AI_CLASH = obj;
+            },
+            args: [provider, methods],
+        }).then(() => sendResponse({ ok: true }))
+          .catch((err) => sendResponse({ ok: false, err: String(err) }));
+        return true;
+    }
+
     // ---- 派发任务到对应通道 ----
     if (request.type === MSG_TYPES.DISPATCH_TASK) {
         const { provider: providerId, prompt, settings, mode } = request.payload;

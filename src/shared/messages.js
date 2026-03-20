@@ -1,6 +1,8 @@
 export const MSG_TYPES = {
     // Content Script -> Background（请求在页面 MAIN world 注入 hook，payload 含 provider）
     INJECT_HOOK: 'INJECT_HOOK',
+    // Content Script -> Background（请求在 MAIN world 注入 debug 代理）
+    INJECT_DEBUG_GLOBAL: 'INJECT_DEBUG_GLOBAL',
 
     // UI -> Background
     DISPATCH_TASK: 'DISPATCH_TASK',
