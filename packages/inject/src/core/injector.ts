@@ -1348,6 +1348,10 @@ export function createInjector(options: InjectorOptions): Injector {
 
       setupCapabilities();
       await setupAdapter();
+      // 注入 SSE 拦截器（只在 DeepSeek 域名下）
+      if (providerId === 'deepseek') {
+        setupSSEInterceptor();
+      }
       isInjected = true;
       console.log(`[AI Clash Inject] Injected for provider: ${providerId}`);
     },
