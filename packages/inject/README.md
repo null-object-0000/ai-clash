@@ -67,6 +67,9 @@ await window.__AI_CLASH.chat.send({
   onDomChunk: (text, isThink, stage, conversationId) => {
     console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
+  onSseChunk: (text, isThink, stage, conversationId) => {
+    console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
+  },
   onComplete: (fullText, conversationId) => {
     console.log('完成，完整回复:', fullText, '会话 ID:', conversationId);
   }
