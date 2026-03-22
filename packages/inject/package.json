@@ -22,7 +22,8 @@
     "README.md"
   ],
   "scripts": {
-    "dev": "vite --mode serve",
+    "dev": "vite build --mode standalone --watch",
+    "serve": "npx http-server . -p 5173 -o index.html --cors -c-1",
     "dev:lib": "vite build --watch",
     "build": "vite build && vite build --mode standalone",
     "build:esm": "vite build",

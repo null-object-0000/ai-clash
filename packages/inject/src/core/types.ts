@@ -24,7 +24,7 @@
  * - `'longcat'` - LongCat/天工 (https://tiangong.cn)
  * - `'yuanbao'` - 腾讯元宝 (https://yuanbao.tencent.com)
  *
- * 也支持自定义字符串作为扩展提供者的 ID。
+ *、 也支持自定义字符串作为扩展提供者的 ID。
  */
 export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'longcat' | 'yuanbao' | string;
 
@@ -119,15 +119,17 @@ export interface Injector {
   /**
    * 调用能力方法
    *
-   * @param capability - 能力名称 ('thinking' | 'input' | 'send' | 'newChat')
+   * @param capability - 能力名称 ('chat' | 'thinking' | 'search' | 'model')
    * @param method - 方法名称
    * @param args - 方法参数
    * @returns 方法执行结果
    *
    * @example
+   * await injector.call('chat', 'newChat')
+   * await injector.call('chat', 'fill', 'Hello AI')
+   * await injector.call('chat', 'send')
    * await injector.call('thinking', 'getState')
-   * await injector.call('input', 'fill', 'Hello AI')
-   * await injector.call('send', 'send')
+   * await injector.call('thinking', 'sync', true)
    */
   call(capability: string, method: string, ...args: any[]): Promise<any>;
 }
@@ -140,17 +142,102 @@ export interface Injector {
  * 能力集合接口
  *
  * 定义了注入器提供的所有能力：
+ * - chat - 基础对话能力（新对话、输入、发送）
  * - thinking - 思考模式切换
- * - input - 输入框填充
- * - send - 发送消息
- * - newChat - 开始新对话
+ * - search - 智能搜索切换
+ * - model - 模型切换
  */
 export interface Capabilities {
-  thinking: ThinkingCapability;
-  input: InputCapability;
-  send: SendCapability;
-  newChat: NewChatCapability;
+  chat: ChatCapability;
+  thinking?: ThinkingCapability;
+  search?: SearchCapability;
+  model?: ModelCapability;
 }
+
+/**
+ * 基础对话能力集合
+ *
+ * 包含所有 AI 平台都应具备的基础能力：
+ * - newChat - 开始新对话
+ * - fill - 填充输入框
+ * - send - 发送消息
+ */
+export interface ChatCapability {
+  /**
+   * 开始新对话
+   */
+  newChat(): Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * 填充输入框
+   */
+  fill(text: string): Promise<{ success: boolean; reason?: string }>;
+
+  /**
+   * 发送消息
+   */
+  send(): Promise<{ success: boolean; method?: 'button' | 'enter'; reason?: string }>;
+}
+
+/**
+ * 智能搜索能力
+ *
+ * 用于获取和切换 AI 的联网搜索/智能搜索功能。
+ *
+ * @example
+ * // 获取当前状态
+ * const state = await window.__AI_CLASH.search.getState()
+ * console.log(state) // { found: true, enabled: false }
+ *
+ * // 开启搜索
+ * await window.__AI_CLASH.search.sync(true)
+ *
+ * // 关闭搜索
+ * await window.__AI_CLASH.search.sync(false)
+ */
+export interface SearchCapability {
+  /**
+   * 获取当前搜索模式状态
+   *
+   * @returns
+   * - `found`: 是否找到搜索模式切换按钮
+   * - `enabled`: 当前是否已开启搜索模式
+   */
+  getState(): Promise<{ found: boolean; enabled: boolean }>;
+
+  /**
+   * 同步搜索模式到期望状态
+   *
+   * @param wanted - 期望的状态 (true=开启，false=关闭)
+   * @returns
+   * - `success`: 操作是否成功
+   * - `changed`: 状态是否发生了改变
+   * - `reason`: 失败原因（可选）
+   *   - `'not-found'`: 未找到切换按钮
+   *   - `'disappeared-after-toggle'`: 切换后按钮消失
+   */
+  sync(wanted: boolean): Promise<{ success: boolean; changed: boolean; reason?: string }>;
+}
+
+/**
+ * 模型信息
+ */
+export interface ModelInfo {
+  id?: string;
+  name: string;
+  isSelected: boolean;
+}
+
+/**
+ * 模型切换能力
+ */
+export interface ModelCapability {
+  getCurrent(): Promise<{ found: boolean; model?: ModelInfo }>;
+  getAvailable(): Promise<{ found: boolean; models: ModelInfo[] }>;
+  select(modelIdOrName: string): Promise<{ success: boolean; reason?: string }>;
+}
+
+// 移除旧的接口定义（InputCapability, SendCapability, NewChatCapability 已合并到 ChatCapability）
 
 /**
  * 思考模式能力
@@ -193,82 +280,97 @@ export interface ThinkingCapability {
 }
 
 /**
- * 输入框能力
+ * 基础对话能力集合
  *
- * 用于向 AI 输入框填充文本内容。
- *
- * @example
- * await window.__AI_CLASH.input.fill('请解释量子力学')
- */
-export interface InputCapability {
-  /**
-   * 填充输入框
-   *
-   * 自动定位输入框并填充指定文本。支持：
-   * - `<textarea>` 元素
-   * - `<input type="text">` 元素
-   * - `contenteditable` 可编辑元素
-   * - Slate 等富文本编辑器
-   *
-   * @param text - 要填充的文本内容
-   * @returns
-   * - `success`: 是否成功
-   * - `reason`: 失败原因（可选）
-   *   - `'input-not-found'`: 未找到输入框
-   */
-  fill(text: string): Promise<{ success: boolean; reason?: string }>;
-}
-
-/**
- * 发送能力
- *
- * 用于模拟发送消息操作。
+ * 包含所有 AI 平台都应具备的基础能力：
+ * - newChat - 开始新对话
+ * - fill - 填充输入框
+ * - send - 发送消息
  *
  * @example
  * // 填充内容后发送
- * await window.__AI_CLASH.input.fill('你好')
- * await window.__AI_CLASH.send.send()
+ * await window.__AI_CLASH.chat.fill('你好')
+ * await window.__AI_CLASH.chat.send()
+ *
+ * // 开始新对话
+ * await window.__AI_CLASH.chat.newChat()
  */
-export interface SendCapability {
-  /**
-   * 发送消息
-   *
-   * 自动查找发送按钮并点击，如果找不到按钮则模拟 Enter 键发送。
-   *
-   * @returns
-   * - `success`: 是否成功
-   * - `method`: 发送方式
-   *   - `'button'`: 点击发送按钮
-   *   - `'enter'`: 模拟 Enter 键
-   * - `reason`: 失败原因（可选）
-   *   - `'no-button-no-input'`: 既找不到按钮也找不到输入框
-   */
+export interface ChatCapability {
+  newChat(): Promise<{ success: boolean; reason?: string }>;
+  fill(text: string): Promise<{ success: boolean; reason?: string }>;
   send(): Promise<{ success: boolean; method?: 'button' | 'enter'; reason?: string }>;
 }
 
 /**
- * 新建对话能力
- *
- * 用于开始新的对话。
- *
- * @example
- * await window.__AI_CLASH.newChat.start()
+ * 新对话动作配置
  */
-export interface NewChatCapability {
-  /**
-   * 开始新对话
-   *
-   * 自动查找并点击"新对话"按钮。查找优先级：
-   * 1. 优先级选择器（priority）
-   * 2. 文本标签匹配（textLabels）
-   * 3. data-testid 匹配（testIds）
-   *
-   * @returns
-   * - `success`: 是否成功
-   * - `reason`: 失败原因（可选）
-   *   - `'button-not-found'`: 未找到新对话按钮
-   */
-  start(): Promise<{ success: boolean; reason?: string }>;
+export interface NewChatAction {
+  /** 新对话按钮选择器列表（按优先级） */
+  button: string[];
+}
+
+/**
+ * 输入消息动作配置
+ */
+export interface InputAction {
+  /** 输入框选择器列表（按优先级） */
+  box: string[];
+}
+
+/**
+ * 发送消息动作配置
+ */
+export interface SendAction {
+  /** 发送按钮选择器列表（按优先级） */
+  button: string[];
+}
+
+/**
+ * 思考模式动作配置
+ */
+export interface ThinkingAction {
+  /** 思考模式按钮选择器列表（按优先级） */
+  button: string[];
+  /** 启用状态判断配置 */
+  enabledState: string | HasClassConfig | ClassContainsConfig | TextContainsConfig;
+  /** 切换操作配置 */
+  toggle: ToggleActionConfig;
+}
+
+/**
+ * 智能搜索动作配置
+ */
+export interface SearchAction {
+  /** 搜索模式按钮选择器列表（按优先级） */
+  button: string[];
+  /** 启用状态判断配置 */
+  enabledState: string | HasClassConfig | ClassContainsConfig | TextContainsConfig;
+  /** 切换操作配置 */
+  toggle: ToggleActionConfig;
+}
+
+/**
+ * 模型切换动作配置
+ */
+export interface ModelAction {
+  /** 打开模型选择器的按钮 */
+  dropdownButton: string[];
+  /** 模型列表配置 */
+  modelList: {
+    /** 下拉容器选择器 */
+    container: string;
+    /** 单个模型项选择器 */
+    item: string;
+    /** 模型名称选择器（在 item 内） */
+    nameSelector: string;
+    /** 标记已选模型的 class/属性（可选） */
+    selectedMarker?: string;
+  };
+  /** 选择模型配置 */
+  select: {
+    /** 模型项匹配方式（优先级） */
+    matchBy: ('text' | 'data-value' | 'data-model-id')[];
+  };
 }
 
 // ============================================================================
@@ -277,69 +379,35 @@ export interface NewChatCapability {
 
 /**
  * AI 提供者配置
- *
- * 定义了一个 AI 平台的完整配置信息，包括：
- * - 基础信息（ID、名称、域名）
- * - DOM 选择器配置
- * - 思考模式切换配置（可选）
  */
 export interface ProviderConfig {
-  /** 提供者唯一标识 */
   id: ProviderId;
-  /** 提供者显示名称 */
   name: string;
-  /** 网站域名（用于自动检测） */
   domain: string;
-  /** DOM 选择器配置 */
-  selectors: ProviderSelectors;
-  /** 思考模式切换配置（可选，某些平台可能不支持） */
-  toggles?: ThinkingToggleConfig;
+  actions: ProviderActions;
 }
 
 /**
- * Provider DOM 选择器配置
- *
- * 定义了控制 AI 页面所需的所有 CSS 选择器。
+ * Provider 动作配置
  */
-export interface ProviderSelectors {
-  /**
-   * 输入框选择器列表（按优先级）
-   * 支持多个选择器，按顺序尝试查找
-   */
-  input: string[];
-
-  /**
-   * 发送按钮选择器列表（按优先级）
-   * 支持多个选择器，按顺序尝试查找
-   */
-  sendButton: string[];
-
-  /** 新建对话选择器列表（按优先级） */
-  newChat: string[];
-
-  /** 思考模式按钮选择器（可选） */
-  thinking?: ThinkingButtonSelectors;
+export interface ProviderActions {
+  /** 基础对话动作（必填） */
+  chat: ChatActions;
+  /** 思考模式切换配置（可选） */
+  thinking?: ThinkingAction;
+  /** 智能搜索切换配置（可选） */
+  search?: SearchAction;
+  /** 模型切换配置（可选） */
+  model?: ModelAction;
 }
 
 /**
- * 思考模式按钮选择器配置
+ * 基础对话动作配置
  */
-export interface ThinkingButtonSelectors {
-  /**
-   * 查找选择器
-   * 可以是简单的 CSS 选择器字符串，或复杂配置对象
-   */
-  find: string | {
-    selector: string;
-    textContains?: string;
-    hasChild?: string;
-  };
-
-  /** 启用状态判断配置 */
-  isEnabled: string | HasClassConfig | ClassContainsConfig | TextContainsConfig;
-
-  /** 切换操作配置 */
-  toggle: ToggleActionConfig;
+export interface ChatActions {
+  newChat: NewChatAction;
+  input: InputAction;
+  send: SendAction;
 }
 
 /**
@@ -365,16 +433,6 @@ export interface TextContainsConfig {
   /** 文本内容中需要包含的关键词 */
   textContains?: string;
 }
-
-/**
- * 启用状态判断配置类型
- *
- * 支持多种判断方式：
- * - 字符串：匹配 class 名称
- * - 配置对象：匹配 class、文本等
- * - 函数：自定义判断逻辑
- */
-export type IsEnabledConfig = string | HasClassConfig | ClassContainsConfig | TextContainsConfig | ((el: Element) => boolean);
 
 /**
  * 切换操作配置
@@ -418,40 +476,6 @@ export interface ToggleActionConfig {
     texts: string[];
     fallbackTestId?: string;
   };
-}
-
-// ============================================================================
-// 内部能力配置
-// ============================================================================
-
-/**
- * 思考模式切换配置
- *
- * 定义了如何查找、判断和切换思考模式。
- */
-export interface ThinkingToggleConfig {
-  /**
-   * 查找切换按钮的方法
-   * 可以是 CSS 选择器字符串或自定义函数
-   */
-  findToggle: string | (() => Element | null);
-
-  /** 判断是否已启用的配置 */
-  isEnabled: IsEnabledConfig;
-
-  /**
-   * 切换方式
-   * - `'click'`: 点击切换
-   * - `'dropdown'`: 展开下拉菜单选择
-   */
-  toggle: 'click' | 'dropdown';
-
-  /**
-   * 切换后等待时间（毫秒）
-   * 等待 UI 状态更新完成
-   * @default 300
-   */
-  waitAfterToggle?: number;
 }
 
 // ============================================================================

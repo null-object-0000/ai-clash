@@ -6,6 +6,7 @@ import type {
   Injector,
   InjectorOptions,
   Capabilities,
+  ChatCapability,
   ProviderConfig,
   EventHandler,
 } from './types.js';
@@ -24,30 +25,282 @@ const DEFAULT_CHANNEL_NAME = 'ai-clash-channel';
 
 const wait = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
 
+/**
+ * 解析伪选择器语法
+ *
+ * 支持以下格式：
+ * - 纯 CSS: 'button.btn' → { css: 'button.btn', text: null }
+ * - CSS + 文本：'button.btn >> 发送' → { css: 'button.btn', text: '发送' }
+ * - 纯文本：'>> 发送' → { css: '*', text: '发送' }
+ */
+function parseSelector(selector: string): { css: string; text: string | null } {
+  const parts = selector.split('>>');
+
+  if (parts.length === 1) {
+    // 纯 CSS 选择器
+    return { css: parts[0].trim(), text: null };
+  }
+
+  // CSS + 文本 或 纯文本
+  const css = parts[0].trim() || '*';
+  const text = parts.slice(1).join('>>').trim();
+  return { css, text: text || null };
+}
+
+/**
+ * 获取元素的文本内容
+ */
+function getElementText(el: Element): string {
+  return (el as HTMLElement).innerText || el.textContent || '';
+}
+
+/**
+ * 检查元素文本是否包含指定文本
+ */
+function elementTextContains(el: Element, text: string): boolean {
+  const elText = getElementText(el);
+  return elText.includes(text);
+}
+
+/**
+ * 伪选择器查询 - 支持 >> 语法
+ *
+ * @example
+ * select('button.n-button >> 发送') // 查找 class 为 n-button 且文本包含"发送"的按钮
+ * select('span >> 深度思考') // 查找文本包含"深度思考"的 span 元素
+ * select('>> 发送') // 查找任意文本包含"发送"的元素
+ * select('button.btn') // 纯 CSS 选择器
+ */
+function select(selector: string): Element | null {
+  const { css, text } = parseSelector(selector);
+
+  // 纯 CSS 选择器，直接使用 querySelector
+  if (!text) {
+    return document.querySelector(css);
+  }
+
+  // CSS + 文本过滤
+  const elements = document.querySelectorAll(css);
+  for (const el of elements) {
+    if (elementTextContains(el, text)) {
+      return el;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 伪选择器查询所有匹配元素 - 支持 >> 语法
+ */
+function selectAll(selector: string): Element[] {
+  const { css, text } = parseSelector(selector);
+
+  // 纯 CSS 选择器
+  if (!text) {
+    return Array.from(document.querySelectorAll(css));
+  }
+
+  // CSS + 文本过滤
+  const elements = document.querySelectorAll(css);
+  const result: Element[] = [];
+  for (const el of elements) {
+    if (elementTextContains(el, text)) {
+      result.push(el);
+    }
+  }
+  return result;
+}
+
+/**
+ * 查找元素 - 支持 >> 伪选择器语法
+ */
+function findElement(selector: string): Element | null {
+  return select(selector);
+}
+
+/**
+ * 查找元素列表中的第一个匹配项
+ */
+function findAnyElement(selectors: string[]): Element | null {
+  for (const selector of selectors) {
+    const el = findElement(selector);
+    if (el) return el;
+  }
+  return null;
+}
+
+/**
+ * 等待元素出现 - 支持 >> 伪选择器语法
+ */
+function waitForElement(selector: string, timeout = 8000): Promise<Element | null> {
+  return new Promise(resolve => {
+    const start = Date.now();
+    const check = () => {
+      const el = findElement(selector);
+      if (el) {
+        resolve(el);
+        return;
+      }
+      if (Date.now() - start > timeout) {
+        resolve(null);
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
+  });
+}
+
+/**
+ * 等待任意元素出现
+ */
+async function waitForAnyElement(selectors: string[], timeout = 8000): Promise<Element | null> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    for (const selector of selectors) {
+      const el = findElement(selector);
+      if (el) return el;
+    }
+    await wait(100);
+  }
+  return null;
+}
+
 // ============================================================================
 // 能力实现工厂
 // ============================================================================
 
 /**
+ * 创建基础对话能力
+ */
+function createChatCapability(provider: ProviderConfig): ChatCapability {
+  const { chat } = provider.actions;
+
+  return {
+    async newChat() {
+      const target = findAnyElement(chat.newChat.button);
+      if (!target) {
+        return { success: false, reason: 'button-not-found' };
+      }
+      (target as HTMLElement).click();
+      await wait(600);
+      return { success: true };
+    },
+
+    async fill(text: string) {
+      const el = await waitForAnyElement(chat.input.box);
+      if (!el) {
+        return { success: false, reason: 'input-not-found' };
+      }
+
+      const htmlEl = el as HTMLElement;
+      htmlEl.focus();
+      await wait(100);
+
+      if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
+        fillTextInput(htmlEl, text);
+      } else {
+        await fillContentEditable(htmlEl, text);
+      }
+
+      return { success: true };
+    },
+
+    async send() {
+      const inputEl = await waitForAnyElement(chat.input.box, 2000);
+      const sendBtn = findAnyElement(chat.send.button);
+
+      if (sendBtn) {
+        simulateRealClick(sendBtn);
+        return { success: true, method: 'button' };
+      }
+
+      if (inputEl) {
+        simulateEnter(inputEl);
+        return { success: true, method: 'enter' };
+      }
+
+      return { success: false, reason: 'no-button-no-input' };
+    },
+  };
+}
+
+function fillTextInput(el: HTMLElement, text: string): void {
+  const setter = Object.getOwnPropertyDescriptor(
+    el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
+    'value'
+  )?.set;
+  if (setter) setter.call(el, text);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+async function fillContentEditable(el: HTMLElement, text: string): Promise<void> {
+  el.focus();
+  await wait(100);
+
+  // 尝试使用 execCommand
+  document.execCommand('selectAll', false, null as any);
+  document.execCommand('delete', false, null as any);
+  await wait(100);
+
+  // 对于 Slate 等特殊编辑器，尝试粘贴事件
+  if (el.hasAttribute('data-slate-editor')) {
+    try {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.setData('text/plain', text);
+      el.dispatchEvent(new ClipboardEvent('paste', {
+        clipboardData: dataTransfer,
+        bubbles: true,
+        cancelable: true,
+      }));
+      return;
+    } catch {
+      // 兜底
+    }
+  }
+
+  el.innerText = text;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function simulateEnter(el: Element): void {
+  el.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'Enter',
+    code: 'Enter',
+    keyCode: 13,
+    which: 13,
+    bubbles: true,
+    cancelable: true,
+  }));
+}
+
+function simulateRealClick(element: Element): void {
+  if (!element) return;
+  (element as HTMLElement).focus();
+  const events = [
+    new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
+    new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
+    new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
+    new MouseEvent('mouseup', { bubbles: true, cancelable: true }),
+    new MouseEvent('click', { bubbles: true, cancelable: true }),
+  ];
+  events.forEach(ev => element.dispatchEvent(ev));
+}
+
+/**
  * 创建思考模式切换能力
  */
 function createThinkingCapability(provider: ProviderConfig): Capabilities['thinking'] {
-  const { toggles } = provider;
+  const { actions } = provider;
+  const thinking = actions.thinking;
 
-  if (!toggles) {
-    return {
-      async getState() {
-        return { found: false, enabled: false };
-      },
-      async sync() {
-        return { success: false, changed: false, reason: 'not-supported' };
-      },
-    };
+  if (!thinking) {
+    return undefined;
   }
 
-  const findToggleEl = typeof toggles.findToggle === 'function'
-    ? toggles.findToggle
-    : () => document.querySelector(toggles.findToggle as string);
+  const findToggleEl = () => findAnyElement(thinking.button);
 
   // Type guard for string config
   const isStringConfig = (cfg: any): cfg is string => typeof cfg === 'string';
@@ -61,21 +314,21 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
   const isTextContainsConfig = (cfg: any): cfg is { textContains: string } =>
     typeof cfg === 'object' && cfg !== null && 'textContains' in cfg && cfg.textContains;
 
-  const checkEnabled: (el: Element) => boolean = typeof toggles.isEnabled === 'function'
-    ? toggles.isEnabled
+  const checkEnabled: (el: Element) => boolean = typeof thinking.enabledState === 'function'
+    ? thinking.enabledState
     : (el) => {
-        if (isStringConfig(toggles.isEnabled)) {
-          return el.classList.contains(toggles.isEnabled);
+        if (isStringConfig(thinking.enabledState)) {
+          return el.classList.contains(thinking.enabledState);
         }
-        if (isHasClassConfig(toggles.isEnabled)) {
-          return el.classList.contains(toggles.isEnabled.hasClass);
+        if (isHasClassConfig(thinking.enabledState)) {
+          return el.classList.contains(thinking.enabledState.hasClass);
         }
-        if (isClassContainsConfig(toggles.isEnabled)) {
-          const kw = toggles.isEnabled.classContains.toLowerCase();
+        if (isClassContainsConfig(thinking.enabledState)) {
+          const kw = thinking.enabledState.classContains.toLowerCase();
           return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
         }
-        if (isTextContainsConfig(toggles.isEnabled)) {
-          return (el.textContent || '').includes(toggles.isEnabled.textContains);
+        if (isTextContainsConfig(thinking.enabledState)) {
+          return (el.textContent || '').includes(thinking.enabledState.textContains);
         }
         return false;
       };
@@ -84,13 +337,13 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
     const el = findToggleEl();
     if (!el) return;
 
-    if (toggles.toggle === 'click') {
+    if (thinking.toggle.type === 'click') {
       (el as HTMLElement).click();
-      await wait(toggles.waitAfterToggle || 300);
-    } else if (toggles.toggle === 'dropdown') {
+      await wait(thinking.toggle.wait || 300);
+    } else if (thinking.toggle.type === 'dropdown') {
       // 点击展开菜单
       (el as HTMLElement).click();
-      await wait(toggles.waitAfterToggle || 800);
+      await wait(thinking.toggle.wait || 800);
 
       // TODO: 实现下拉菜单项点击（需要额外配置）
       // 这里暂时只展开菜单
@@ -130,201 +383,86 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
 }
 
 /**
- * 创建输入框填充能力
+ * 创建智能搜索切换能力
  */
-function createInputCapability(provider: ProviderConfig): Capabilities['input'] {
-  const { selectors } = provider;
+function createSearchCapability(provider: ProviderConfig): Capabilities['search'] {
+  const { actions } = provider;
+  const search = actions.search;
 
-  function waitForElement(selector: string, timeout = 8000): Promise<Element | null> {
-    return new Promise(resolve => {
-      const start = Date.now();
-      const check = () => {
-        const el = document.querySelector(selector);
-        if (el) {
-          resolve(el);
-          return;
+  if (!search) {
+    return undefined;
+  }
+
+  // 复用 thinking 的实现逻辑
+  const findToggleEl = () => findAnyElement(search.button);
+
+  const isStringConfig = (cfg: any): cfg is string => typeof cfg === 'string';
+  const isHasClassConfig = (cfg: any): cfg is { hasClass: string } =>
+    typeof cfg === 'object' && cfg !== null && 'hasClass' in cfg && cfg.hasClass;
+  const isClassContainsConfig = (cfg: any): cfg is { classContains: string } =>
+    typeof cfg === 'object' && cfg !== null && 'classContains' in cfg && cfg.classContains;
+  const isTextContainsConfig = (cfg: any): cfg is { textContains: string } =>
+    typeof cfg === 'object' && cfg !== null && 'textContains' in cfg && cfg.textContains;
+
+  const checkEnabled: (el: Element) => boolean = typeof search.enabledState === 'function'
+    ? search.enabledState
+    : (el) => {
+        if (isStringConfig(search.enabledState)) {
+          return el.classList.contains(search.enabledState);
         }
-        if (Date.now() - start > timeout) {
-          resolve(null);
-          return;
+        if (isHasClassConfig(search.enabledState)) {
+          return el.classList.contains(search.enabledState.hasClass);
         }
-        setTimeout(check, 100);
+        if (isClassContainsConfig(search.enabledState)) {
+          const kw = search.enabledState.classContains.toLowerCase();
+          return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
+        }
+        if (isTextContainsConfig(search.enabledState)) {
+          return (el.textContent || '').includes(search.enabledState.textContains);
+        }
+        return false;
       };
-      check();
-    });
-  }
 
-  async function waitForAnyElement(selectors: string[], timeout = 8000): Promise<Element | null> {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-      for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el) return el;
-      }
-      await wait(100);
+  const doToggle = async (): Promise<void> => {
+    const el = findToggleEl();
+    if (!el) return;
+
+    if (search.toggle.type === 'click') {
+      (el as HTMLElement).click();
+      await wait(search.toggle.wait || 300);
+    } else if (search.toggle.type === 'dropdown') {
+      (el as HTMLElement).click();
+      await wait(search.toggle.wait || 800);
     }
-    return null;
-  }
-
-  function fillTextInput(el: HTMLElement, text: string): void {
-    const setter = Object.getOwnPropertyDescriptor(
-      el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
-      'value'
-    )?.set;
-    if (setter) setter.call(el, text);
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-  }
-
-  async function fillContentEditable(el: HTMLElement, text: string): Promise<void> {
-    el.focus();
-    await wait(100);
-
-    // 尝试使用 execCommand
-    document.execCommand('selectAll', false, null as any);
-    document.execCommand('delete', false, null as any);
-    await wait(100);
-
-    // 对于 Slate 等特殊编辑器，尝试粘贴事件
-    if (el.hasAttribute('data-slate-editor')) {
-      try {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.setData('text/plain', text);
-        el.dispatchEvent(new ClipboardEvent('paste', {
-          clipboardData: dataTransfer,
-          bubbles: true,
-          cancelable: true,
-        }));
-        return;
-      } catch {
-        // 兜底
-      }
-    }
-
-    el.innerText = text;
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
-  }
+  };
 
   return {
-    async fill(text) {
-      const el = await waitForAnyElement(selectors.input);
+    async getState() {
+      const el = findToggleEl();
+      if (!el) return { found: false, enabled: false };
+      return { found: true, enabled: checkEnabled(el) };
+    },
+
+    async sync(wantEnabled) {
+      const el = findToggleEl();
       if (!el) {
-        return { success: false, reason: 'input-not-found' };
+        return { success: false, changed: false, reason: 'not-found' };
       }
 
-      const htmlEl = el as HTMLElement;
-      htmlEl.focus();
-      await wait(100);
-
-      if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') {
-        fillTextInput(htmlEl, text);
-      } else {
-        await fillContentEditable(htmlEl, text);
+      const current = checkEnabled(el);
+      if (current === wantEnabled) {
+        return { success: true, changed: false };
       }
 
-      return { success: true };
-    },
-  };
-}
+      await doToggle();
 
-/**
- * 创建消息发送能力
- */
-function createSendCapability(provider: ProviderConfig): Capabilities['send'] {
-  const { selectors } = provider;
-
-  async function waitForAnyElement(selectors: string[], timeout = 2000): Promise<Element | null> {
-    const start = Date.now();
-    while (Date.now() - start < timeout) {
-      for (const sel of selectors) {
-        const el = document.querySelector(sel);
-        if (el) return el;
-      }
-      await wait(100);
-    }
-    return null;
-  }
-
-  function simulateEnter(el: Element): void {
-    el.dispatchEvent(new KeyboardEvent('keydown', {
-      key: 'Enter',
-      code: 'Enter',
-      keyCode: 13,
-      which: 13,
-      bubbles: true,
-      cancelable: true,
-    }));
-  }
-
-  function simulateRealClick(element: Element): void {
-    if (!element) return;
-    (element as HTMLElement).focus();
-    const events = [
-      new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
-      new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
-      new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
-      new MouseEvent('mouseup', { bubbles: true, cancelable: true }),
-      new MouseEvent('click', { bubbles: true, cancelable: true }),
-    ];
-    events.forEach(ev => element.dispatchEvent(ev));
-  }
-
-  function findSendButton(): Element | null {
-    for (const sel of selectors.sendButton) {
-      const el = document.querySelector(sel);
-      if (el) return el;
-    }
-    return null;
-  }
-
-  return {
-    async send() {
-      const inputEl = await waitForAnyElement(selectors.input, 2000);
-      const sendBtn = findSendButton();
-
-      if (sendBtn) {
-        simulateRealClick(sendBtn);
-        return { success: true, method: 'button' };
+      const afterEl = findToggleEl();
+      if (!afterEl) {
+        return { success: false, changed: true, reason: 'disappeared-after-toggle' };
       }
 
-      if (inputEl) {
-        simulateEnter(inputEl);
-        return { success: true, method: 'enter' };
-      }
-
-      return { success: false, reason: 'no-button-no-input' };
-    },
-  };
-}
-
-/**
- * 创建新建对话能力
- */
-function createNewChatCapability(provider: ProviderConfig): Capabilities['newChat'] {
-  const { selectors } = provider;
-  const newChatSelectors = selectors.newChat;
-
-  function findBySelectors(): Element | null {
-    if (!newChatSelectors) return null;
-    for (const sel of newChatSelectors) {
-      const el = document.querySelector(sel);
-      if (el) return el;
-    }
-    return null;
-  }
-
-  return {
-    async start() {
-      const target = findBySelectors();
-
-      if (!target) {
-        return { success: false, reason: 'button-not-found' };
-      }
-
-      (target as HTMLElement).click();
-      await wait(600);
-
-      return { success: true };
+      const after = checkEnabled(afterEl);
+      return { success: after === wantEnabled, changed: true };
     },
   };
 }
@@ -334,10 +472,10 @@ function createNewChatCapability(provider: ProviderConfig): Capabilities['newCha
  */
 function createCapabilities(provider: ProviderConfig): Capabilities {
   return {
+    chat: createChatCapability(provider),
     thinking: createThinkingCapability(provider),
-    input: createInputCapability(provider),
-    send: createSendCapability(provider),
-    newChat: createNewChatCapability(provider),
+    search: createSearchCapability(provider),
+    // model: createModelCapability(provider), // TODO: 实现模型切换能力
   };
 }
 
@@ -378,10 +516,9 @@ function createWindowAdapter(
     setup() {
       window.addEventListener(`${globalName}_call`, callHandler as EventListener);
       (window as any)[globalName] = {
+        chat: capabilities.chat,
         thinking: capabilities.thinking,
-        input: capabilities.input,
-        send: capabilities.send,
-        newChat: capabilities.newChat,
+        search: capabilities.search,
         _isInjected: true,
       };
     },

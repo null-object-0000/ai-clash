@@ -8,31 +8,41 @@ export const doubaoProvider: ProviderConfig = {
   id: 'doubao',
   name: '豆包',
   domain: 'doubao.com',
-  selectors: {
-    input: [
-      'textarea',
-      '[contenteditable="true"]',
-      '[role="textbox"]',
-      'input[type="text"]',
-    ],
-    sendButton: [
-      '[data-testid*="send"]',
-      '[data-testid*="submit"]',
-      '[aria-label*="发送"]',
-      '[aria-label*="send"]',
-    ],
-    newChat: [
-      // 豆包新对话按钮选择器
-      '[data-testid*="new"]',
-      '[data-testid*="create"]',
-      '[aria-label*="新对话"], [aria-label*="新会话"]',
-      'button:has-text("新对话"), button:has-text("新会话"), button:has-text("开启新对话")',
-    ],
-    thinking: {
-      find: {
-        selector: '[data-testid="deep-thinking-action-button"]',
+  actions: {
+    // 基础对话能力
+    chat: {
+      // 开启新对话
+      newChat: {
+        button: [
+          '[data-testid*="new"]',
+          '[data-testid*="create"]',
+          '[aria-label*="新对话"], [aria-label*="新会话"]',
+          'button:has-text("新对话"), button:has-text("新会话"), button:has-text("开启新对话")',
+        ],
       },
-      isEnabled: { textContains: '思考' },
+      // 输入消息
+      input: {
+        box: [
+          'textarea',
+          '[contenteditable="true"]',
+          '[role="textbox"]',
+          'input[type="text"]',
+        ],
+      },
+      // 发送消息
+      send: {
+        button: [
+          '[data-testid*="send"]',
+          '[data-testid*="submit"]',
+          '[aria-label*="发送"]',
+          '[aria-label*="send"]',
+        ],
+      },
+    },
+    // 思考模式
+    thinking: {
+      button: ['[data-testid="deep-thinking-action-button"]'],
+      enabledState: { textContains: '思考' },
       toggle: {
         type: 'dropdown',
         wait: 800,
@@ -51,12 +61,12 @@ export const doubaoProvider: ProviderConfig = {
         },
       },
     },
-  },
-  toggles: {
-    findToggle: '[data-testid="deep-thinking-action-button"]',
-    isEnabled: { textContains: '思考' },
-    toggle: 'dropdown',
-    waitAfterToggle: 800,
+    // 智能搜索（联网搜索）
+    search: {
+      button: ['[data-testid="search-toggle-button"]'],
+      enabledState: { textContains: '搜索' },
+      toggle: { type: 'click', wait: 300 },
+    },
   },
 };
 
