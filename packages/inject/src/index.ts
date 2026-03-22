@@ -23,8 +23,8 @@ export type {
   ProviderConfig,
   ProviderId,
   AdapterType,
-  InjectEvent,
-  EventHandler,
+  SendCallbacks,
+  ConversationInfo,
 } from './core/types.js';
 
 // Providers

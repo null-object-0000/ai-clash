@@ -8,7 +8,7 @@ import type {
   Capabilities,
   ChatCapability,
   ProviderConfig,
-  EventHandler,
+  SendCallbacks,
 } from './types.js';
 import { getProviderConfig, type ProviderId } from '../providers/index.js';
 
@@ -19,11 +19,268 @@ import { getProviderConfig, type ProviderId } from '../providers/index.js';
 const DEFAULT_GLOBAL_NAME = '__AI_CLASH';
 const DEFAULT_CHANNEL_NAME = 'ai-clash-channel';
 
+// DeepSeek 选择器配置
+const DEEPSEEK_RESPONSE_SELECTORS = [
+  '.ds-markdown--block',
+  '.message-content',
+  '[data-testid="message-content"]',
+];
+
+const DEEPSEEK_THINKING_SELECTORS = [
+  '.ds-reasoning-block',
+  '.thinking-content',
+  '[data-testid="thinking-content"]',
+];
+
 // ============================================================================
 // 工具函数
 // ============================================================================
 
 const wait = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * 从 URL 提取会话 ID
+ */
+function getConversationIdFromUrl(provider: ProviderConfig): string | undefined {
+  const config = provider.conversation?.idFromUrl;
+  if (!config) return undefined;
+
+  const url = window.location.href;
+  const pattern = config.pattern;
+
+  if (pattern) {
+    try {
+      const regex = new RegExp(pattern);
+      const match = url.match(regex);
+      if (match) {
+        const group = config.captureGroup ?? 1;
+        if (typeof group === 'number') {
+          return match[group];
+        } else if (typeof group === 'string') {
+          return (match as any).groups?.[group];
+        }
+        return match[1];
+      }
+    } catch {
+      // 正则无效，返回 undefined
+    }
+  }
+
+  // 没有配置 pattern，尝试从 pathname 最后一段提取
+  const pathname = window.location.pathname;
+  const segments = pathname.split('/').filter(Boolean);
+  return segments.length > 0 ? segments[segments.length - 1] : undefined;
+}
+
+/**
+ * 从 DOM 提取会话 ID
+ */
+function getConversationIdFromDom(provider: ProviderConfig): string | undefined {
+  const config = provider.conversation?.idFromDom;
+  if (!config) return undefined;
+
+  const el = document.querySelector(config.selector);
+  if (!el) return undefined;
+
+  const attr = config.attribute || 'textContent';
+  if (attr === 'textContent') {
+    return el.textContent?.trim() || undefined;
+  }
+  return (el as HTMLElement).getAttribute(attr) || undefined;
+}
+
+/**
+ * 获取当前会话 ID（优先从 URL，其次从 DOM）
+ */
+function getConversationId(provider: ProviderConfig): string | undefined {
+  // 先从 URL 提取
+  let id = getConversationIdFromUrl(provider);
+  if (id) return id;
+
+  // 再从 DOM 提取
+  id = getConversationIdFromDom(provider);
+  return id;
+}
+
+/**
+ * 等待会话 ID 出现（轮询 URL 变化）
+ */
+async function waitForConversationId(
+  provider: ProviderConfig,
+  timeout = 5000
+): Promise<string | undefined> {
+  const start = Date.now();
+
+  // 先尝试立即获取
+  let id = getConversationId(provider);
+  if (id) return id;
+
+  // 轮询等待
+  while (Date.now() - start < timeout) {
+    await wait(100);
+    id = getConversationId(provider);
+    if (id) return id;
+  }
+
+  return undefined;
+}
+
+/**
+ * DOM 监听状态
+ */
+interface MonitorState {
+  lastText: string;
+  lastThinkText: string;
+  isComplete: boolean;
+  timer?: ReturnType<typeof setTimeout>;
+}
+
+/**
+ * 获取元素文本
+ */
+function getElementText(el: Element | null): string {
+  if (!el) return '';
+  return (el as HTMLElement).innerText || el.textContent || '';
+}
+
+/**
+ * 查找最新的回复块
+ */
+function findLatestResponseBlock(): { text: string; thinkText: string } | null {
+  // 先找思考块
+  let thinkText = '';
+  for (const selector of DEEPSEEK_THINKING_SELECTORS) {
+    const blocks = document.querySelectorAll(selector);
+    if (blocks.length > 0) {
+      thinkText = getElementText(blocks[blocks.length - 1]);
+      break;
+    }
+  }
+
+  // 再找回复块
+  let text = '';
+  for (const selector of DEEPSEEK_RESPONSE_SELECTORS) {
+    const blocks = document.querySelectorAll(selector);
+    if (blocks.length > 0) {
+      text = getElementText(blocks[blocks.length - 1]);
+      break;
+    }
+  }
+
+  // 如果都没找到，尝试找通用的消息块
+  if (!text && !thinkText) {
+    const allBlocks = document.querySelectorAll('.ds-markdown--block, .message-content');
+    if (allBlocks.length > 0) {
+      text = getElementText(allBlocks[allBlocks.length - 1]);
+    }
+  }
+
+  return { text, thinkText };
+}
+
+/**
+ * 监听 AI 回复（DOM 轮询版本）
+ *
+ * @param callbacks - 流式回调
+ * @param provider - 提供者配置
+ */
+function monitorResponse(
+  callbacks: SendCallbacks,
+  provider: ProviderConfig
+): void {
+  monitorResponseDom(callbacks, provider);
+}
+
+/**
+ * 监听 AI 回复 - DOM 轮询版本
+ */
+function monitorResponseDom(
+  callbacks: SendCallbacks,
+  provider: ProviderConfig
+): void {
+  const state: MonitorState = {
+    lastText: '',
+    lastThinkText: '',
+    isComplete: false,
+    timer: undefined,
+  };
+
+  let conversationId: string | undefined;
+  let consecutiveEmptyCount = 0;
+  const MAX_EMPTY_CHECKS = 10;
+
+  const check = () => {
+    if (state.isComplete) return;
+
+    // 尝试获取会话 ID
+    if (!conversationId) {
+      conversationId = getConversationId(provider);
+    }
+
+    const current = findLatestResponseBlock();
+    if (!current) {
+      state.timer = setTimeout(check, 300);
+      return;
+    }
+
+    const { text, thinkText } = current;
+
+    // 检查思考内容变化
+    if (thinkText && thinkText !== state.lastThinkText) {
+      const delta = thinkText.slice(state.lastThinkText.length);
+      if (delta && callbacks.onDomChunk) {
+        callbacks.onDomChunk(delta, true, 'thinking', conversationId);
+      }
+      state.lastThinkText = thinkText;
+      consecutiveEmptyCount = 0;
+    }
+
+    // 检查回复内容变化
+    if (text && text !== state.lastText) {
+      const delta = text.slice(state.lastText.length);
+      if (delta && callbacks.onDomChunk) {
+        callbacks.onDomChunk(delta, false, 'responding', conversationId);
+      }
+      state.lastText = text;
+      consecutiveEmptyCount = 0;
+    }
+
+    // 如果没有新内容，增加计数器
+    if (!deltaChanged(state, current)) {
+      consecutiveEmptyCount++;
+      if (consecutiveEmptyCount >= MAX_EMPTY_CHECKS && text) {
+        state.isComplete = true;
+        cleanup();
+
+        const fullText = buildFullText(state.lastThinkText, state.lastText);
+        callbacks.onComplete?.(fullText, conversationId);
+        return;
+      }
+    }
+
+    state.timer = setTimeout(check, 200);
+  };
+
+  const cleanup = () => {
+    if (state.timer) {
+      clearTimeout(state.timer);
+      state.timer = undefined;
+    }
+  };
+
+  const deltaChanged = (s: MonitorState, curr: { text: string; thinkText: string }) => {
+    return curr.text !== s.lastText || curr.thinkText !== s.lastThinkText;
+  };
+
+  const buildFullText = (think: string, resp: string) => {
+    if (!think && !resp) return '';
+    if (!think) return resp;
+    if (!resp) return `<think>${think}</think>`;
+    return `<think>${think}</think>\n\n${resp}`;
+  };
+
+  check();
+}
 
 /**
  * 解析伪选择器语法
@@ -45,13 +302,6 @@ function parseSelector(selector: string): { css: string; text: string | null } {
   const css = parts[0].trim() || '*';
   const text = parts.slice(1).join('>>').trim();
   return { css, text: text || null };
-}
-
-/**
- * 获取元素的文本内容
- */
-function getElementText(el: Element): string {
-  return (el as HTMLElement).innerText || el.textContent || '';
 }
 
 /**
@@ -207,21 +457,43 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       return { success: true };
     },
 
-    async send() {
+    async send(callbacks?: SendCallbacks) {
       const inputEl = await waitForAnyElement(chat.input.box, 2000);
       const sendBtn = findAnyElement(chat.send.button);
 
       if (sendBtn) {
         simulateRealClick(sendBtn);
-        return { success: true, method: 'button' };
-      }
-
-      if (inputEl) {
+      } else if (inputEl) {
         simulateEnter(inputEl);
-        return { success: true, method: 'enter' };
+      } else {
+        return { success: false, reason: 'no-button-no-input' };
       }
 
-      return { success: false, reason: 'no-button-no-input' };
+      // 等待会话 ID 出现（发送后 URL 会变化）
+      const conversationId = await waitForConversationId(provider, 3000);
+
+      if (!conversationId) {
+        // 没有获取到会话 ID，视为失败
+        if (callbacks?.onError) {
+          callbacks.onError('未能获取会话 ID', undefined);
+        }
+        return {
+          success: false,
+          reason: 'no-conversation-id',
+          method: sendBtn ? 'button' : 'enter',
+        };
+      }
+
+      // 如果有回调，启动监听
+      if (callbacks?.onDomChunk || callbacks?.onComplete || callbacks?.onError) {
+        monitorResponse(callbacks, provider);
+      }
+
+      return {
+        success: true,
+        method: sendBtn ? 'button' : 'enter',
+        conversationId,
+      };
     },
   };
 }

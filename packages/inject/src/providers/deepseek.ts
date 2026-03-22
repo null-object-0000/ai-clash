@@ -43,6 +43,15 @@ export const deepseekProvider: ProviderConfig = {
       toggle: { type: 'click', wait: 300 },
     },
   },
+  // 会话 ID 提取配置
+  conversation: {
+    // 从 URL 提取会话 ID
+    // DeepSeek URL 格式：https://chat.deepseek.com/c/{conversationId}
+    idFromUrl: {
+      pattern: '/c/([^/]+)',
+      captureGroup: 1,
+    },
+  },
 };
 
 export default deepseekProvider;

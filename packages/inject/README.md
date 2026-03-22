@@ -60,13 +60,20 @@ bun run dev
 await window.__AI_CLASH.thinking.getState()
 
 // 填充输入框
-await window.__AI_CLASH.input.fill('你好 AI')
+await window.__AI_CLASH.chat.fill('你好 AI')
 
-// 发送消息
-await window.__AI_CLASH.send.send()
+// 发送消息并监听流式输出
+await window.__AI_CLASH.chat.send({
+  onDomChunk: (text, isThink, stage, conversationId) => {
+    console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
+  },
+  onComplete: (fullText, conversationId) => {
+    console.log('完成，完整回复:', fullText, '会话 ID:', conversationId);
+  }
+})
 
 // 开始新对话
-await window.__AI_CLASH.newChat.start()
+await window.__AI_CLASH.chat.newChat()
 ```
 
 ## 支持的 AI 平台
@@ -92,7 +99,16 @@ const injector = createInjector({
 });
 
 await injector.inject();
-await injector.call('thinking', 'sync', true);
+
+// 发送消息并监听流式输出
+await injector.call('chat', 'send', {
+  onDomChunk: (text, isThink, stage, conversationId) => {
+    console.log('DOM chunk:', text, isThink, stage, conversationId);
+  },
+  onComplete: (fullText, conversationId) => {
+    console.log('complete:', fullText, conversationId);
+  }
+});
 ```
 
 ### 2. CDN 直接使用
@@ -112,9 +128,65 @@ await page.addScriptTag({
 });
 
 await page.evaluate(async () => {
-  await window.__AI_CLASH.input.fill('Hello');
-  await window.__AI_CLASH.send.send();
+  const injector = window.__AI_CLASH;
+  await injector.chat.fill('Hello');
+  await injector.chat.send({
+    onDomChunk: (text, isThink) => console.log('DOM chunk:', text, isThink),
+    onComplete: (fullText) => console.log('complete:', fullText)
+  });
 });
+```
+
+### 4. 配置会话 ID 提取
+
+不同 AI 平台的 URL 格式不同，需要在 provider 配置中声明会话 ID 提取规则：
+
+```typescript
+// DeepSeek: https://chat.deepseek.com/c/{conversationId}
+conversation: {
+  idFromUrl: {
+    pattern: '/c/([^/]+)',
+    captureGroup: 1,
+  },
+}
+
+// 从 DOM 提取（某些平台会话 ID 在页面元素上）
+conversation: {
+  idFromDom: {
+    selector: '[data-conversation-id]',
+    attribute: 'data-conversation-id',
+  },
+}
+}```
+
+### 5. send 方法回调
+
+```typescript
+// 只发送，不监听
+await injector.call('chat', 'send')
+
+// 监听 DOM 轮询模式的 chunk
+await injector.call('chat', 'send', {
+  onDomChunk: (text, isThink, stage) => {
+    console.log('chunk:', text, isThink, stage)
+  },
+  onComplete: (fullText) => {
+    console.log('complete:', fullText)
+  }
+})
+
+// 同时监听 DOM 和 SSE（如果 provider 支持）
+await injector.call('chat', 'send', {
+  onDomChunk: (text, isThink, stage) => {
+    console.log('DOM chunk:', text, isThink, stage)
+  },
+  onSseChunk: (data) => {
+    console.log('SSE chunk:', data)
+  },
+  onComplete: (fullText) => {
+    console.log('complete:', fullText)
+  }
+})
 ```
 
 ## 开发调试

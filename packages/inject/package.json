@@ -23,8 +23,7 @@
   ],
   "scripts": {
     "dev": "vite build --mode standalone --watch",
-    "serve": "npx http-server . -p 5173 -o index.html --cors -c-1",
-    "dev:lib": "vite build --watch",
+    "serve": "npx http-server . -p 5173 --cors -c-1",
     "build": "vite build && vite build --mode standalone",
     "build:esm": "vite build",
     "build:standalone": "vite build --mode standalone",

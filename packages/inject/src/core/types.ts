@@ -175,8 +175,17 @@ export interface ChatCapability {
 
   /**
    * 发送消息
+   * @param callbacks - 可选的回调，用于监听当次发送的回复
+   * @returns 发送结果，包含会话 ID（如果获取到）
    */
-  send(): Promise<{ success: boolean; method?: 'button' | 'enter'; reason?: string }>;
+  send(
+    callbacks?: SendCallbacks
+  ): Promise<{
+    success: boolean;
+    method?: 'button' | 'enter';
+    reason?: string;
+    conversationId?: string;
+  }>;
 }
 
 /**
@@ -385,6 +394,34 @@ export interface ProviderConfig {
   name: string;
   domain: string;
   actions: ProviderActions;
+  /** 会话 ID 提取配置（可选） */
+  conversation?: ConversationConfig;
+}
+
+/**
+ * 会话 ID 提取配置
+ */
+export interface ConversationConfig {
+  /**
+   * 从 URL 提取会话 ID
+   * 支持正则表达式或 CSS 选择器
+   */
+  idFromUrl?: {
+    /** URL 匹配正则（可选，默认匹配整个 pathname） */
+    pattern?: string;
+    /** 正则匹配的组名或索引（可选，默认为第一个捕获组） */
+    captureGroup?: string | number;
+  };
+  /**
+   * 从 DOM 元素提取会话 ID
+   * 用于页面加载后获取当前会话标识
+   */
+  idFromDom?: {
+    /** CSS 选择器 */
+    selector: string;
+    /** 提取属性（可选，默认为 textContent） */
+    attribute?: 'textContent' | 'href' | 'data-id' | string;
+  };
 }
 
 /**
@@ -479,84 +516,90 @@ export interface ToggleActionConfig {
 }
 
 // ============================================================================
-// 事件类型（用于流式输出和状态通知）
+// 流式回调类型（用于 send 方法）
 // ============================================================================
 
 /**
- * 内容块事件
+ * 发送消息时的回调配置
  *
- * 用于接收 AI 返回的流式内容片段。
+ * 支持多种监听方式的回调：
+ * - `onDomChunk` - DOM 轮询模式的流式回调
+ * - `onSseChunk` - SSE/ Fetch 拦截模式的流式回调
+ * - `onComplete` - 完成回调
+ * - `onError` - 错误回调
+ *
+ * @example
+ * await injector.call('chat', 'send', {
+ *   onDomChunk: (text, isThink, stage) => console.log('DOM chunk:', text, isThink),
+ *   onSseChunk: (data) => console.log('SSE chunk:', data),
+ *   onComplete: (fullText) => console.log('complete:', fullText)
+ * })
  */
-export type ChunkEvent = {
-  /** 事件类型标识 */
-  type: 'chunk';
-  /** 提供者 ID */
-  provider: string;
-  /** 内容片段文本 */
-  text: string;
+export interface SendCallbacks {
   /**
-   * 输出阶段
-   * - `'thinking'`: 思考中
-   * - `'responding'`: 回答中
-   * - `'connecting'`: 连接中
+   * DOM 轮询模式的流式内容块回调
+   * @param text - 当前内容片段
+   * @param isThink - 是否为思考链内容
+   * @param stage - 当前阶段 ('thinking' | 'responding')
+   * @param conversationId - 会话 ID
    */
-  stage: 'thinking' | 'responding' | 'connecting';
-  /** 是否为思考链内容 */
-  isThink?: boolean;
-  /** 是否为状态消息 */
-  isStatus?: boolean;
-};
+  onDomChunk?: (
+    text: string,
+    isThink: boolean,
+    stage: 'thinking' | 'responding',
+    conversationId?: string
+  ) => void;
+
+  /**
+   * SSE/Fetch 拦截模式的流式内容块回调
+   * @param data - 原始 SSE 数据
+   * @param conversationId - 会话 ID
+   */
+  onSseChunk?: (
+    data: string,
+    conversationId?: string
+  ) => void;
+
+  /**
+   * 完成回调
+   * @param fullText - 完整回复内容（包含思考和回答）
+   * @param conversationId - 会话 ID
+   */
+  onComplete?: (fullText: string, conversationId: string | undefined) => void;
+
+  /**
+   * 错误回调
+   * @param error - 错误信息
+   * @param conversationId - 会话 ID（如果有）
+   */
+  onError?: (error: string, conversationId?: string) => void;
+}
 
 /**
- * 状态事件
- *
- * 用于接收 AI 当前状态的通知。
+ * 会话信息
  */
-export type StatusEvent = {
-  /** 事件类型标识 */
-  type: 'status';
-  /** 提供者 ID */
-  provider: string;
-  /** 状态描述文本 */
-  text: string;
-};
+export interface ConversationInfo {
+  /** 会话 ID */
+  id: string;
+  /** 会话 URL */
+  url?: string;
+}
 
 /**
- * 错误事件
+ * 监听器类型
  *
- * 用于接收错误通知。
+ * - `'dom'` - DOM Observer，通过轮询 DOM 元素变化监听
+ * - `'fetch'` - Fetch 拦截，拦截 API 响应解析 SSE
  */
-export type ErrorEvent = {
-  /** 事件类型标识 */
-  type: 'error';
-  /** 提供者 ID */
-  provider: string;
-  /** 错误消息 */
-  message: string;
-};
+export type ListenerType = 'dom' | 'fetch';
 
 /**
- * 完成事件
- *
- * 用于接收 AI 回答完成的通知。
+ * 监听器配置选项
  */
-export type CompleteEvent = {
-  /** 事件类型标识 */
-  type: 'complete';
-  /** 提供者 ID */
-  provider: string;
-};
-
-/**
- * 注入事件类型
- *
- * 所有可能的事件类型的联合。
- */
-export type InjectEvent = ChunkEvent | StatusEvent | ErrorEvent | CompleteEvent;
-
-/**
- * 事件处理器函数类型
- *
- * @param event - 接收到的事件对象
- */
-export type EventHandler = (event: InjectEvent) => void;
+export interface ListenerOptions {
+  /**
+   * 监听器类型
+   * @default 'dom'
+   */
+  type?: ListenerType;
+}
