@@ -21,16 +21,313 @@ const DEFAULT_CHANNEL_NAME = 'ai-clash-channel';
 
 // DeepSeek 选择器配置
 const DEEPSEEK_RESPONSE_SELECTORS = [
+  '.ds-message .ds-markdown',
   '.ds-markdown--block',
   '.message-content',
   '[data-testid="message-content"]',
 ];
 
 const DEEPSEEK_THINKING_SELECTORS = [
+  '.ds-think-content .ds-markdown',
   '.ds-reasoning-block',
   '.thinking-content',
   '[data-testid="thinking-content"]',
 ];
+
+// ============================================================================
+// SSE 拦截器（四路拦截：fetch / XHR / TextDecoder / ReadableStream）
+// ============================================================================
+
+interface SSEMonitorState {
+  phase: 'THINK' | 'RESPONSE';
+  chunkCount: number;
+  endSent: boolean;
+  buf: string;
+}
+
+let sseState: SSEMonitorState = {
+  phase: 'RESPONSE',
+  chunkCount: 0,
+  endSent: false,
+  buf: '',
+};
+
+let sseCallbacks: { onSseChunk?: (data: string, conversationId?: string) => void } | null = null;
+let sseConversationId: string | undefined;
+
+function resetSSEState() {
+  sseState = {
+    phase: 'RESPONSE',
+    chunkCount: 0,
+    endSent: false,
+    buf: '',
+  };
+}
+
+function parseSSELine(line: string) {
+  if (line === 'event: close') {
+    emitSSEEnd();
+    return;
+  }
+  if (!line.startsWith('data: ')) return;
+  const json = line.substring(6).trim();
+  if (!json || json === '[DONE]') return;
+  try {
+    const d = JSON.parse(json);
+    let text = '';
+    let isThink = false;
+
+    // 过滤状态消息
+    if (d.p === 'response/status') {
+      if (d.v === 'FINISHED') emitSSEEnd();
+      return;
+    }
+    if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
+      text = String(d.choices[0].delta.content);
+    } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
+      const f = d.v[0];
+      text = f && f.content ? f.content : (typeof f === 'string' ? f : '');
+      sseState.phase = (f && f.type === 'THINK') ? 'THINK' : 'RESPONSE';
+      isThink = sseState.phase === 'THINK';
+    } else if (d.p === 'response/fragments/-1/content' && d.v != null) {
+      text = typeof d.v === 'string' ? d.v : String(d.v);
+      isThink = sseState.phase === 'THINK';
+    } else if (d.v && d.v.response && d.v.response.fragments && d.v.response.fragments.length) {
+      const fr = d.v.response.fragments[0];
+      text = fr && fr.content ? fr.content : '';
+      sseState.phase = (fr && fr.type === 'THINK') ? 'THINK' : 'RESPONSE';
+      isThink = sseState.phase === 'THINK';
+    } else if (typeof d.v === 'string') {
+      text = d.v;
+      isThink = sseState.phase === 'THINK';
+    } else if (d.v && typeof d.v === 'object' && typeof d.v.content === 'string') {
+      text = d.v.content;
+    }
+
+    if (text) {
+      // 处理 DeepSeek 联网搜索标识
+      if (text.startsWith('FINISHEDSEARCH')) {
+        text = '🔍 已联网搜索\n' + text.substring('FINISHEDSEARCH'.length);
+      }
+      sseState.chunkCount++;
+      if (sseCallbacks?.onSseChunk) {
+        sseCallbacks.onSseChunk(text, sseConversationId);
+      }
+    }
+  } catch (_) {}
+}
+
+function emitSSEEnd() {
+  if (sseState.endSent) return;
+  sseState.endSent = true;
+}
+
+function isCompletionUrl(url: string): boolean {
+  return url === '/api/v0/chat/completion';
+}
+
+let fetchIntercepted = false;
+const rawGetReader = ReadableStream.prototype.getReader;
+const rawDecode = TextDecoder.prototype.decode;
+
+function setupSSEInterceptor() {
+  // 只在 DeepSeek 域名下注入一次
+  if (!location.hostname.includes('deepseek')) return;
+  if ((window as any).__aiclashSSEHooked) return;
+  (window as any).__aiclashSSEHooked = true;
+
+  // ====== fetch 拦截 ======
+  const origFetch = window.fetch;
+  window.fetch = function (...args) {
+    let url = '';
+    try {
+      const arg0 = args[0];
+      url = typeof arg0 === 'string' ? arg0 : (arg0 && (arg0 as Request).url) || '';
+    } catch (_) {}
+
+    if (!isCompletionUrl(url)) {
+      return origFetch.apply(this, args);
+    }
+
+    resetSSEState();
+    fetchIntercepted = true;
+
+    return origFetch.apply(this, args).then((response) => {
+      if (!response.body) {
+        fetchIntercepted = false;
+        return response;
+      }
+
+      const dec = new TextDecoder('utf-8');
+      let buf = '';
+      const sourceReader = rawGetReader.call(response.body);
+
+      const readable = new ReadableStream({
+        pull: (controller) => {
+          return sourceReader.read().then((result) => {
+            if (result.done) {
+              try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_) {}
+              emitSSEEnd();
+              fetchIntercepted = false;
+              controller.close();
+              return;
+            }
+            controller.enqueue(result.value);
+            try {
+              const chunk = rawDecode.call(dec, result.value, { stream: true });
+              buf += chunk;
+              const lines = buf.split('\n');
+              buf = lines.pop() || '';
+              for (let i = 0; i < lines.length; i++) {
+                const t = lines[i].trim();
+                if (t) parseSSELine(t);
+              }
+            } catch (_) {}
+          }).catch((err) => {
+            emitSSEEnd();
+            fetchIntercepted = false;
+            try { controller.error(err); } catch (_) {}
+          });
+        },
+        cancel: () => {
+          fetchIntercepted = false;
+          sourceReader.cancel();
+        },
+      });
+
+      return new Response(readable, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
+    }).catch((err) => {
+      fetchIntercepted = false;
+      throw err;
+    });
+  };
+
+  // ====== XHR 拦截 ======
+  const origXhrOpen = XMLHttpRequest.prototype.open;
+  const origXhrSend = XMLHttpRequest.prototype.send;
+  const rtDesc = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
+
+  XMLHttpRequest.prototype.open = function (method: string, url: any) {
+    (this as any)._ab = { url: typeof url === 'string' ? url : '', pos: 0, ended: false };
+    return origXhrOpen.apply(this, arguments);
+  };
+
+  XMLHttpRequest.prototype.send = function () {
+    const ab = (this as any)._ab;
+    if (!ab || !isCompletionUrl(ab.url)) {
+      return origXhrSend.apply(this, arguments);
+    }
+
+    resetSSEState();
+    const xhr = this;
+
+    const processNew = (fullText: string) => {
+      if (typeof fullText !== 'string' || fullText.length <= ab.pos) return;
+      const newData = fullText.substring(ab.pos);
+      ab.pos = fullText.length;
+      const lines = newData.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const t = lines[i].trim();
+        if (t) parseSSELine(t);
+      }
+    };
+
+    const poller = setInterval(() => {
+      try {
+        const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
+        if (txt) processNew(txt);
+      } catch (_) {}
+      if (xhr.readyState === 4) clearInterval(poller);
+    }, 50);
+
+    xhr.addEventListener('loadend', () => {
+      clearInterval(poller);
+      try {
+        const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
+        if (txt) processNew(txt);
+      } catch (_) {}
+      if (!ab.ended) {
+        ab.ended = true;
+        emitSSEEnd();
+      }
+    });
+
+    return origXhrSend.apply(this, arguments);
+  };
+
+  // ====== TextDecoder 拦截 ======
+  const origDecode = TextDecoder.prototype.decode;
+  const decoderStates = new WeakMap();
+
+  TextDecoder.prototype.decode = function (input, options) {
+    const result = origDecode.apply(this, arguments);
+    if (!result || result.length < 5) return result;
+    if (fetchIntercepted) return result;
+
+    let st = decoderStates.get(this);
+    if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; decoderStates.set(this, st); }
+    if (st.rejected) return result;
+
+    if (!st.tracked) {
+      if (result.indexOf('event: ready') >= 0 || result.indexOf('data: {"v"') >= 0 ||
+        result.indexOf('data: {"p"') >= 0 || result.indexOf('data: {"choices"') >= 0 ||
+        result.indexOf('"response_message_id"') >= 0) {
+        st.tracked = true;
+        resetSSEState();
+      } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
+    }
+
+    st.buf += result;
+    const lines = st.buf.split('\n');
+    st.buf = lines.pop() || '';
+    for (let i = 0; i < lines.length; i++) {
+      const t = lines[i].trim();
+      if (t) parseSSELine(t);
+    }
+    return result;
+  };
+
+  // ====== ReadableStream 拦截 ======
+  const origGetReader = ReadableStream.prototype.getReader;
+  ReadableStream.prototype.getReader = function () {
+    const reader = origGetReader.apply(this, arguments);
+    const origRead = reader.read.bind(reader);
+    const st: any = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
+
+    reader.read = function () {
+      return origRead().then((result) => {
+        if (st.rejected || fetchIntercepted) return result;
+        if (result.done) {
+          if (st.tracked) { if (st.buf.trim()) parseSSELine(st.buf.trim()); emitSSEEnd(); }
+          return result;
+        }
+        if (!result.value) return result;
+        let text;
+        try { text = typeof result.value === 'string' ? result.value : rawDecode.call(st.dec, result.value, { stream: true }); }
+        catch (_) { st.rejected = true; return result; }
+
+        if (!st.tracked) {
+          if (text.indexOf('event: ready') >= 0 || text.indexOf('data: {"v"') >= 0 ||
+            text.indexOf('data: {"choices"') >= 0 || text.indexOf('data: {"p"') >= 0 ||
+            text.indexOf('"response_message_id"') >= 0) {
+            st.tracked = true; resetSSEState();
+          } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
+        }
+
+        st.buf += text;
+        const lines = st.buf.split('\n');
+        st.buf = lines.pop() || '';
+        for (let i = 0; i < lines.length; i++) { const t = lines[i].trim(); if (t) parseSSELine(t); }
+        return result;
+      });
+    };
+    return reader;
+  };
+}
 
 // ============================================================================
 // 工具函数
@@ -179,7 +476,7 @@ function findLatestResponseBlock(): { text: string; thinkText: string } | null {
 }
 
 /**
- * 监听 AI 回复（DOM 轮询版本）
+ * 监听 AI 回复（DOM 轮询 + SSE 拦截）
  *
  * @param callbacks - 流式回调
  * @param provider - 提供者配置
@@ -188,6 +485,11 @@ function monitorResponse(
   callbacks: SendCallbacks,
   provider: ProviderConfig
 ): void {
+  // 设置 SSE 拦截器的回调
+  sseCallbacks = { onSseChunk: callbacks.onSseChunk };
+  sseConversationId = undefined; // 会在 send 方法中设置
+
+  // 同时启动 DOM 轮询监听
   monitorResponseDom(callbacks, provider);
 }
 
@@ -485,7 +787,11 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       }
 
       // 如果有回调，启动监听
-      if (callbacks?.onDomChunk || callbacks?.onComplete || callbacks?.onError) {
+      if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
+        // 设置 SSE 拦截器的会话 ID
+        sseConversationId = conversationId;
+        // 设置 SSE 拦截器（只在 DeepSeek 域名下注入一次）
+        setupSSEInterceptor();
         monitorResponse(callbacks, provider);
       }
 
