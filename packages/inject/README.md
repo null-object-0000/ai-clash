@@ -78,8 +78,9 @@ await window.__AI_CLASH.chat.send({
     console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
   // 注意：onSseChunk 只在 DeepSeek 平台有效，其他平台仅支持 onDomChunk
-  onSseChunk: (data, conversationId) => {
-    console.log('收到 SSE chunk:', data, '会话 ID:', conversationId);
+  // onSseChunk 参数与 onDomChunk 一致
+  onSseChunk: (text, isThink, stage, conversationId) => {
+    console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
   onComplete: (fullText, conversationId) => {
     console.log('完成，完整回复:', fullText, '会话 ID:', conversationId);
@@ -102,8 +103,9 @@ await window.__AI_CLASH.chat.send('你好 AI', {
     console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
   // 注意：onSseChunk 只在 DeepSeek 平台有效，其他平台仅支持 onDomChunk
-  onSseChunk: (data, conversationId) => {
-    console.log('收到 SSE chunk:', data, '会话 ID:', conversationId);
+  // onSseChunk 参数与 onDomChunk 一致
+  onSseChunk: (text, isThink, stage, conversationId) => {
+    console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
   onComplete: (fullText, conversationId) => {
     console.log('完成，完整回复:', fullText, '会话 ID:', conversationId);
@@ -192,8 +194,9 @@ await injector.call('chat', 'send', {
     console.log('DOM chunk:', text, '思考:', isThink, '阶段:', stage)
   },
   // SSE 拦截模式的流式回调（如果 Provider 支持）
-  onSseChunk: (data, conversationId) => {
-    console.log('SSE chunk:', data)
+  // 参数与 onDomChunk 一致
+  onSseChunk: (text, isThink, stage, conversationId) => {
+    console.log('SSE chunk:', text, '思考:', isThink, '阶段:', stage)
   },
   // 完成回调
   onComplete: (fullText, conversationId) => {

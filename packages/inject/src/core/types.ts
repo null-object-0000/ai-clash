@@ -626,11 +626,15 @@ export interface SendCallbacks {
 
   /**
    * SSE/Fetch 拦截模式的流式内容块回调
-   * @param data - 原始 SSE 数据
+   * @param text - 当前内容片段
+   * @param isThink - 是否为思考链内容
+   * @param stage - 当前阶段 ('thinking' | 'responding')
    * @param conversationId - 会话 ID
    */
   onSseChunk?: (
-    data: string,
+    text: string,
+    isThink: boolean,
+    stage: 'thinking' | 'responding',
     conversationId?: string
   ) => void;
 

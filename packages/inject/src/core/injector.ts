@@ -40,7 +40,14 @@ let sseState: SSEMonitorState = {
   buf: '',
 };
 
-let sseCallbacks: { onSseChunk?: (data: string, conversationId?: string) => void } | null = null;
+let sseCallbacks: {
+  onSseChunk?: (
+    text: string,
+    isThink: boolean,
+    stage: 'thinking' | 'responding',
+    conversationId?: string
+  ) => void
+} | null = null;
 let sseConversationId: string | undefined;
 let currentProvider: ProviderConfig | null = null;
 
@@ -83,8 +90,11 @@ function parseSSELine(line: string) {
       text = '🔍 已联网搜索\n' + text.substring('FINISHEDSEARCH'.length);
     }
     sseState.chunkCount++;
+    // 根据 isThink 确定阶段，默认为 responding
+    const isThinkBool = isThink ?? false;
+    const stage: 'thinking' | 'responding' = isThinkBool ? 'thinking' : 'responding';
     if (sseCallbacks?.onSseChunk) {
-      sseCallbacks.onSseChunk(text, sseConversationId);
+      sseCallbacks.onSseChunk(text, isThinkBool, stage, sseConversationId);
     }
   }
 }
