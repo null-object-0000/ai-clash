@@ -243,7 +243,7 @@ await injector.call('chat', 'send', '你好 AI', {
 
 | 参数 | 类型 | 说明 |
 | ---- | ---- | ---- |
-| `text` / `data` | `string` | 当前内容片段 |
+| `text` | `string` | 当前内容片段 |
 | `isThink` | `boolean` | 是否为思考链内容 |
 | `stage` | `'thinking' \| 'responding'` | 当前阶段（思考中/回复中） |
 | `conversationId` | `string \| undefined` | 会话 ID，用于追踪对话 |
