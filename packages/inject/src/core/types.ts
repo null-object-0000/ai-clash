@@ -155,6 +155,18 @@ export interface Capabilities {
 }
 
 /**
+ * 发送选项配置
+ */
+export interface SendOptions {
+  /** 是否开启深度思考模式 */
+  thinking?: boolean;
+  /** 是否开启联网搜索 */
+  search?: boolean;
+  /** 是否开始新对话（默认 false）*/
+  newChat?: boolean;
+}
+
+/**
  * 基础对话能力集合
  *
  * 包含所有 AI 平台都应具备的基础能力：
@@ -179,6 +191,39 @@ export interface ChatCapability {
    * @returns 发送结果，包含会话 ID（如果获取到）
    */
   send(
+    callbacks?: SendCallbacks
+  ): Promise<{
+    success: boolean;
+    method?: 'button' | 'enter';
+    reason?: string;
+    conversationId?: string;
+  }>;
+
+  /**
+   * 完整发送封装 - 自动处理思考/搜索选项并发送
+   * @param message - 要发送的消息内容
+   * @param options - 发送选项（思考模式、搜索模式等）
+   * @param callbacks - 可选的回调，用于监听当次发送的回复
+   * @returns 发送结果，包含会话 ID（如果获取到）
+   */
+  send(
+    message: string,
+    options?: SendOptions,
+    callbacks?: SendCallbacks
+  ): Promise<{
+    success: boolean;
+    method?: 'button' | 'enter';
+    reason?: string;
+    conversationId?: string;
+  }>;
+
+  /**
+   * 基础发送 - 直接发送已填充好的消息，不处理选项
+   * @param callbacks - 可选的回调，用于监听当次发送的回复
+   * @returns 发送结果，包含会话 ID（如果获取到）
+   * @internal 供内部使用，封装方法调用
+   */
+  _send(
     callbacks?: SendCallbacks
   ): Promise<{
     success: boolean;
@@ -387,6 +432,31 @@ export interface ModelAction {
 // ============================================================================
 
 /**
+ * SSE 流式响应解析配置
+ */
+export interface SSEConfig {
+  /** 匹配需要拦截的 API URL 正则 */
+  urlPattern: string;
+  /**
+   * 解析 SSE 行，返回解析结果
+   * @returns { text: string; isThink: boolean | null, done: boolean } 或 null 表示跳过此行
+   */
+  parseLine: (line: string) => { text: string; isThink: boolean | null; done: boolean } | null;
+  /** 初始检测关键词：判断是否是我们要拦截的 SSE 流 */
+  detectionKeywords: string[];
+}
+
+/**
+ * 响应内容提取配置（DOM 轮询模式）
+ */
+export interface ResponseConfig {
+  /** 回复内容选择器列表（按优先级，取最后一个） */
+  responseSelectors: string[];
+  /** 思考内容选择器列表（按优先级，取最后一个） */
+  thinkingSelectors: string[];
+}
+
+/**
  * AI 提供者配置
  */
 export interface ProviderConfig {
@@ -396,6 +466,10 @@ export interface ProviderConfig {
   actions: ProviderActions;
   /** 会话 ID 提取配置（可选） */
   conversation?: ConversationConfig;
+  /** 响应内容提取配置（DOM 轮询模式） */
+  response?: ResponseConfig;
+  /** SSE 流式拦截配置 */
+  sse?: SSEConfig;
 }
 
 /**

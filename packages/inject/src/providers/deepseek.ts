@@ -52,6 +52,61 @@ export const deepseekProvider: ProviderConfig = {
       captureGroup: 1,
     },
   },
+  // 响应内容提取（DOM 轮询模式）
+  response: {
+    responseSelectors: [
+      '.ds-message .ds-markdown'
+    ],
+    thinkingSelectors: [
+      '.ds-think-content .ds-markdown'
+    ],
+  },
+  // SSE 流式拦截配置
+  sse: {
+    urlPattern: '/api/chat/(completion|stream)',
+    detectionKeywords: ['event: ready', 'data: {"v"', 'data: {"p"', 'data: {"choices"', '"response_message_id"'],
+    parseLine: (line: string) => {
+      if (line === 'event: close') {
+        return { text: '', isThink: null, done: true };
+      }
+      if (!line.startsWith('data: ')) return null;
+
+      const json = line.substring(6).trim();
+      if (!json || json === '[DONE]') return null;
+
+      try {
+        const d = JSON.parse(json);
+        let text = '';
+        let isThink = false;
+
+        // 过滤状态消息
+        if (d.p === 'response/status' && d.v === 'FINISHED') {
+          return { text: '', isThink: null, done: true };
+        }
+
+        if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
+          text = String(d.choices[0].delta.content);
+        } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
+          const f = d.v[0];
+          text = f && f.content ? f.content : (typeof f === 'string' ? f : '');
+          isThink = (f && f.type === 'THINK');
+        } else if (d.p === 'response/fragments/-1/content' && d.v != null) {
+          text = typeof d.v === 'string' ? d.v : String(d.v);
+          // 保持上一次的思考状态，DeepSeek 这里不需要改变
+        } else if (d.v && d.v.response && d.v.response.fragments && d.v.response.fragments.length) {
+          const fr = d.v.response.fragments[0];
+          text = fr && fr.content ? fr.content : '';
+          isThink = (fr && fr.type === 'THINK');
+        } else if (typeof d.v === 'string') {
+          text = String(d.v);
+        }
+
+        return { text, isThink, done: false };
+      } catch {
+        return null;
+      }
+    },
+  },
 };
 
 export default deepseekProvider;

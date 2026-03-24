@@ -9,6 +9,9 @@ import type {
   ChatCapability,
   ProviderConfig,
   SendCallbacks,
+  SendOptions,
+  ThinkingCapability,
+  SearchCapability,
 } from './types.js';
 import { getProviderConfig, type ProviderId } from '../providers/index.js';
 
@@ -18,21 +21,6 @@ import { getProviderConfig, type ProviderId } from '../providers/index.js';
 
 const DEFAULT_GLOBAL_NAME = '__AI_CLASH';
 const DEFAULT_CHANNEL_NAME = 'ai-clash-channel';
-
-// DeepSeek 选择器配置
-const DEEPSEEK_RESPONSE_SELECTORS = [
-  '.ds-message .ds-markdown',
-  '.ds-markdown--block',
-  '.message-content',
-  '[data-testid="message-content"]',
-];
-
-const DEEPSEEK_THINKING_SELECTORS = [
-  '.ds-think-content .ds-markdown',
-  '.ds-reasoning-block',
-  '.thinking-content',
-  '[data-testid="thinking-content"]',
-];
 
 // ============================================================================
 // SSE 拦截器（四路拦截：fetch / XHR / TextDecoder / ReadableStream）
@@ -54,6 +42,18 @@ let sseState: SSEMonitorState = {
 
 let sseCallbacks: { onSseChunk?: (data: string, conversationId?: string) => void } | null = null;
 let sseConversationId: string | undefined;
+let currentProvider: ProviderConfig | null = null;
+
+/**
+ * 检查文本是否包含任意一个检测关键词
+ */
+function shouldTrackSSE(text: string): boolean {
+  if (!currentProvider?.sse?.detectionKeywords) return false;
+  for (const keyword of currentProvider.sse.detectionKeywords) {
+    if (text.indexOf(keyword) >= 0) return true;
+  }
+  return false;
+}
 
 function resetSSEState() {
   sseState = {
@@ -65,56 +65,28 @@ function resetSSEState() {
 }
 
 function parseSSELine(line: string) {
-  if (line === 'event: close') {
+  if (!currentProvider?.sse?.parseLine) return;
+
+  const result = currentProvider.sse.parseLine(line);
+  if (!result) return;
+
+  if (result.done) {
     emitSSEEnd();
     return;
   }
-  if (!line.startsWith('data: ')) return;
-  const json = line.substring(6).trim();
-  if (!json || json === '[DONE]') return;
-  try {
-    const d = JSON.parse(json);
-    let text = '';
-    let isThink = false;
 
-    // 过滤状态消息
-    if (d.p === 'response/status') {
-      if (d.v === 'FINISHED') emitSSEEnd();
-      return;
-    }
-    if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
-      text = String(d.choices[0].delta.content);
-    } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
-      const f = d.v[0];
-      text = f && f.content ? f.content : (typeof f === 'string' ? f : '');
-      sseState.phase = (f && f.type === 'THINK') ? 'THINK' : 'RESPONSE';
-      isThink = sseState.phase === 'THINK';
-    } else if (d.p === 'response/fragments/-1/content' && d.v != null) {
-      text = typeof d.v === 'string' ? d.v : String(d.v);
-      isThink = sseState.phase === 'THINK';
-    } else if (d.v && d.v.response && d.v.response.fragments && d.v.response.fragments.length) {
-      const fr = d.v.response.fragments[0];
-      text = fr && fr.content ? fr.content : '';
-      sseState.phase = (fr && fr.type === 'THINK') ? 'THINK' : 'RESPONSE';
-      isThink = sseState.phase === 'THINK';
-    } else if (typeof d.v === 'string') {
-      text = d.v;
-      isThink = sseState.phase === 'THINK';
-    } else if (d.v && typeof d.v === 'object' && typeof d.v.content === 'string') {
-      text = d.v.content;
-    }
+  let { text, isThink } = result;
 
-    if (text) {
-      // 处理 DeepSeek 联网搜索标识
-      if (text.startsWith('FINISHEDSEARCH')) {
-        text = '🔍 已联网搜索\n' + text.substring('FINISHEDSEARCH'.length);
-      }
-      sseState.chunkCount++;
-      if (sseCallbacks?.onSseChunk) {
-        sseCallbacks.onSseChunk(text, sseConversationId);
-      }
+  if (text) {
+    // 处理联网搜索标识（DeepSeek 特有）
+    if (text.startsWith('FINISHEDSEARCH')) {
+      text = '🔍 已联网搜索\n' + text.substring('FINISHEDSEARCH'.length);
     }
-  } catch (_) {}
+    sseState.chunkCount++;
+    if (sseCallbacks?.onSseChunk) {
+      sseCallbacks.onSseChunk(text, sseConversationId);
+    }
+  }
 }
 
 function emitSSEEnd() {
@@ -123,7 +95,13 @@ function emitSSEEnd() {
 }
 
 function isCompletionUrl(url: string): boolean {
-  return url === '/api/v0/chat/completion';
+  if (!currentProvider?.sse?.urlPattern) return false;
+  try {
+    const regex = new RegExp(currentProvider.sse.urlPattern);
+    return regex.test(url);
+  } catch {
+    return false;
+  }
 }
 
 let fetchIntercepted = false;
@@ -160,13 +138,13 @@ function setupSSEInterceptor() {
 
       const dec = new TextDecoder('utf-8');
       let buf = '';
-      const sourceReader = rawGetReader.call(response.body);
+      const sourceReader = rawGetReader.call(response.body) as any;
 
       const readable = new ReadableStream({
         pull: (controller) => {
-          return sourceReader.read().then((result) => {
+          return (sourceReader.read() as any).then((result: any) => {
             if (result.done) {
-              try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_) {}
+              try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_: any) {}
               emitSSEEnd();
               fetchIntercepted = false;
               controller.close();
@@ -182,8 +160,8 @@ function setupSSEInterceptor() {
                 const t = lines[i].trim();
                 if (t) parseSSELine(t);
               }
-            } catch (_) {}
-          }).catch((err) => {
+            } catch (_: any) {}
+          }).catch((err: any) => {
             emitSSEEnd();
             fetchIntercepted = false;
             try { controller.error(err); } catch (_) {}
@@ -213,13 +191,13 @@ function setupSSEInterceptor() {
 
   XMLHttpRequest.prototype.open = function (method: string, url: any) {
     (this as any)._ab = { url: typeof url === 'string' ? url : '', pos: 0, ended: false };
-    return origXhrOpen.apply(this, arguments);
+    return origXhrOpen.apply(this, arguments as any);
   };
 
   XMLHttpRequest.prototype.send = function () {
     const ab = (this as any)._ab;
     if (!ab || !isCompletionUrl(ab.url)) {
-      return origXhrSend.apply(this, arguments);
+      return origXhrSend.apply(this, arguments as any);
     }
 
     resetSSEState();
@@ -256,7 +234,7 @@ function setupSSEInterceptor() {
       }
     });
 
-    return origXhrSend.apply(this, arguments);
+    return origXhrSend.apply(this, arguments as any);
   };
 
   // ====== TextDecoder 拦截 ======
@@ -264,7 +242,7 @@ function setupSSEInterceptor() {
   const decoderStates = new WeakMap();
 
   TextDecoder.prototype.decode = function (input, options) {
-    const result = origDecode.apply(this, arguments);
+    const result = origDecode.apply(this, arguments as any);
     if (!result || result.length < 5) return result;
     if (fetchIntercepted) return result;
 
@@ -273,9 +251,7 @@ function setupSSEInterceptor() {
     if (st.rejected) return result;
 
     if (!st.tracked) {
-      if (result.indexOf('event: ready') >= 0 || result.indexOf('data: {"v"') >= 0 ||
-        result.indexOf('data: {"p"') >= 0 || result.indexOf('data: {"choices"') >= 0 ||
-        result.indexOf('"response_message_id"') >= 0) {
+      if (shouldTrackSSE(result)) {
         st.tracked = true;
         resetSSEState();
       } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
@@ -294,12 +270,12 @@ function setupSSEInterceptor() {
   // ====== ReadableStream 拦截 ======
   const origGetReader = ReadableStream.prototype.getReader;
   ReadableStream.prototype.getReader = function () {
-    const reader = origGetReader.apply(this, arguments);
+    const reader = origGetReader.apply(this, arguments as any) as any;
     const origRead = reader.read.bind(reader);
     const st: any = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
 
     reader.read = function () {
-      return origRead().then((result) => {
+      return (origRead as any)().then((result: any) => {
         if (st.rejected || fetchIntercepted) return result;
         if (result.done) {
           if (st.tracked) { if (st.buf.trim()) parseSSELine(st.buf.trim()); emitSSEEnd(); }
@@ -311,9 +287,7 @@ function setupSSEInterceptor() {
         catch (_) { st.rejected = true; return result; }
 
         if (!st.tracked) {
-          if (text.indexOf('event: ready') >= 0 || text.indexOf('data: {"v"') >= 0 ||
-            text.indexOf('data: {"choices"') >= 0 || text.indexOf('data: {"p"') >= 0 ||
-            text.indexOf('"response_message_id"') >= 0) {
+          if (shouldTrackSSE(text)) {
             st.tracked = true; resetSSEState();
           } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
         }
@@ -443,10 +417,11 @@ function getElementText(el: Element | null): string {
 /**
  * 查找最新的回复块
  */
-function findLatestResponseBlock(): { text: string; thinkText: string } | null {
+function findLatestResponseBlock(provider: ProviderConfig): { text: string; thinkText: string } | null {
   // 先找思考块
   let thinkText = '';
-  for (const selector of DEEPSEEK_THINKING_SELECTORS) {
+  const thinkingSelectors = provider.response?.thinkingSelectors || [];
+  for (const selector of thinkingSelectors) {
     const blocks = document.querySelectorAll(selector);
     if (blocks.length > 0) {
       thinkText = getElementText(blocks[blocks.length - 1]);
@@ -456,7 +431,8 @@ function findLatestResponseBlock(): { text: string; thinkText: string } | null {
 
   // 再找回复块
   let text = '';
-  for (const selector of DEEPSEEK_RESPONSE_SELECTORS) {
+  const responseSelectors = provider.response?.responseSelectors || [];
+  for (const selector of responseSelectors) {
     const blocks = document.querySelectorAll(selector);
     if (blocks.length > 0) {
       text = getElementText(blocks[blocks.length - 1]);
@@ -464,9 +440,9 @@ function findLatestResponseBlock(): { text: string; thinkText: string } | null {
     }
   }
 
-  // 如果都没找到，尝试找通用的消息块
+  // 如果还是没找到，尝试通用选择器
   if (!text && !thinkText) {
-    const allBlocks = document.querySelectorAll('.ds-markdown--block, .message-content');
+    const allBlocks = document.querySelectorAll('[role="article"] [class*="message"]:last-child [class*="content"]');
     if (allBlocks.length > 0) {
       text = getElementText(allBlocks[allBlocks.length - 1]);
     }
@@ -519,7 +495,7 @@ function monitorResponseDom(
       conversationId = getConversationId(provider);
     }
 
-    const current = findLatestResponseBlock();
+    const current = findLatestResponseBlock(provider);
     if (!current) {
       state.timer = setTimeout(check, 300);
       return;
@@ -759,7 +735,78 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       return { success: true };
     },
 
-    async send(callbacks?: SendCallbacks) {
+    async send(
+      callbacksOrMessage?: SendCallbacks | string,
+      optionsOrCallbacks?: SendOptions | SendCallbacks,
+      maybeCallbacks?: SendCallbacks
+    ) {
+      // 处理重载：判断第一个参数是否为字符串，是则为封装调用
+      const isFullSend = typeof callbacksOrMessage === 'string';
+
+      let callbacks: SendCallbacks | undefined;
+      let message: string | undefined;
+      let options: SendOptions | undefined;
+
+      if (isFullSend) {
+        message = callbacksOrMessage;
+        options = (optionsOrCallbacks as SendOptions) || {};
+        callbacks = maybeCallbacks;
+      } else {
+        callbacks = callbacksOrMessage as SendCallbacks | undefined;
+      }
+
+      // === 封装模式：执行完整流程 ===
+      if (isFullSend && message) {
+        // 1. 如果需要新对话，先开启新对话
+        if (options?.newChat) {
+          const newChatResult = await this.newChat();
+          if (!newChatResult.success) {
+            return {
+              success: false,
+              reason: `new-chat-failed: ${newChatResult.reason}`,
+            };
+          }
+          await wait(500);
+        }
+
+        // 2. 如果指定了思考模式，同步思考模式
+        if (options?.thinking !== undefined && provider.actions.thinking) {
+          const thinking = createThinkingCapability(provider);
+          if (thinking) {
+            await thinking.sync(options.thinking);
+            await wait(300);
+          }
+        }
+
+        // 3. 如果指定了搜索模式，同步搜索模式
+        if (options?.search !== undefined && provider.actions.search) {
+          const search = createSearchCapability(provider);
+          if (search) {
+            await search.sync(options.search);
+            await wait(300);
+          }
+        }
+
+        // 4. 填充消息
+        const fillResult = await this.fill(message);
+        if (!fillResult.success) {
+          return {
+            success: false,
+            reason: `fill-failed: ${fillResult.reason}`,
+          };
+        }
+        await wait(200);
+      }
+
+      // 调用基础发送
+      return this._send(callbacks);
+    },
+
+    /**
+     * 基础发送 - 不处理选项填充，直接发送
+     * @internal
+     */
+    async _send(callbacks?: SendCallbacks) {
       const inputEl = await waitForAnyElement(chat.input.box, 2000);
       const sendBtn = findAnyElement(chat.send.button);
 
@@ -788,9 +835,11 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
 
       // 如果有回调，启动监听
       if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
+        // 设置当前 provider 供 SSE 拦截器使用
+        currentProvider = provider;
         // 设置 SSE 拦截器的会话 ID
         sseConversationId = conversationId;
-        // 设置 SSE 拦截器（只在 DeepSeek 域名下注入一次）
+        // 设置 SSE 拦截器（只在对应域名下注入一次）
         setupSSEInterceptor();
         monitorResponse(callbacks, provider);
       }

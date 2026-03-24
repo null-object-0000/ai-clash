@@ -54,8 +54,6 @@ bun run dev
       document.head.appendChild(s);
     });
   }
-  const inj=window.AIClashInject.createInjector({provider:'deepseek'});
-  await inj.inject();
 })().catch(err => console.error('[AI Clash Inject]', '💥 注入失败:', err));
 ```
 
