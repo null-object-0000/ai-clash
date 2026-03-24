@@ -463,7 +463,7 @@ function monitorResponse(
 ): void {
   // 设置 SSE 拦截器的回调
   sseCallbacks = { onSseChunk: callbacks.onSseChunk };
-  sseConversationId = undefined; // 会在 send 方法中设置
+  // 注意：不覆盖 sseConversationId，由 _send 方法在调用 setupSSEInterceptor 前设置
 
   // 同时启动 DOM 轮询监听
   monitorResponseDom(callbacks, provider);
@@ -810,6 +810,15 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       const inputEl = await waitForAnyElement(chat.input.box, 2000);
       const sendBtn = findAnyElement(chat.send.button);
 
+      // 如果有回调，先设置 SSE 拦截器（在点击按钮前）
+      if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
+        // 设置当前 provider 供 SSE 拦截器使用
+        currentProvider = provider;
+        // 设置 SSE 拦截器（只在对应域名下注入一次）
+        setupSSEInterceptor();
+      }
+
+      // 点击发送按钮
       if (sendBtn) {
         simulateRealClick(sendBtn);
       } else if (inputEl) {
@@ -833,14 +842,11 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
         };
       }
 
-      // 如果有回调，启动监听
+      // 点击发送后才启动回调监听（DOM + SSE）
       if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
-        // 设置当前 provider 供 SSE 拦截器使用
-        currentProvider = provider;
         // 设置 SSE 拦截器的会话 ID
         sseConversationId = conversationId;
-        // 设置 SSE 拦截器（只在对应域名下注入一次）
-        setupSSEInterceptor();
+        // 设置 SSE 拦截器的回调，同时启动 DOM 轮询
         monitorResponse(callbacks, provider);
       }
 
@@ -1397,10 +1403,6 @@ export function createInjector(options: InjectorOptions): Injector {
 
       setupCapabilities();
       await setupAdapter();
-      // 注入 SSE 拦截器（只在 DeepSeek 域名下）
-      if (providerId === 'deepseek') {
-        setupSSEInterceptor();
-      }
       isInjected = true;
       console.log(`[AI Clash Inject] Injected for provider: ${providerId}`);
     },

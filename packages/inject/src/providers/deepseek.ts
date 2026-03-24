@@ -63,8 +63,8 @@ export const deepseekProvider: ProviderConfig = {
   },
   // SSE 流式拦截配置
   sse: {
-    urlPattern: '/api/chat/(completion|stream)',
-    detectionKeywords: ['event: ready', 'data: {"v"', 'data: {"p"', 'data: {"choices"', '"response_message_id"'],
+    urlPattern: '/api/v0/chat/completion',
+    detectionKeywords: ['event: ready', 'data: {"v"', 'data: {"p"', 'response_message_id', 'event: close'],
     parseLine: (line: string) => {
       if (line === 'event: close') {
         return { text: '', isThink: null, done: true };
