@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "dev": "vite build --mode standalone --watch",
-    "serve": "npx http-server . -p 5173 --cors -c-1",
+    "serve": "npx http-server dist -p 5173 --cors -c-1",
     "build": "vite build && vite build --mode standalone",
     "build:esm": "vite build",
     "build:standalone": "vite build --mode standalone",
@@ -55,7 +55,7 @@
     "vite": "^7.3.1"
   },
   "peerDependencies": {
-    "@types/chrome": "*"
+    "@types/chrome": "^0.1.38"
   },
   "peerDependenciesMeta": {
     "@types/chrome": {

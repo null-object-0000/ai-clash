@@ -3,6 +3,7 @@
 ## 项目定位
 
 将 AI 网站控制能力抽象成独立的 npm 包，支持多种使用场景：
+
 - Chrome 扩展集成
 - F12 / Bookmarklet 直接使用
 - Puppeteer/Playwright 自动化测试
@@ -17,7 +18,7 @@ cd packages/inject
 bun run dev
 ```
 
-服务器启动后访问：**http://localhost:5173**
+服务器启动后访问：**<http://localhost:5173>**
 
 ### 2. 在 AI 网站页面注入
 
@@ -25,7 +26,7 @@ bun run dev
 
 #### 方式一：Bookmarklet（推荐）
 
-1. 访问 http://localhost:5173
+1. 访问 <http://localhost:5173>
 2. 点击"生成 Bookmarklet"
 3. 将生成的书签拖到书签栏
 4. 打开 DeepSeek 等 AI 网站
@@ -42,13 +43,20 @@ bun run dev
   if(!window.AIClashInject){
     const s=document.createElement('script');
     s.src='http://localhost:5173/standalone.js';
-    await new Promise(r=>s.onload=r);
-    document.head.appendChild(s);
+    await new Promise((resolve, reject) => {
+      s.onload = () => {
+        resolve();
+      };
+      s.onerror = (err) => {
+        console.error('[AI Clash Inject]', '❌ 脚本加载失败', err);
+        reject(new Error('脚本加载失败，请检查开发服务器是否启动'));
+      };
+      document.head.appendChild(s);
+    });
   }
   const inj=window.AIClashInject.createInjector({provider:'deepseek'});
   await inj.inject();
-  console.log('✅ 注入完成');
-})();
+})().catch(err => console.error('[AI Clash Inject]', '💥 注入失败:', err));
 ```
 
 ### 3. 测试能力
