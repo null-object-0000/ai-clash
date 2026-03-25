@@ -66,11 +66,6 @@ javascript:(async function(){if(!window.AIClashInject){const s=document.createEl
 注入成功后，在 Console 中运行：
 
 ```javascript
-// 获取思考模式状态
-await window.__AI_CLASH.thinking.getState()
-await window.__AI_CLASH.thinking.sync(true)
-await window.__AI_CLASH.thinking.getState()
-
 // 填充输入框
 await window.__AI_CLASH.chat.fill('你好 AI')
 
@@ -92,6 +87,12 @@ await window.__AI_CLASH.chat.send({
 
 // 开始新对话
 await window.__AI_CLASH.chat.newChat()
+
+// 获取思考模式状态
+await window.__AI_CLASH.thinking.getState()
+
+await window.__AI_CLASH.thinking.sync(true)
+await window.__AI_CLASH.thinking.getState()
 
 // 一站式发送并监听流式输出
 await window.__AI_CLASH.chat.send('你好 AI', {
