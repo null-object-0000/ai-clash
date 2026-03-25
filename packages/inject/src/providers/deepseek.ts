@@ -65,7 +65,7 @@ export const deepseekProvider: ProviderConfig = {
   sse: {
     urlPattern: '/api/v0/chat/completion',
     detectionKeywords: ['event: ready', 'data: {"v"', 'data: {"p"', 'response_message_id', 'event: close'],
-    parseLine: (line: string) => {
+    parseLine: (line: string, _currentEvent?: string) => {
       if (line === 'event: close') {
         return { text: '', isThink: null, done: true };
       }

@@ -13,7 +13,7 @@ import type {
   ThinkingCapability,
   SearchCapability,
 } from './types.js';
-import { getProviderConfig, type ProviderId } from '../providers/index.js';
+import { getProviderConfig, getProviderIds, type ProviderId } from '../providers/index.js';
 
 // ============================================================================
 // 常量定义
@@ -71,8 +71,18 @@ function resetSSEState() {
   };
 }
 
+/**
+ * 解析 SSE 行（通用入口）
+ */
 function parseSSELine(line: string) {
   if (!currentProvider?.sse?.parseLine) return;
+
+  if (line.startsWith('event: ')) {
+    return;
+  } else if (line.startsWith('id: ')) {
+    // 忽略 id: 行
+    return;
+  }
 
   const result = currentProvider.sse.parseLine(line);
   if (!result) return;
@@ -119,8 +129,10 @@ const rawGetReader = ReadableStream.prototype.getReader;
 const rawDecode = TextDecoder.prototype.decode;
 
 function setupSSEInterceptor() {
-  // 只在 DeepSeek 域名下注入一次
-  if (!location.hostname.includes('deepseek')) return;
+  // 只在当前 provider 域名下注入一次
+  if (!currentProvider?.sse) return;
+  const domain = currentProvider.domain;
+  if (!domain || !location.hostname.includes(domain)) return;
   if ((window as any).__aiclashSSEHooked) return;
   (window as any).__aiclashSSEHooked = true;
 
@@ -131,7 +143,7 @@ function setupSSEInterceptor() {
     try {
       const arg0 = args[0];
       url = typeof arg0 === 'string' ? arg0 : (arg0 && (arg0 as Request).url) || '';
-    } catch (_) {}
+    } catch (_) { }
 
     if (!isCompletionUrl(url)) {
       return origFetch.apply(this, args);
@@ -154,7 +166,7 @@ function setupSSEInterceptor() {
         pull: (controller) => {
           return (sourceReader.read() as any).then((result: any) => {
             if (result.done) {
-              try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_: any) {}
+              try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_: any) { }
               emitSSEEnd();
               fetchIntercepted = false;
               controller.close();
@@ -170,11 +182,11 @@ function setupSSEInterceptor() {
                 const t = lines[i].trim();
                 if (t) parseSSELine(t);
               }
-            } catch (_: any) {}
+            } catch (_: any) { }
           }).catch((err: any) => {
             emitSSEEnd();
             fetchIntercepted = false;
-            try { controller.error(err); } catch (_) {}
+            try { controller.error(err); } catch (_) { }
           });
         },
         cancel: () => {
@@ -228,7 +240,7 @@ function setupSSEInterceptor() {
       try {
         const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
         if (txt) processNew(txt);
-      } catch (_) {}
+      } catch (_) { }
       if (xhr.readyState === 4) clearInterval(poller);
     }, 50);
 
@@ -237,7 +249,7 @@ function setupSSEInterceptor() {
       try {
         const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
         if (txt) processNew(txt);
-      } catch (_) {}
+      } catch (_) { }
       if (!ab.ended) {
         ab.ended = true;
         emitSSEEnd();
@@ -326,31 +338,60 @@ function getConversationIdFromUrl(provider: ProviderConfig): string | undefined 
   const config = provider.conversation?.idFromUrl;
   if (!config) return undefined;
 
-  const url = window.location.href;
+  const pathname = window.location.pathname;
   const pattern = config.pattern;
+  const excludePattern = config.excludePattern;
 
   if (pattern) {
     try {
       const regex = new RegExp(pattern);
-      const match = url.match(regex);
+      const match = pathname.match(regex);
       if (match) {
         const group = config.captureGroup ?? 1;
+        let id: string | undefined;
         if (typeof group === 'number') {
-          return match[group];
+          id = match[group];
         } else if (typeof group === 'string') {
-          return (match as any).groups?.[group];
+          id = (match as any).groups?.[group];
+        } else {
+          id = match[1];
         }
-        return match[1];
+        // 检查是否需要排除
+        if (id && excludePattern) {
+          try {
+            const excludeRegex = new RegExp(excludePattern);
+            if (excludeRegex.test(id)) {
+              return undefined;
+            }
+          } catch {
+            // excludePattern 正则无效，忽略
+          }
+        }
+        return id;
       }
+      return undefined;
     } catch {
       // 正则无效，返回 undefined
     }
   }
 
   // 没有配置 pattern，尝试从 pathname 最后一段提取
-  const pathname = window.location.pathname;
   const segments = pathname.split('/').filter(Boolean);
-  return segments.length > 0 ? segments[segments.length - 1] : undefined;
+  let id = segments.length > 0 ? segments[segments.length - 1] : undefined;
+
+  // 检查是否需要排除
+  if (id && excludePattern) {
+    try {
+      const excludeRegex = new RegExp(excludePattern);
+      if (excludeRegex.test(id)) {
+        return undefined;
+      }
+    } catch {
+      // excludePattern 正则无效，忽略
+    }
+  }
+
+  return id;
 }
 
 /**
@@ -852,6 +893,9 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
         };
       }
 
+      // 触发会话 ID 回调
+      callbacks?.onConversationId?.(conversationId);
+
       // 点击发送后才启动回调监听（DOM + SSE）
       if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
         // 设置 SSE 拦截器的会话 ID
@@ -921,7 +965,7 @@ function simulateEnter(el: Element): void {
 
 function simulateRealClick(element: Element): void {
   if (!element) return;
-  (element as HTMLElement).focus();
+
   const events = [
     new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
     new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
@@ -960,37 +1004,96 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
   const checkEnabled: (el: Element) => boolean = typeof thinking.enabledState === 'function'
     ? thinking.enabledState
     : (el) => {
-        if (isStringConfig(thinking.enabledState)) {
-          return el.classList.contains(thinking.enabledState);
-        }
-        if (isHasClassConfig(thinking.enabledState)) {
-          return el.classList.contains(thinking.enabledState.hasClass);
-        }
-        if (isClassContainsConfig(thinking.enabledState)) {
-          const kw = thinking.enabledState.classContains.toLowerCase();
-          return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
-        }
-        if (isTextContainsConfig(thinking.enabledState)) {
-          return (el.textContent || '').includes(thinking.enabledState.textContains);
-        }
-        return false;
-      };
+      if (isStringConfig(thinking.enabledState)) {
+        return el.classList.contains(thinking.enabledState);
+      }
+      if (isHasClassConfig(thinking.enabledState)) {
+        return el.classList.contains(thinking.enabledState.hasClass);
+      }
+      if (isClassContainsConfig(thinking.enabledState)) {
+        const kw = thinking.enabledState.classContains.toLowerCase();
+        return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
+      }
+      if (isTextContainsConfig(thinking.enabledState)) {
+        return (el.textContent || '').includes(thinking.enabledState.textContains);
+      }
+      return false;
+    };
 
-  const doToggle = async (): Promise<void> => {
+  const doToggle = async (wantEnabled?: boolean): Promise<void> => {
     const el = findToggleEl();
     if (!el) return;
 
-    if (thinking.toggle.type === 'click') {
-      (el as HTMLElement).click();
-      await wait(thinking.toggle.wait || 300);
-    } else if (thinking.toggle.type === 'dropdown') {
-      // 点击展开菜单
-      (el as HTMLElement).click();
+    if (thinking.toggle.type === 'dropdown') {
+      // 对于 dropdown 类型，需要找到真正的触发器按钮
+      // 使用配置中的选择器查找触发器按钮
+      const triggerSelectors = thinking.toggle.triggerButtonSelectors || [];
+      let targetBtn: Element | null = null;
+      for (const selector of triggerSelectors) {
+        targetBtn = el.closest(selector) || el.querySelector(selector);
+        if (targetBtn) break;
+      }
+      targetBtn = targetBtn || el;
+
+      // 使用真实点击模拟展开菜单
+      simulateRealClick(targetBtn);
       await wait(thinking.toggle.wait || 800);
 
-      // TODO: 实现下拉菜单项点击（需要额外配置）
-      // 这里暂时只展开菜单
+      // 根据期望状态选择菜单项
+      const targetMatch = wantEnabled ? thinking.toggle.enableMatch : thinking.toggle.disableMatch;
+
+      // 使用配置中的菜单项选择器（按优先级查找）
+      const menuItemSelectors = thinking.toggle.menuItemSelectors || [];
+      const menuItems: Element[] = [];
+      for (const selector of menuItemSelectors) {
+        menuItems.push(...Array.from(document.querySelectorAll(selector)));
+      }
+
+      // 根据文本匹配目标菜单项
+      let targetItem: Element | undefined;
+      if (targetMatch?.texts) {
+        targetItem = menuItems.find(item =>
+          targetMatch!.texts.some(text => item.textContent?.includes(text))
+        );
+      }
+
+      // Fallback: 使用选择器查找
+      if (!targetItem && targetMatch?.fallbackSelectors) {
+        for (const selector of targetMatch.fallbackSelectors) {
+          const item = document.querySelector(selector);
+          if (item) {
+            targetItem = item;
+            break;
+          }
+        }
+      }
+
+      if (targetItem) {
+        // 找到真正可点击的菜单项元素
+        const clickableSelectors = thinking.toggle.clickableItemSelectors || [];
+        let clickableOption: Element | null = null;
+        for (const selector of clickableSelectors) {
+          clickableOption = targetItem.closest(selector) || targetItem.querySelector(selector);
+          if (clickableOption) break;
+        }
+        clickableOption = clickableOption || targetItem;
+
+        simulateRealClick(clickableOption);
+        await wait(thinking.toggle.wait || 800);
+
+        // 关闭菜单（点击 body）
+        simulateRealClick(document.body);
+      } else {
+        // 关闭菜单
+        simulateRealClick(document.body);
+      }
+      return;
     }
+
+    // click 类型
+    const clickBtn = el.closest('button') || el.querySelector('button') || el;
+    simulateRealClick(clickBtn);
+    await wait(thinking.toggle.wait || 300);
   };
 
   return {
@@ -1011,7 +1114,7 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
         return { success: true, changed: false };
       }
 
-      await doToggle();
+      await doToggle(wantEnabled);
 
       // 验证切换结果
       const afterEl = findToggleEl();
@@ -1050,23 +1153,23 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
   const checkEnabled: (el: Element) => boolean = typeof search.enabledState === 'function'
     ? search.enabledState
     : (el) => {
-        if (isStringConfig(search.enabledState)) {
-          return el.classList.contains(search.enabledState);
-        }
-        if (isHasClassConfig(search.enabledState)) {
-          return el.classList.contains(search.enabledState.hasClass);
-        }
-        if (isClassContainsConfig(search.enabledState)) {
-          const kw = search.enabledState.classContains.toLowerCase();
-          return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
-        }
-        if (isTextContainsConfig(search.enabledState)) {
-          return (el.textContent || '').includes(search.enabledState.textContains);
-        }
-        return false;
-      };
+      if (isStringConfig(search.enabledState)) {
+        return el.classList.contains(search.enabledState);
+      }
+      if (isHasClassConfig(search.enabledState)) {
+        return el.classList.contains(search.enabledState.hasClass);
+      }
+      if (isClassContainsConfig(search.enabledState)) {
+        const kw = search.enabledState.classContains.toLowerCase();
+        return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
+      }
+      if (isTextContainsConfig(search.enabledState)) {
+        return (el.textContent || '').includes(search.enabledState.textContains);
+      }
+      return false;
+    };
 
-  const doToggle = async (): Promise<void> => {
+  const doToggle = async (wantEnabled?: boolean): Promise<void> => {
     const el = findToggleEl();
     if (!el) return;
 
@@ -1074,8 +1177,52 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
       (el as HTMLElement).click();
       await wait(search.toggle.wait || 300);
     } else if (search.toggle.type === 'dropdown') {
+      // 点击展开菜单
       (el as HTMLElement).click();
       await wait(search.toggle.wait || 800);
+
+      // 根据期望状态选择菜单项
+      const targetMatch = wantEnabled ? search.toggle.enableMatch : search.toggle.disableMatch;
+      if (!targetMatch) return;
+
+      // 查找菜单项
+      const selectors = search.toggle.menuItemSelectors || [
+        '[role="menuitem"]',
+        '[data-slot="dropdown-menu-item"]',
+      ];
+
+      let menuItems: Element[] = [];
+      for (const selector of selectors) {
+        const items = Array.from(document.querySelectorAll(selector));
+        if (items.length > 0) {
+          menuItems = items;
+          break;
+        }
+      }
+
+      // 根据文本匹配目标菜单项
+      let targetItem: Element | undefined;
+      if (targetMatch.texts) {
+        targetItem = menuItems.find(item =>
+          targetMatch!.texts.some(text => item.textContent?.includes(text))
+        );
+      }
+
+      // Fallback: 使用选择器查找
+      if (!targetItem && targetMatch?.fallbackSelectors) {
+        for (const selector of targetMatch.fallbackSelectors) {
+          const item = document.querySelector(selector);
+          if (item) {
+            targetItem = item;
+            break;
+          }
+        }
+      }
+
+      if (targetItem) {
+        (targetItem as HTMLElement).click();
+        await wait(search.toggle.wait || 800);
+      }
     }
   };
 
@@ -1097,7 +1244,7 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
         return { success: true, changed: false };
       }
 
-      await doToggle();
+      await doToggle(wantEnabled);
 
       const afterEl = findToggleEl();
       if (!afterEl) {
@@ -1362,7 +1509,8 @@ export function createInjector(options: InjectorOptions): Injector {
   const provider = getProviderConfig(providerId as ProviderId);
 
   if (!provider) {
-    throw new Error(`Unknown provider: ${providerId}. Available providers: deepseek, doubao, qianwen, longcat, yuanbao`);
+    const availableIds = getProviderIds().join(', ');
+    throw new Error(`Unknown provider: ${providerId}. Available providers: ${availableIds}`);
   }
 
   function setupCapabilities() {

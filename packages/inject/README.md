@@ -76,11 +76,12 @@ await window.__AI_CLASH.chat.fill('你好 AI')
 
 // 发送消息并监听流式输出
 await window.__AI_CLASH.chat.send({
+  onConversationId: (conversationId) => {
+    console.log('获取到会话 ID:', conversationId);
+  },
   onDomChunk: (text, isThink, stage, conversationId) => {
     console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
-  // 注意：onSseChunk 只在 DeepSeek 平台有效，其他平台仅支持 onDomChunk
-  // onSseChunk 参数与 onDomChunk 一致
   onSseChunk: (text, isThink, stage, conversationId) => {
     console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
@@ -94,18 +95,16 @@ await window.__AI_CLASH.chat.newChat()
 
 // 一站式发送并监听流式输出
 await window.__AI_CLASH.chat.send('你好 AI', {
-  // 是否开启深度思考模式
   thinking: true,
-  // 是否开启联网搜索
   search: true,
-  // 是否先开始新对话
   newChat: true
 }, {
+  onConversationId: (conversationId) => {
+    console.log('获取到会话 ID:', conversationId);
+  },
   onDomChunk: (text, isThink, stage, conversationId) => {
     console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
-  // 注意：onSseChunk 只在 DeepSeek 平台有效，其他平台仅支持 onDomChunk
-  // onSseChunk 参数与 onDomChunk 一致
   onSseChunk: (text, isThink, stage, conversationId) => {
     console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },

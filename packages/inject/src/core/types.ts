@@ -439,6 +439,7 @@ export interface SSEConfig {
   urlPattern: string;
   /**
    * 解析 SSE 行，返回解析结果
+   * @param line - SSE 行内容（如 'data: {...}'）
    * @returns { text: string; isThink: boolean | null, done: boolean } 或 null 表示跳过此行
    */
   parseLine: (line: string) => { text: string; isThink: boolean | null; done: boolean } | null;
@@ -485,6 +486,8 @@ export interface ConversationConfig {
     pattern?: string;
     /** 正则匹配的组名或索引（可选，默认为第一个捕获组） */
     captureGroup?: string | number;
+    /** 排除匹配的正则（可选，用于过滤临时 ID 等无效值） */
+    excludePattern?: string;
   };
   /**
    * 从 DOM 元素提取会话 ID
@@ -565,10 +568,22 @@ export interface ToggleActionConfig {
   wait?: number;
 
   /**
+   * 触发器按钮选择器（仅 dropdown 类型需要）
+   * 用于从 wrapper 元素中找到真正的可点击按钮
+   */
+  triggerButtonSelectors?: string[];
+
+  /**
    * 下拉菜单项选择器（仅 dropdown 类型需要）
    * 点击展开菜单后，从这些选择器中查找目标项
    */
   menuItemSelectors?: string[];
+
+  /**
+   * 菜单项内部可点击元素选择器（仅 dropdown 类型需要）
+   * 用于从菜单项中找到真正可点击的元素
+   */
+  clickableItemSelectors?: string[];
 
   /**
    * 开启状态的匹配条件（仅 dropdown 类型需要）
@@ -576,7 +591,7 @@ export interface ToggleActionConfig {
    */
   enableMatch?: {
     texts: string[];      // 匹配的文本列表
-    fallbackTestId?: string; // 文本匹配失败时的 fallback testId
+    fallbackSelectors?: string[]; // 文本匹配失败时的 fallback 选择器列表
   };
 
   /**
@@ -585,7 +600,7 @@ export interface ToggleActionConfig {
    */
   disableMatch?: {
     texts: string[];
-    fallbackTestId?: string;
+    fallbackSelectors?: string[];
   };
 }
 
@@ -601,11 +616,13 @@ export interface ToggleActionConfig {
  * - `onSseChunk` - SSE/ Fetch 拦截模式的流式回调
  * - `onComplete` - 完成回调
  * - `onError` - 错误回调
+ * - `onConversationId` - 获取到会话 ID 时的回调
  *
  * @example
  * await injector.call('chat', 'send', {
  *   onDomChunk: (text, isThink, stage) => console.log('DOM chunk:', text, isThink),
  *   onSseChunk: (data) => console.log('SSE chunk:', data),
+ *   onConversationId: (conversationId) => console.log('会话 ID:', conversationId),
  *   onComplete: (fullText) => console.log('complete:', fullText)
  * })
  */
@@ -637,6 +654,12 @@ export interface SendCallbacks {
     stage: 'thinking' | 'responding',
     conversationId?: string
   ) => void;
+
+  /**
+   * 获取到会话 ID 时的回调
+   * @param conversationId - 会话 ID
+   */
+  onConversationId?: (conversationId: string) => void;
 
   /**
    * 完成回调
