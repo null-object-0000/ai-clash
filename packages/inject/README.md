@@ -68,6 +68,8 @@ javascript:(async function(){if(!window.AIClashInject){const s=document.createEl
 ```javascript
 // 获取思考模式状态
 await window.__AI_CLASH.thinking.getState()
+await window.__AI_CLASH.thinking.sync(true)
+await window.__AI_CLASH.thinking.getState()
 
 // 填充输入框
 await window.__AI_CLASH.chat.fill('你好 AI')
