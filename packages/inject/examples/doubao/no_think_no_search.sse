@@ -1,0 +1,3228 @@
+id: 0
+event: SSE_HEARTBEAT
+data: {}
+
+id: 0
+event: SSE_ACK
+data: {"query_list":[{"question_id":"41151322251702274","local_message_id":"ef7e7a80-28f8-11f1-a2f3-d1d0bd344d9f","message_index":1}],"ack_client_meta":{"conversation_id":"38418659865850370","local_conversation_id":"local_6812957231981701","conversation_type":3,"section_id":"38418659865850626","conversation_info":{"conversation_id":"38418659865850370","conversation_type":3,"creator_id":"4211578543280832","name":"新对话","image":{"image_thumb":{"url":"https://p11-flow-imagex-sign.byteimg.com/ocean-cloud-tos/FileBizType.BIZ_BOT_ICON/bot_0817_02.png~tplv-a9rns2rl98-image-qvalue.png?lk3s=8e244e95&rcl=202603261748294542CB40D3170AD2EA84&rrcfp=bf2e6f99&x-expires=1777110509&x-signature=rZopc16c2eFKjrNUtWRCCs8wCQ8%3D"},"image_ori":{"url":"https://p11-flow-imagex-sign.byteimg.com/ocean-cloud-tos/FileBizType.BIZ_BOT_ICON/bot_0817_02.png~tplv-a9rns2rl98-image-qvalue.png?lk3s=8e244e95&rcl=202603261748294542CB40D3170AD2EA84&rrcfp=bf2e6f99&x-expires=1777110509&x-signature=rZopc16c2eFKjrNUtWRCCs8wCQ8%3D"}},"participant_count":2,"human_count":1,"tenant_id":0,"biz_id":0,"status":1,"create_time":1774518509,"update_time":1774518509,"extra":"{\"inner_app_id\":\"497858\",\"inner_cluster\":\"default\",\"inner_did\":\"7574623993862129195\",\"inner_env\":\"prod\",\"inner_flow_app_variant\":\"doubao\",\"inner_is_tour\":\"false\",\"inner_log_id\":\"202603261748294542CB40D3170AD2EA84\",\"inner_pc_version\":\"3.11.3\",\"inner_platform\":\"web\",\"inner_real_app_id\":\"497858\",\"inner_samantha_web\":\"true\",\"inner_tea_uuid\":\"7574624008505132584\",\"inner_tt_wid\":\"7574623993862129195\",\"inner_user_ip\":\"112.80.30.194\",\"inner_version_name\":\"\",\"local_conversation_id\":\"local_6812957231981701\",\"log_id\":\"202603261748294542CB40D3170AD2EA84\"}","msg_cursor":1,"bot_type":3,"retention_cursor":1,"last_read_index":0,"latest_index":0,"last_section_id":"38418659865850626","review_status":2,"create_scene":0,"create_channel":0,"badge_count":0,"read_badge_count":0,"latest_artifact":1}},"timeout_conf":{"answer_first_pending_time":180000,"packet_interval_time":120000}}
+
+id: 1
+event: FULL_MSG_NOTIFY
+data: {"message":{"conversation_id":"38418659865850370","message_id":"41151322251702274","message_body_version":1,"sender_id":"4211578543280832","user_type":1,"content_type":9999,"content":"[{\"block_type\":10000,\"block_id\":\"debc1653-018d-4427-85f2-2345aadb2863\",\"content\":{\"text_block\":{\"text\":\"2026 美加墨世界杯从热度和实力两个角度盘点，TOP 10 是哪些？\"}}}]","index_in_conv":1,"create_time":1774518509,"biz_content_type":"","sec_sender":"MS4wLjABAAAAf9rlxLZz7JWSDPqC35WjuloAlX0U4s0_-AofhkcKnATSERE0psJLYebCzhK-jpd3","content_block":[{"block_type":10000,"block_id":"debc1653-018d-4427-85f2-2345aadb2863","content":{"text_block":{"text":"2026 美加墨世界杯从热度和实力两个角度盘点，TOP 10 是哪些？"}},"is_finish":false}],"tts_content":"","update_time":1774518509,"ext":{"chat_next":"1","group":"1774518509","inner_region":"CN","attachment_scene":"1","bot_source":"BotStudio","use_deep_think":"1","inner_bot_id":"0","inner_user_ip":"112.80.30.194","reply_unique_key":"c6c9d94b-9198-4f1a-bf7a-a76053137294","speaker_id":"zh_female_wenroutaozi_uranus_bigtts","search_engine_type":"\u0004","conversation_init_option":"{\"need_ack_conversation\":true}","read_conv_version":"1774518509599158","ugc_voice_id":"104","pre_read_conv_version":"1774518509599158","llm_model_type":"38","client_report_scene":"gui","fp":"verify_ml7p8fwc_oraPprN8_4DKS_4xQ4_9KAn_ixsQyY1xgLVb","cot_switch":"1","inner_log_id":"202603261748294542CB40D3170AD2EA84","inner_platform":"web","inner_app_id":"497858","update_version_code":"0","section_tag_1h":"38418659865850626_2026032617","commerce_credit_config_enable":"0","chat_ability":"{}","chat_id":"41151322251702274","model_type":"38","message_from":"InputBox","bot_id":"7338286299411103781","is_ai_playground":"false","sub_conv_firstmet_type":"1","use_content_block":"1","input_skill":"{\"skill_id\":\"0\",\"skill_type\":0}"},"local_message_id":"ef7e7a80-28f8-11f1-a2f3-d1d0bd344d9f","section_id":"38418659865850626","bot_reply_message_id":"0","fetch_token":"41151322251702274"},"message_attr":{"badge_count":1,"read_badge_count":1,"read_conv_version":1774518509599158,"pre_read_conv_version":1774518509599158}}
+
+id: 4
+event: STREAM_MSG_NOTIFY
+data: {"content":{"content_block":[{"block_type":10040,"block_id":"9382801558176770","content":{"thinking_block":{"finish_title":"已完成思考","streaming_title":"正在思考","icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think-1.png","unfold_streaming_title":"深度思考中"}},"is_finish":false,"patch_type":2}],"content_status":100,"ext":{"tts":"","tea_tags_time_cost":"{\"agent_id\":\"19457456070409730\",\"agent_name\":\"豆包\",\"llm_intention\":\"browsing\",\"llm_intention_detail\":\"complex_browsing\"}","is_deep_thinking":"1","agent_intention":"browsing","reply_unique_key":"c6c9d94b-9198-4f1a-bf7a-a76053137294","inner_app_id":"497858","cot_ui_style":"summary_and_tool_result","chat_id":"41151322251702274","chat_next":"1","mode_downgrade_reason":"success","agent_name":"豆包","input_skill":"{\"skill_id\":\"0\",\"skill_type\":0}","inner_platform":"web","fold_think_on_end":"1","update_version_code":"0","agent_hub_model_family_name":"","seed_intention":"browsing","inner_log_id":"202603261748294542CB40D3170AD2EA84","llm_intention_detail":"complex_browsing","llm_intention":"browsing","model_id":"38","before_content_type":"1","client_report_scene":"gui","hide_top_reference":"1","is_pro":"0","detailed_model_name":"","inner_user_ip":"112.80.30.194","review_scenario_id":"200000000178","is_deep_thinking_show":"1","cot_switch":"1","section_tag_1h":"38418659865850626_2026032617","mode_downgrade_scene":"cot","chat_ability":"{}","agent_id":"19457456070409730","llm_model_type":"38","attachment_scene":"1","model_type":"38","bot_state":"{\"bot_id\":\"7338286299411103781\",\"bot_name\":\"豆包\",\"agent_name\":\"豆包\",\"agent_id\":\"19457456070409730\",\"intent_agent_name\":\"Agent-Knowledge\"}","use_content_block":"1","inner_region":"CN"},"content_type":9999},"meta":{"message_id":"41151322251708418","conversation_id":"38418659865850370","section_id":"38418659865850626","sender_id":"7338286299411103781","user_type":2,"create_time":1774518511,"index_in_conv":2,"bot_reply_message_id":"41151322251702274","local_conversation_id":"local_6812957231981701"},"attr":{"reply_unique_key":"c6c9d94b-9198-4f1a-bf7a-a76053137294"}}
+
+id: 20
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10000,"block_id":"9382801558393858","parent_id":"9382801558176770","content":{"text_block":{"icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think-1.png","summary":"确定球队盘点信息获取方式"}},"is_finish":false,"patch_type":1}]}},{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"msg_scene":"rv_two_col"}}}]}
+
+id: 23
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10000,"block_id":"9382801558393858","parent_id":"9382801558176770","content":{"text_block":{"text":"用户","icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think-1.png","summary":"确定球队盘点信息获取方式"}},"is_finish":false,"patch_type":1}]}}]}
+
+id: 24
+event: SSE_HEARTBEAT
+data: {}
+
+id: 26
+event: CHUNK_DELTA
+data: {"text":"要求"}
+
+id: 29
+event: CHUNK_DELTA
+data: {"text":"从"}
+
+id: 32
+event: CHUNK_DELTA
+data: {"text":"热度"}
+
+id: 35
+event: CHUNK_DELTA
+data: {"text":"与"}
+
+id: 38
+event: CHUNK_DELTA
+data: {"text":"实力"}
+
+id: 41
+event: CHUNK_DELTA
+data: {"text":"角度"}
+
+id: 44
+event: CHUNK_DELTA
+data: {"text":"盘点"}
+
+id: 47
+event: CHUNK_DELTA
+data: {"text":"2"}
+
+id: 50
+event: CHUNK_DELTA
+data: {"text":"0"}
+
+id: 53
+event: CHUNK_DELTA
+data: {"text":"2"}
+
+id: 56
+event: CHUNK_DELTA
+data: {"text":"6"}
+
+id: 59
+event: CHUNK_DELTA
+data: {"text":"美"}
+
+id: 62
+event: CHUNK_DELTA
+data: {"text":"加"}
+
+id: 65
+event: CHUNK_DELTA
+data: {"text":"墨"}
+
+id: 68
+event: CHUNK_DELTA
+data: {"text":"世界杯"}
+
+id: 71
+event: CHUNK_DELTA
+data: {"text":"TOP"}
+
+id: 74
+event: CHUNK_DELTA
+data: {"text":" "}
+
+id: 77
+event: CHUNK_DELTA
+data: {"text":"1"}
+
+id: 80
+event: CHUNK_DELTA
+data: {"text":"0"}
+
+id: 83
+event: CHUNK_DELTA
+data: {"text":"球队"}
+
+id: 86
+event: CHUNK_DELTA
+data: {"text":"，"}
+
+id: 89
+event: CHUNK_DELTA
+data: {"text":"我"}
+
+id: 92
+event: CHUNK_DELTA
+data: {"text":"计划"}
+
+id: 95
+event: CHUNK_DELTA
+data: {"text":"通过"}
+
+id: 98
+event: CHUNK_DELTA
+data: {"text":"搜索"}
+
+id: 101
+event: CHUNK_DELTA
+data: {"text":"相关"}
+
+id: 104
+event: CHUNK_DELTA
+data: {"text":"信息"}
+
+id: 107
+event: CHUNK_DELTA
+data: {"text":"，"}
+
+id: 110
+event: CHUNK_DELTA
+data: {"text":"获取"}
+
+id: 113
+event: CHUNK_DELTA
+data: {"text":"最新"}
+
+id: 116
+event: CHUNK_DELTA
+data: {"text":"排名"}
+
+id: 119
+event: CHUNK_DELTA
+data: {"text":"及"}
+
+id: 122
+event: CHUNK_DELTA
+data: {"text":"热门"}
+
+id: 125
+event: CHUNK_DELTA
+data: {"text":"球队"}
+
+id: 128
+event: CHUNK_DELTA
+data: {"text":"预测"}
+
+id: 131
+event: CHUNK_DELTA
+data: {"text":"，"}
+
+id: 134
+event: CHUNK_DELTA
+data: {"text":"为"}
+
+id: 137
+event: CHUNK_DELTA
+data: {"text":"后续"}
+
+id: 140
+event: CHUNK_DELTA
+data: {"text":"盘点"}
+
+id: 143
+event: CHUNK_DELTA
+data: {"text":"做"}
+
+id: 146
+event: CHUNK_DELTA
+data: {"text":"准备"}
+
+id: 149
+event: CHUNK_DELTA
+data: {"text":"。"}
+
+id: 152
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10000,"block_id":"9382801558393858","parent_id":"9382801558176770","content":{"text_block":{"text":"\n\n","icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think-1.png","summary":"确定球队盘点信息获取方式"}},"is_finish":true,"patch_type":1}]}}]}
+
+id: 155
+event: CHUNK_DELTA
+data: {}
+
+id: 158
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10025,"block_id":"9382801558394114","parent_id":"9382801558176770","content":{"search_query_result_block":{"summary":"正在搜索 “%s”","queries":["2026美加墨世界杯 热度实力TOP10球队 最新排名","2026 FIFA World Cup top 10 teams by strength and popularity predictions","2026世界杯 夺冠热门 实力排名 最新","2026世界杯 已晋级球队 实力分析 热门程度"],"icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Search.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Search-1.png","scene":1,"search_type":1,"extend_fields":{"thinking_idx":1}}},"is_finish":false,"patch_type":2}]}},{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"req_id":"202603261748294542CB40D3170AD2EA84"}}}]}
+
+id: 161
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10025,"block_id":"9382801558394114","parent_id":"9382801558176770","content":{"search_query_result_block":{"summary":"搜索 4 个关键词，参考 27 篇资料","queries":["2026美加墨世界杯 热度实力TOP10球队 最新排名","2026 FIFA World Cup top 10 teams by strength and popularity predictions","2026世界杯 夺冠热门 实力排名 最新","2026世界杯 已晋级球队 实力分析 热门程度"],"results":[{"text_card":{"id":9382801558500354,"summary":"<tr><th>#FC</th><th>SELECCIÓN</th><th>VOTOS COMO #1</th><th>RANKING FIFA</th><th>ÚLTIMO MUNDIAL</th></tr>\n<tr><td>1.</td><td>España</td><td>15</td><td>1</td><td>Octavos de final</td></tr>\n<tr><td>2.</td><...\n","title":"ESPN FC: Power Rankings a 100 días del Mundial 2026","sitename":"ESPN Deportes","url":"https://espndeportes.espn.com/futbol/mundial/nota/_/id/16379952/mundial-2026-100-dias-ranking-selecciones-candidatas-espn-fc","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/fab56abd026a1ea49754538e6f68b758~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=Gz5ifvXikaYxi9Yg%2FvfnPdYyyCg%3D","doc_id":"fce56f69ca8e1f3f-293a96b7aceaa227","publish_time_second":"2026-03-03T07:00:00+08:00","original_doc_rank":1,"index":1}},{"text_card":{"id":9382801558500610,"summary":"世界排名第四的英格兰队以15.4%紧随其后。现世界排名第二的阿根廷队，世界排名第三的法国队以及世界排名第五的巴西队均以11.1%的概率并列第3。世界排名第六的葡萄牙...\n现世界排名第32的挪威队，在魔王哈兰德和厄德高双子星的率领下，时隔28年重返世界杯正赛舞台，目前以3.8%的概率排名第9。","title":"美加 墨 世界杯 最新 夺冠 概率 新鲜 出炉 评论 留下 你 心目 中 的 冠军 队伍 吧 # 世界杯 # 美加 墨 世界杯 # 世界杯 竞猜 # 世界杯 冠军","sitename":"抖音","url":"https://www.iesdouyin.com/share/video/7619248668713609657","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/27422dd3ce8d2f41b45309e5aeca806b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=9b6u3OwSNw6M9DOaFZABaL2dMdo%3D","doc_id":"7619248668713609657","publish_time_second":"2026-03-20T16:16:12+08:00","original_doc_rank":3,"index":2}},{"text_card":{"id":9382801558500866,"summary":"根据《体育画报》发布的世界杯参赛国实力排名，前五名依次为西班牙、阿根廷、英格兰、法国和葡萄牙，日本队位列第17位。该杂志特别提到：“最引人注目的是森保一执教的日本队，此次排名中日本位列第17位。”\n报道指出，日本...\n本月初，美国体育专业媒体ESPN发布的实力排名中，日本队同样位列第15位，而韩国队无缘榜单。","title":"美媒发布2026年男足世界杯“实力排名”，亚洲仅日本国家队上榜 韩国队遗憾落榜_中华网","sitename":"中华网","url":"https://3g.china.com/act/news/10000169/20260325/49355892.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/de983b4feb89444f2e3c0b2fd1be8a6b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=gDLhnj2kkxcu7067vJkVWSB6qp8%3D","doc_id":"34ab71c5199b33b5-7ee73ed0691f761f","publish_time_second":"2026-03-25T19:16:29+08:00","original_doc_rank":4,"index":3}},{"text_card":{"id":9382801558501122,"summary":"ESPN15强排名（队伍/目前国际足联排名）\n1.西班牙 1\n2.法国 3\n3.阿根廷 2\n4.英格兰 4\n5.巴西 5\n6.葡萄牙 6\n7.德国 10\n8.荷兰 7\n9.摩洛哥 8\n10.哥伦比亚 14\n11.比利时 9\n12.挪威 32\n13.塞内加尔 ...\n","title":"360体育-ESPN评世界杯15强战力榜:西法前两名，阿根廷第三葡萄牙第六","sitename":"PP体育","url":"https://www.ppsports.com/360news/news/2496749.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/b5817172c53226088db591ffb4822443~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=dsfwJJA%2BP8LvxOgoRux2rX41eMs%3D","doc_id":"c3d46c5008fec62d-0d60a33f628424e5","publish_time_second":"2026-03-05T23:24:41+08:00","original_doc_rank":5,"index":4}},{"text_card":{"id":9382801558501378,"summary":"以下...\n20.乌拉圭\n19.科特迪瓦\n18.瑞士\n17.日本\n16.比利时\n15.厄瓜多尔\n14.美国队\n13.哥伦比亚\n12.克罗地亚\n11.塞内加尔\n10.巴西\n9.德国\n8.摩洛哥\n7.荷兰\n6.挪威\n5.葡萄牙\n4.法国\n3.英格兰\n2.阿根廷\n1.西班牙\n","title":"2026世界杯实力榜:西班牙、阿根廷领跑，挪威成最大黑马_茜茜爱体育","sitename":"今日头条","url":"http://m.toutiao.com/group/7619425652436894260/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"686aef676ec583ba-5c5af44fb3496737","publish_time_second":"2026-03-21T03:43:49+08:00","original_doc_rank":6,"index":5}},{"text_card":{"id":9382801558501634,"summary":"第一名：西班牙\n在本次首次实力榜评选中，西班牙获得21张第一名选票中的15张，几乎一边倒地占据榜首。\n在预选赛中，他们以6战5胜的成绩力压保加利亚、土耳其和格鲁吉亚晋级，虽然表现谈不上惊艳，但进攻端拥有亚马尔 、佩...\n第二名：法国\n第三名：阿根廷\n第四名：英格兰\n第五名：巴西\n第六名：葡萄牙\n第七名：德国\n第八名：荷兰\n","title":"世界杯倒计时100天!ESPN最新实力榜出炉:西班牙居首，巴西仅第五!_腾讯新闻","sitename":"腾讯网","url":"http://news.qq.com/rain/a/20260304A0602300","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/4de782aa583bda88c8448344ff36c656~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=7XEob2fHAIPvJ7yvG%2FJQkac396Y%3D","doc_id":"6219fad32ccff4d8-6a8d6fbafb1087c6","publish_time_second":"2026-03-04T18:00:00+08:00","original_doc_rank":7,"index":6}},{"text_card":{"id":9382801558501890,"summary":"2) Argentina – 1873.33 points\nThe reigning World Champions, Argentina will be looking to retain their crown this summer, and are only really behind Spain as the favourites. They’re certainly looking as strong as ever as they sit fourth in the world...\n10) Germany – 1724.15 points\nGermany haven’t been at their best for some time, despite a great history in World Cups, of which they’ve won four. ","title":"FIFA World rankings: How the top 10 national teams rank ahead of 2026 World Cup","sitename":"OneFootball","url":"https://onefootball.com/es/noticias/fifa-world-rankings-how-the-top-10-national-teams-rank-ahead-of-2026-world-cup-42577227","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/a642257d6790afa64c4c328e19d53907~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=Ys82gFsr7OzY2KYZQup014pn3i4%3D","doc_id":"1fc066f26afec3b8-f44d7cfbb7849acc","publish_time_second":"2026-03-18T00:00:00+08:00","index":7}},{"text_card":{"id":9382801558502146,"summary":"England follows closely at +550 to +6...\nBrazil and defending champion Argentina round out the top tier at +750 to +800, with Brazil's attacking flair and Argentina's Lionel Messi-led experience (potentially his final tournament) making them perennial threats.\nPortugal (+1100), Germany (+1200 to +1400) and the Netherlands (+1600 to +2000) follow as strong challengers. ","title":"2026 FIFA World Cup Predictions: Spain Emerges as Clear Favorite with Expanded 48-Team Format Looming","sitename":"International Business Times AU","url":"https://www.ibtimes.com.au/2026-fifa-world-cup-predictions-spain-emerges-clear-favorite-expanded-48-team-format-looming-1863768","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/e618e4983e3b1d58d9f9cb17e50edc15~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=qQQ4nqagZ5ZSU7%2BbGkrO1CSzJyw%3D","doc_id":"6e8c56ea17907dea-baa776922ff2a2d7","publish_time_second":"2026-03-19T13:29:00+08:00","original_doc_rank":2,"index":8}},{"text_card":{"id":9382801558502402,"summary":"FIFA men’s world ranking points: 1834.12\n5. Brazil National Soccer TeamBrazil climbs into top 5 under new manager Carlo Ancelotti. The Seleção currently sits fifth in the CONMEBOL World Cup qualifying standings and continues its quest to return to World Cup glory.\nThe team features a mix of established stars and exciting young talents as they build toward the 2026 tournament.\nBrazil’s Current Squad:\nGoalkeepers: Al...\n","title":"FIFA Men’s Power Ranking","sitename":"FIFA World Cup News","url":"https://www.fifaworldcupnews.com/fifa-mens-world-ranking/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/69b675c19f3c02e55ee2ddefd0d903e7~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=5MoNsGEpY1E8QD%2FZSZo8uBr9Q3U%3D","doc_id":"9e5d51b52390b8e8-b572c1b2dbe3fe72","publish_time_second":"2026-03-05T00:00:00+08:00","original_doc_rank":3,"index":9}},{"text_card":{"id":9382801558502914,"summary":"Can Spain Win the World Cup 2026?\nVerdict: 65-70% likelihood of reaching the semi-finals; 35-40% likelihood of winning the tournament.\nThe Case Against Spain\nInjury uncertainties surrounding Yamal, Rodri, Pedri, and Williams create significant depth concerns in a short tournament where recovery time is nonexistent. The groin injury plaguing Yamal (involving pain with cutting and turning—...\n","title":"Spain World Cup 2026 Analysis – Can Spain Win?","sitename":"FIFA World Cup News","url":"https://www.fifaworldcupnews.com/spain-world-cup-26-analysis-can-spain-win/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/69b675c19f3c02e55ee2ddefd0d903e7~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=5MoNsGEpY1E8QD%2FZSZo8uBr9Q3U%3D","doc_id":"9423e02651a1de0b-4814deffacaa7ccd","publish_time_second":"2025-12-22T00:00:00+08:00","original_doc_rank":4,"index":10}},{"text_card":{"id":9382801558503170,"summary":"FIFA World Cup 2026 Outright Betting Odds: Favourites, Predictions and Team-by-Team Analysis of the Top Options\nCheck out the current latest betting odds for the 2026 FIFA World Cup Outright winner market.\nby Ian John\non March 23rd, 2026\nThe countdown to the 2026 FIFA World Cup Finals is gathering pace, and with qualification nearing completion, attention is turning sharply towards the...\n","title":"FIFA World Cup 2026 Outright Betting Odds: Favourites, Predictions and Team-by-Team Analysis of the Top Options","sitename":"BonusCodePoker","url":"https://bonuscodepoker.com/fifa-world-cup-2026-outright-betting-odds","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/bf7868ee62b51bafbcd125e90540deba~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=%2FPGP98kFOUsl8PHGxwl5GlplBgs%3D","doc_id":"2ac3c8d314560bed-cada97dfb18e1603","publish_time_second":"2026-03-23T00:00:00+08:00","original_doc_rank":5,"index":11}},{"text_card":{"id":9382801558503426,"summary":"Argentina is in a golden era that delivered the 2021 Copa América, the 2022 Finalissima, and the 2022 World Cup.\nNow, they aren’t just Lionel...\nThe appointment of Thomas Tuchel has introduced a pragmatic, tournament-winning DNA that many felt was missing during the Gareth Southgate era.\nEngland currently boasts the highest Squad Market Value in the tournament, with Jude Bellingham and Phil Foden reaching their peaks simultaneously.\n","title":"2026 FIFA World Cup Predictions: Top 5 Strongest Contenders","sitename":"TWSN Sports","url":"https://twsn.net/2026/03/05/2026-fifa-world-cup-predictions-5-contenders/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/402146bf5a99b0739e2883ea3f04750b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=u%2BivekDsQS5hd6NZD0Y%2BKdJX6W0%3D","doc_id":"7bc275e28e0a70fd-7f03e76ca1dfa73b","publish_time_second":"2026-03-05T00:00:00+08:00","original_doc_rank":6,"index":12}},{"text_card":{"id":9382801558503682,"summary":"charnsitr / Shutterstock.com\nWith odds also at 66/1, Japan brings organization, technique, and tactical sharpness to every tournament. They’ve steadily climbed the global ranks and have the...\nRingo Chiu / Shutterstock.com\nAlways passionate and unpredictable, Mexico is listed at 50/1 and could benefit from the home advantage. Their tournament experience and massive local support might give them just enough fire to reach the latter stages.\n15. Denmark","title":"Top 20 Favorites to Win the 2026 FIFA World Cup","sitename":"Lentedesportiva","url":"https://lentedesportiva.com/top-20-favorites-to-win-the-2026-fifa-world-cup/","doc_id":"1194cfd25ebdb8c8-116ba920729500f8","publish_time_second":"2025-12-29T00:00:00+08:00","original_doc_rank":7,"index":13}},{"text_card":{"id":9382801558504450,"summary":"就在距离世界杯开幕不足百天之际，权威数据机构OPTA发布了最新的夺冠概率预测，为我们勾勒出一幅充满看点与悬念的争冠图景。\n根据OPTA超级计算机基于球队表现、历史数据和市场动态进行的上万次模拟，西班牙以17%的概率高居榜首，法国(14.1%)和英格兰(11.8%)分列二三位，卫冕冠军阿根廷以8.7%排名第四。然而，随着...\n","title":"OPTA最新预测美加墨世界杯冠军:西班牙居首，葡萄牙仅排第六_蜥蜴体育","sitename":"今日头条","url":"http://m.toutiao.com/group/7620603628331483658/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"6bafc31f90d8a5ca-bf1772f53868495b","publish_time_second":"2026-03-24T08:10:33+08:00","original_doc_rank":1,"index":14}},{"text_card":{"id":9382801558504706,"summary":"巴西\n赔率 9.00\nEngland 赔率 7.00\n德国\n赔率 13.00\n西班牙 赔率 5.50\n阿根廷 赔率 9.00\n意大利 赔率 34.00\n葡萄牙 赔率 11.00\n荷兰\n赔率 21.00\n比利时 赔率 41.00\nSlovakia 赔率 501.00\n罗马尼亚...\n","title":"2026年世界杯冠军及小组赛获胜者投注赔率","sitename":"2026年国际足联世界杯","url":"https://cn.wc2026fifa.com/soccer/livescore/outright/","doc_id":"0bfeecb16a3ba9d9-4cb913b8c7b15b46","publish_time_second":"2026-03-26T12:16:03+08:00","original_doc_rank":2,"index":15}},{"text_card":{"id":9382801558507010,"summary":"权威数据机构Opta给出的夺冠概率(最主流参考)：\n- 1.西班牙17%(FIFA第1，头号热门)。\n- 2.法国14.1%(FIFA第3，最强对手)。\n- 3.英格兰11.8%(FIFA第4、黄金一代)。\n- 4.阿根廷8.7%(卫冕冠军，梅西最后一舞)。\n- 5.德国7....\n","title":"# 世界杯 竞猜 # 世界杯 # 足球","sitename":"抖音","url":"https://www.iesdouyin.com/share/video/7621493899946078438","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/27422dd3ce8d2f41b45309e5aeca806b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=9b6u3OwSNw6M9DOaFZABaL2dMdo%3D","doc_id":"7621493899946078438","publish_time_second":"2026-03-26T17:28:51+08:00","original_doc_rank":3,"index":16}},{"text_card":{"id":9382801558507266,"summary":"排在第一的是西班牙，积分1877.18分。\n排在第二的是阿根廷，1873.33分。\n第三是法国，1870.00分。\n第四是英格兰，1834.12...\n第五是巴西，1760.46分。\n第九是比利时，1730.71分。\n第十是德国，1724.15分。\n","title":"最新世界排名出炉:2026世界杯热门球队前十揭晓!_腾讯新闻","sitename":"腾讯网","url":"http://news.qq.com/rain/a/20260318A08R5500","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/4de782aa583bda88c8448344ff36c656~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=7XEob2fHAIPvJ7yvG%2FJQkac396Y%3D","doc_id":"40d732db73b538e6-b87c3caf3a28dbf0","publish_time_second":"2026-03-18T23:48:00+08:00","original_doc_rank":4,"index":17}},{"text_card":{"id":9382801558509058,"summary":"Opta预测2026年世界杯夺冠概率TOP20：\n1. 西班牙 17%\n2. 法国 14.1%\n3. 英格兰 11.8%\n4. 阿根廷 8.7%\n5. 德国 7.1%\n6. 葡萄牙 6.6%\n7. 巴西 5.6%\n8. 荷兰 5.2%\n9. ...\n","title":"Opta预测世界杯夺冠概率:西班牙、法国、英格兰、阿根廷前4|日本|克罗地亚|英格兰|法国|德国|荷兰|葡萄牙|西班牙|墨西哥|美国|摩洛哥|塞内加尔|比利时|挪威|瑞士|阿根廷|哥伦比亚|厄瓜多尔|乌拉圭|巴西|懂球帝","sitename":"懂球帝","url":"https://m.dongqiudi.com/article/5541640.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/2f3026cd12816a8f246e6f2af0378474~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=XBPQtIcNSULyW3BkAJDKbJQmyC8%3D","doc_id":"9659b3989171ea37-615709ee7fca08aa","publish_time_second":"2025-12-06T00:47:00+08:00","original_doc_rank":5,"index":18}},{"text_card":{"id":9382801558509314,"summary":"2026美加墨世界杯四大夺冠热门是:西班牙、法国、英格兰、阿根廷。\n西班牙(17.0%，FIFA第1)\n法国(14.1%)\n英格兰(11.8%)\n- 凯恩+贝林厄姆+萨卡，阵容厚度欧洲第一\n阿根廷(8.7%，卫冕冠军)\n- 梅西大概率最后一舞，凝聚力极强\n- 南美技术流+铁血防守\n","title":"2026年美加墨世界杯四大夺冠热门_月光下骑车的蜗牛","sitename":"今日头条","url":"http://m.toutiao.com/group/7619168826340426255/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"399897615a48b53c-88fe8a9d4ac39ae1","publish_time_second":"2026-03-20T11:10:33+08:00","original_doc_rank":6,"index":19}},{"text_card":{"id":9382801558509570,"summary":"2026世界杯夺冠热门格局解析遥望北岛星2025.11.2814:32距离2026年美加墨世界杯开幕仅剩半年时间，全球足坛的夺冠之争已进入...","title":"2026世界杯夺冠热门格局解析|西班牙|巴西|西班牙足球队|费兰-托雷斯|法国足球队_新浪体育_新浪新闻","sitename":"新浪","url":"https://k.sina.cn/article_7880068681_1d5b04e4902001v0xy.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/d49a16889eed6b4372762458db3acc79~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=0yLnlqVN77wgwrBl7Ew%2FrMuPa60%3D","doc_id":"915b99cba2d2683f-106cbbadc1a50ead","publish_time_second":"2025-11-28T14:32:00+08:00","original_doc_rank":7,"index":20}},{"text_card":{"id":9382801558509826,"summary":"</td><td>F 组</td><td>F组对阵荷兰，能否重演“屠龙”剧本？</td></tr>\n<tr><td>韩国</td><td>孙兴慜领衔，锋线冲击力冠绝亚洲。</td><td>A 组</td><td>A组对阵东道主墨西哥，目标是小组前二。</td></tr>\n<tr><td>乌兹别克斯坦</td><td>队史首次晋级！ ...\n","title":"2026世界杯已晋级全名单(实时更新):亚洲2队创历史，这些强队爆冷出局太可惜!","sitename":"cn.globalgameguide.com","url":"https://cn.globalgameguide.com/article/fifa-world-cup-2026-qualifiers-list","doc_id":"1a134009374d993d-ef3e49f0d853d204","publish_time_second":"2026-03-20T21:37:39+08:00","index":21}},{"text_card":{"id":9382801558510082,"summary":"澳大利亚 袋鼠军团 亚足联第三轮C组亚军 2025年6月10日 7\n阿根廷 阿根廷蓝白军团 南美足联冠军 2025年3月25日 19\n巴西 桑巴军团 南美足联前六名 2025年6月10日 23\n乌拉圭 天蓝军团 南美洲前六名 2025年9月4日 15\n","title":"2026 年世界杯已晋级球队名单:48 支国家队全名单","sitename":"2026年国际足联世界杯","url":"https://cn.wc2026fifa.com/teams/","doc_id":"4b04fc2b48593a83-9c4fcb4ce6364695","publish_time_second":"2026-03-20T18:34:47+08:00","original_doc_rank":1,"index":22}},{"text_card":{"id":9382801558510338,"summary":"- 英格兰8战全胜零封晋级，身价冠绝...\n- 法国、巴西稳居第一梯队，五冠王桑巴军团随时能掀翻格局。\n- 今年世预赛最炸的黑马必须是日本，8战全胜锁晋级亚洲独一份，2022干翻德西，今年目标直接冲八强。\n","title":"# 2026 世界杯 夺冠 球队 盘点 夺冠 队伍 热门 夺冠 队伍 有 哪些 ？","sitename":"抖音","url":"https://www.iesdouyin.com/share/video/7621411015360466102","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/27422dd3ce8d2f41b45309e5aeca806b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=9b6u3OwSNw6M9DOaFZABaL2dMdo%3D","doc_id":"7621411015360466102","publish_time_second":"2026-03-26T12:07:13+08:00","original_doc_rank":3,"index":23}},{"text_card":{"id":9382801558510594,"summary":"三、夺冠概率分析\n根据国外媒体S90发布的预测榜单，目前各豪强的夺冠概率如下：\n1. 西班牙（14%）：刚刚夺得2024年欧洲杯冠军，拥有亚马尔、佩德里等年轻天才，传控体系融合现代高位逼抢，但大赛抗压能力尚需检验。\n2. 巴西（11%）：安切洛蒂执教为球队注入战术纪律，维尼修斯和罗德里戈...\n","title":"2026美加墨世界杯格局初定:39强晋级，西班牙领跑夺冠概率榜_欧洲区_名额_比赛","sitename":"手机搜狐网","url":"https://m.sohu.com/a/956695840_122405260/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/6b1d3a6f49304d84d8268210e144399e~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=nnYYqVCpQ%2B2yBOBeRrnbumB6Y9M%3D","doc_id":"0cf6c8ebefd19c25-42420a06a5c0aaae","publish_time_second":"2025-11-21T00:08:00+08:00","original_doc_rank":4,"index":24}},{"text_card":{"id":9382801558510850,"summary":"•摩洛哥(E组头名):提前三轮锁定资格，成为首支出线队1\n•突尼斯(H组头名):以9胜1平不败战绩提前两轮晋级\n•埃及(A组头名):客场3比0击败吉布提后提前一轮出线1\n•阿尔及利亚(G组头名):客场3比0战胜索马里后成功突围1\n•加纳(I组头名):末轮主场1比0力克科摩罗惊险晋级1\n","title":"2026年世界杯非洲区晋级队伍综合实力分析_时间过得如此缓慢I","sitename":"今日头条","url":"http://m.toutiao.com/group/7612215760605151796/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"22239848ab99b2fc-8b8e1108cbe4bf12","publish_time_second":"2026-03-01T17:29:02+08:00","original_doc_rank":5,"index":25}},{"text_card":{"id":9382801558511106,"summary":"20.乌拉圭\n乌拉圭世预赛表现出色，与哥伦比亚、巴西、巴拉圭同分顺利晋级，还在预选赛中从巴西身上拿到4分。不过在贝尔萨执教下，球队近期友谊赛表现挣扎，11月更是1-5惨败于美国队。\n球队依旧具备竞争力，但苏亚雷斯、卡瓦尼、戈丁等传奇球员自2022年后退出国家队，乌拉圭正处于新老交替阶段。\n瑞士总能在世界杯...\n","title":"2026世界杯实力榜:西班牙、阿根廷领跑，挪威成最大黑马_茜茜爱体育","sitename":"今日头条","url":"http://m.toutiao.com/group/7619425652436894260/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"686aef676ec583ba-5c5af44fb3496737","publish_time_second":"2026-03-21T03:43:49+08:00","original_doc_rank":6,"index":26}},{"text_card":{"id":9382801558511362,"summary":"终极舞台：42席已定，6席待争\n截至2026年3月下旬，2026年世界杯48强阵容已锁定42席。美国、加拿大、墨西哥作为东道主自动入围，传统豪强如阿根廷、巴西、法国、英格兰、德国、荷兰、日本、韩国等也已悉数晋级。剩余的最后6个珍贵名额，成为了全球足球版图上尚未完成的拼图，牵动着无数球迷的心。\n*...\n","title":"世界杯最后6席花落谁家?意大利等强队背水一战|墨西哥足球队|美加墨世界杯|日本足球队|韩国足球队|巴西足球队_手机新浪网","sitename":"新浪体育触屏版","url":"https://sports.sina.cn/2026-03-26/detail-inhsicuw2845048.d.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/a393a3e4aef2059afb33de9fca415950~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=chlxpUCVWC%2Ftwg11jzhnK2P%2BE14%3D","doc_id":"51b6ee6a0597476d-b7339fe473178a3c","publish_time_second":"2026-03-26T16:21:32+08:00","original_doc_rank":7,"index":27}}],"icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Search.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Search-1.png","scene":1,"search_type":1,"extend_fields":{"thinking_idx":1}}},"is_finish":true,"patch_type":2}]}}]}
+
+id: 185
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10040,"block_id":"9382801558176770","content":{"thinking_block":{"finish_title":"已完成思考，参考 27 篇资料","streaming_title":"正在思考","icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Deep_Think-1.png","unfold_streaming_title":"深度思考中"}},"is_finish":true,"patch_type":2}]}},{"patch_object":50,"patch_type":1,"patch_value":{}}]}
+
+id: 188
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10000,"block_id":"9382801558693634","content":{"text_block":{"text":"2026美加"}},"is_finish":false,"patch_type":1}]}},{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"has_search_tool":"1","review_scenario_id":"4085066754"}}}]}
+
+id: 189
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"2026美加"}}]}
+
+id: 192
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10000,"block_id":"9382801558693634","content":{"text_block":{"text":"墨世界杯TOP10球队"}},"is_finish":false,"patch_type":1}]}}]}
+
+id: 193
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"墨世界杯TOP10球队"}}]}
+
+id: 196
+event: CHUNK_DELTA
+data: {"text":"从**实力**与**"}
+
+id: 197
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"从**实力**与**"}}]}
+
+id: 197
+event: SSE_HEARTBEAT
+data: {}
+
+id: 200
+event: CHUNK_DELTA
+data: {"text":"热度**双维度盘点如下"}
+
+id: 201
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"热度**双维度盘点如下"}}]}
+
+id: 204
+event: CHUNK_DELTA
+data: {"text":"，核心结论速览："}
+
+id: 205
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，核心结论速览："}}]}
+
+id: 208
+event: CHUNK_DELTA
+data: {"text":"**西班牙、法国、阿根廷"}
+
+id: 209
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**西班牙、法国、阿根廷"}}]}
+
+id: 212
+event: CHUNK_DELTA
+data: {"text":"、英格兰稳居双榜前列"}
+
+id: 213
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、英格兰稳居双榜前列"}}]}
+
+id: 216
+event: CHUNK_DELTA
+data: {"text":"**；实力榜以战术"}
+
+id: 217
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**；实力榜以战术"}}]}
+
+id: 220
+event: CHUNK_DELTA
+data: {"text":"成熟度与阵容深度为"}
+
+id: 221
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"成熟度与阵容深度为"}}]}
+
+id: 224
+event: CHUNK_DELTA
+data: {"text":"核心，热度榜更看重"}
+
+id: 225
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"核心，热度榜更看重"}}]}
+
+id: 228
+event: CHUNK_DELTA
+data: {"text":"球星效应与话题性（"}
+
+id: 229
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"球星效应与话题性（"}}]}
+
+id: 232
+event: CHUNK_DELTA
+data: {"text":"如梅西“最后一舞"}
+
+id: 233
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"如梅西“最后一舞"}}]}
+
+id: 236
+event: CHUNK_DELTA
+data: {"text":"”、哈兰德首秀"}
+
+id: 237
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"”、哈兰德首秀"}}]}
+
+id: 240
+event: CHUNK_DELTA
+data: {"text":"）；**东道主美国、"}
+
+id: 241
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"）；**东道主美国、"}}]}
+
+id: 244
+event: CHUNK_DELTA
+data: {"text":"墨西哥**因主场加持在"}
+
+id: 245
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"墨西哥**因主场加持在"}}]}
+
+id: 248
+event: CHUNK_DELTA
+data: {"text":"热度榜排名更高"}
+
+id: 249
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"热度榜排名更高"}}]}
+
+id: 253
+event: CHUNK_DELTA
+data: {"text":"。\n\n---\n\n### "}
+
+id: 254
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"。\n\n---\n\n### "}}]}
+
+id: 257
+event: CHUNK_DELTA
+data: {"text":"一、综合TOP10"}
+
+id: 258
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"一、综合TOP10"}}]}
+
+id: 261
+event: CHUNK_DELTA
+data: {"text":"（实力×热度双维度"}
+
+id: 262
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（实力×热度双维度"}}]}
+
+id: 265
+event: CHUNK_DELTA
+data: {"text":"）\n\n| 排名 |"}
+
+id: 266
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"）\n\n| 排名 |"}}]}
+
+id: 269
+event: CHUNK_DELTA
+data: {"text":" 球队 | 实力评分"}
+
+id: 270
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 球队 | 实力评分"}}]}
+
+id: 273
+event: CHUNK_DELTA
+data: {"text":" | 热度评分 | "}
+
+id: 274
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 热度评分 | "}}]}
+
+id: 277
+event: CHUNK_DELTA
+data: {"text":"核心亮点 |\n|-----"}
+
+id: 278
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"核心亮点 |\n|-----"}}]}
+
+id: 281
+event: CHUNK_DELTA
+data: {"text":"|-----|---------|---------"}
+
+id: 282
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"|-----|---------|---------"}}]}
+
+id: 285
+event: CHUNK_DELTA
+data: {"text":"|---------|\n| "}
+
+id: 286
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"|---------|\n| "}}]}
+
+id: 289
+event: CHUNK_DELTA
+data: {"text":"1 | 西班牙 | "}
+
+id: 290
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"1 | 西班牙 | "}}]}
+
+id: 293
+event: CHUNK_DELTA
+data: {"text":"9.8 | 9"}
+
+id: 294
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"9.8 | 9"}}]}
+
+id: 297
+event: CHUNK_DELTA
+data: {"text":".5 | 00"}
+
+id: 298
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":".5 | 00"}}]}
+
+id: 301
+event: CHUNK_DELTA
+data: {"text":"后黄金一代+传控"}
+
+id: 302
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"后黄金一代+传控"}}]}
+
+id: 305
+event: CHUNK_DELTA
+data: {"text":"体系，FIFA第1"}
+
+id: 306
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"体系，FIFA第1"}}]}
+
+id: 309
+event: CHUNK_DELTA
+data: {"text":"，OPTA夺冠概率1"}
+
+id: 310
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，OPTA夺冠概率1"}}]}
+
+id: 313
+event: CHUNK_DELTA
+data: {"text":"7%"}
+
+id: 314
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"7%"}}]}
+
+id: 318
+event: CHUNK_DELTA
+data: {"text":" |\n| 2 |"}
+
+id: 319
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 2 |"}}]}
+
+id: 322
+event: CHUNK_DELTA
+data: {"text":" 法国 | 9."}
+
+id: 323
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 法国 | 9."}}]}
+
+id: 323
+event: SSE_HEARTBEAT
+data: {}
+
+id: 326
+event: CHUNK_DELTA
+data: {"text":"7 | 9.8"}
+
+id: 327
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"7 | 9.8"}}]}
+
+id: 330
+event: CHUNK_DELTA
+data: {"text":" | 姆巴佩领衔"}
+
+id: 331
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 姆巴佩领衔"}}]}
+
+id: 334
+event: CHUNK_DELTA
+data: {"text":"卫冕热门，阵容深度顶级"}
+
+id: 335
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"卫冕热门，阵容深度顶级"}}]}
+
+id: 338
+event: CHUNK_DELTA
+data: {"text":"，FIFA第3"}
+
+id: 339
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，FIFA第3"}}]}
+
+id: 343
+event: CHUNK_DELTA
+data: {"text":" |\n| 3 |"}
+
+id: 344
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 3 |"}}]}
+
+id: 347
+event: CHUNK_DELTA
+data: {"text":" 阿根廷 | 9."}
+
+id: 348
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 阿根廷 | 9."}}]}
+
+id: 351
+event: CHUNK_DELTA
+data: {"text":"6 | 9.9"}
+
+id: 352
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"6 | 9.9"}}]}
+
+id: 355
+event: CHUNK_DELTA
+data: {"text":" | 梅西最后一舞"}
+
+id: 356
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 梅西最后一舞"}}]}
+
+id: 359
+event: CHUNK_DELTA
+data: {"text":"，卫冕冠军，战术成熟"}
+
+id: 360
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，卫冕冠军，战术成熟"}}]}
+
+id: 363
+event: CHUNK_DELTA
+data: {"text":"，凝聚力强"}
+
+id: 364
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，凝聚力强"}}]}
+
+id: 368
+event: CHUNK_DELTA
+data: {"text":" |\n| 4 |"}
+
+id: 369
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 4 |"}}]}
+
+id: 372
+event: CHUNK_DELTA
+data: {"text":" 英格兰 | 9."}
+
+id: 373
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 英格兰 | 9."}}]}
+
+id: 376
+event: CHUNK_DELTA
+data: {"text":"5 | 9.4"}
+
+id: 377
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"5 | 9.4"}}]}
+
+id: 380
+event: CHUNK_DELTA
+data: {"text":" | 贝林厄姆"}
+
+id: 381
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 贝林厄姆"}}]}
+
+id: 384
+event: CHUNK_DELTA
+data: {"text":"+凯恩黄金组合，身价"}
+
+id: 385
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"+凯恩黄金组合，身价"}}]}
+
+id: 388
+event: CHUNK_DELTA
+data: {"text":"最高，FIFA第4"}
+
+id: 389
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"最高，FIFA第4"}}]}
+
+id: 393
+event: CHUNK_DELTA
+data: {"text":" |\n| 5 |"}
+
+id: 394
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 5 |"}}]}
+
+id: 397
+event: CHUNK_DELTA
+data: {"text":" 巴西 | 9."}
+
+id: 398
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 巴西 | 9."}}]}
+
+id: 401
+event: CHUNK_DELTA
+data: {"text":"3 | 9.6"}
+
+id: 402
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"3 | 9.6"}}]}
+
+id: 405
+event: CHUNK_DELTA
+data: {"text":" | 安切洛蒂"}
+
+id: 406
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 安切洛蒂"}}]}
+
+id: 409
+event: CHUNK_DELTA
+data: {"text":"执教，桑巴足球+"}
+
+id: 410
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"执教，桑巴足球+"}}]}
+
+id: 413
+event: CHUNK_DELTA
+data: {"text":"战术纪律，五星巴西底蕴"}
+
+id: 414
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"战术纪律，五星巴西底蕴"}}]}
+
+id: 418
+event: CHUNK_DELTA
+data: {"text":" |\n| 6 |"}
+
+id: 419
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 6 |"}}]}
+
+id: 422
+event: CHUNK_DELTA
+data: {"text":" 葡萄牙 | 9."}
+
+id: 423
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 葡萄牙 | 9."}}]}
+
+id: 426
+event: CHUNK_DELTA
+data: {"text":"0 | 9.7"}
+
+id: 427
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"0 | 9.7"}}]}
+
+id: 430
+event: CHUNK_DELTA
+data: {"text":" | C罗谢幕战"}
+
+id: 431
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | C罗谢幕战"}}]}
+
+id: 434
+event: CHUNK_DELTA
+data: {"text":"，B费+莱奥"}
+
+id: 435
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，B费+莱奥"}}]}
+
+id: 438
+event: CHUNK_DELTA
+data: {"text":"辅佐，FIFA第6"}
+
+id: 439
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"辅佐，FIFA第6"}}]}
+
+id: 443
+event: CHUNK_DELTA
+data: {"text":" |\n| 7 |"}
+
+id: 444
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 7 |"}}]}
+
+id: 447
+event: CHUNK_DELTA
+data: {"text":" 德国 | 9."}
+
+id: 448
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 德国 | 9."}}]}
+
+id: 450
+event: SSE_HEARTBEAT
+data: {}
+
+id: 451
+event: CHUNK_DELTA
+data: {"text":"1 | 9.2"}
+
+id: 452
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"1 | 9.2"}}]}
+
+id: 455
+event: CHUNK_DELTA
+data: {"text":" | 弗里克改革见效"}
+
+id: 456
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 弗里克改革见效"}}]}
+
+id: 459
+event: CHUNK_DELTA
+data: {"text":"，阵容年轻化，大赛经验"}
+
+id: 460
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，阵容年轻化，大赛经验"}}]}
+
+id: 463
+event: CHUNK_DELTA
+data: {"text":"丰富"}
+
+id: 464
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"丰富"}}]}
+
+id: 468
+event: CHUNK_DELTA
+data: {"text":" |\n| 8 |"}
+
+id: 469
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 8 |"}}]}
+
+id: 472
+event: CHUNK_DELTA
+data: {"text":" 挪威 | 8."}
+
+id: 473
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 挪威 | 8."}}]}
+
+id: 476
+event: CHUNK_DELTA
+data: {"text":"8 | 9.5"}
+
+id: 477
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"8 | 9.5"}}]}
+
+id: 480
+event: CHUNK_DELTA
+data: {"text":" | 哈兰德+厄"}
+
+id: 481
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 哈兰德+厄"}}]}
+
+id: 484
+event: CHUNK_DELTA
+data: {"text":"德高首秀世界杯，"}
+
+id: 485
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"德高首秀世界杯，"}}]}
+
+id: 488
+event: CHUNK_DELTA
+data: {"text":"时隔28年重返决赛"}
+
+id: 489
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"时隔28年重返决赛"}}]}
+
+id: 492
+event: CHUNK_DELTA
+data: {"text":"圈"}
+
+id: 493
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"圈"}}]}
+
+id: 497
+event: CHUNK_DELTA
+data: {"text":" |\n| 9 |"}
+
+id: 498
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 9 |"}}]}
+
+id: 501
+event: CHUNK_DELTA
+data: {"text":" 荷兰 | 9."}
+
+id: 502
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 荷兰 | 9."}}]}
+
+id: 505
+event: CHUNK_DELTA
+data: {"text":"0 | 8.9"}
+
+id: 506
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"0 | 8.9"}}]}
+
+id: 509
+event: CHUNK_DELTA
+data: {"text":" | 范加尔后战术"}
+
+id: 510
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 范加尔后战术"}}]}
+
+id: 513
+event: CHUNK_DELTA
+data: {"text":"革新，防线稳固，进攻"}
+
+id: 514
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"革新，防线稳固，进攻"}}]}
+
+id: 517
+event: CHUNK_DELTA
+data: {"text":"高效"}
+
+id: 518
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"高效"}}]}
+
+id: 522
+event: CHUNK_DELTA
+data: {"text":" |\n| 10"}
+
+id: 523
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n| 10"}}]}
+
+id: 526
+event: CHUNK_DELTA
+data: {"text":" | 美国 | 8"}
+
+id: 527
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" | 美国 | 8"}}]}
+
+id: 530
+event: CHUNK_DELTA
+data: {"text":".5 | 9."}
+
+id: 531
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":".5 | 9."}}]}
+
+id: 534
+event: CHUNK_DELTA
+data: {"text":"3 | 东道主，普利"}
+
+id: 535
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"3 | 东道主，普利"}}]}
+
+id: 538
+event: CHUNK_DELTA
+data: {"text":"西奇+雷纳，"}
+
+id: 539
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"西奇+雷纳，"}}]}
+
+id: 542
+event: CHUNK_DELTA
+data: {"text":"年轻冲击力强，主场优势"}
+
+id: 543
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"年轻冲击力强，主场优势"}}]}
+
+id: 546
+event: CHUNK_DELTA
+data: {"text":"明显"}
+
+id: 547
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"明显"}}]}
+
+id: 551
+event: CHUNK_DELTA
+data: {"text":" |\n\n---\n\n### "}
+
+id: 552
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" |\n\n---\n\n### "}}]}
+
+id: 555
+event: CHUNK_DELTA
+data: {"text":"二、实力TOP10"}
+
+id: 556
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"二、实力TOP10"}}]}
+
+id: 559
+event: CHUNK_DELTA
+data: {"text":"详解（权威数据支撑）"}
+
+id: 560
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"详解（权威数据支撑）"}}]}
+
+id: 563
+event: CHUNK_DELTA
+data: {"text":"\n\n1.  **西班牙"}
+
+id: 564
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n1.  **西班牙"}}]}
+
+id: 567
+event: CHUNK_DELTA
+data: {"text":"（FIFA第1）"}
+
+id: 568
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第1）"}}]}
+
+id: 568
+event: SSE_HEARTBEAT
+data: {}
+
+id: 571
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 572
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 575
+event: CHUNK_DELTA
+data: {"text":"优势：00后黄金"}
+
+id: 576
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：00后黄金"}}]}
+
+id: 579
+event: CHUNK_DELTA
+data: {"text":"一代（亚马尔、佩"}
+
+id: 580
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"一代（亚马尔、佩"}}]}
+
+id: 583
+event: CHUNK_DELTA
+data: {"text":"德里）+ 罗德里"}
+
+id: 584
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"德里）+ 罗德里"}}]}
+
+id: 587
+event: CHUNK_DELTA
+data: {"text":"中场屏障，传控+"}
+
+id: 588
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"中场屏障，传控+"}}]}
+
+id: 591
+event: CHUNK_DELTA
+data: {"text":"高压逼抢战术成熟，"}
+
+id: 592
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"高压逼抢战术成熟，"}}]}
+
+id: 595
+event: CHUNK_DELTA
+data: {"text":"预选赛6战5胜"}
+
+id: 596
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"预选赛6战5胜"}}]}
+
+id: 600
+event: CHUNK_DELTA
+data: {"text":"\n    - 隐患："}
+
+id: 601
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 隐患："}}]}
+
+id: 604
+event: CHUNK_DELTA
+data: {"text":"核心球员伤病风险（亚马"}
+
+id: 605
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"核心球员伤病风险（亚马"}}]}
+
+id: 608
+event: CHUNK_DELTA
+data: {"text":"尔、罗德里、佩"}
+
+id: 609
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"尔、罗德里、佩"}}]}
+
+id: 612
+event: CHUNK_DELTA
+data: {"text":"德里）"}
+
+id: 613
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"德里）"}}]}
+
+id: 617
+event: CHUNK_DELTA
+data: {"text":"\n\n2.  **法国"}
+
+id: 618
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n2.  **法国"}}]}
+
+id: 621
+event: CHUNK_DELTA
+data: {"text":"（FIFA第3）"}
+
+id: 622
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第3）"}}]}
+
+id: 625
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 626
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 629
+event: CHUNK_DELTA
+data: {"text":"优势：姆巴佩、"}
+
+id: 630
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：姆巴佩、"}}]}
+
+id: 633
+event: CHUNK_DELTA
+data: {"text":"格列兹曼、登贝莱"}
+
+id: 634
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"格列兹曼、登贝莱"}}]}
+
+id: 637
+event: CHUNK_DELTA
+data: {"text":"组成豪华锋线，防线"}
+
+id: 638
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"组成豪华锋线，防线"}}]}
+
+id: 641
+event: CHUNK_DELTA
+data: {"text":"由瓦拉内领衔，"}
+
+id: 642
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"由瓦拉内领衔，"}}]}
+
+id: 645
+event: CHUNK_DELTA
+data: {"text":"替补席深度冠绝全球"}
+
+id: 646
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"替补席深度冠绝全球"}}]}
+
+id: 650
+event: CHUNK_DELTA
+data: {"text":"\n    - 隐患："}
+
+id: 651
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 隐患："}}]}
+
+id: 654
+event: CHUNK_DELTA
+data: {"text":"更衣室管理难度，卫冕冠军"}
+
+id: 655
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"更衣室管理难度，卫冕冠军"}}]}
+
+id: 658
+event: CHUNK_DELTA
+data: {"text":"魔咒"}
+
+id: 659
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"魔咒"}}]}
+
+id: 663
+event: CHUNK_DELTA
+data: {"text":"\n\n3.  **阿根廷"}
+
+id: 664
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n3.  **阿根廷"}}]}
+
+id: 667
+event: CHUNK_DELTA
+data: {"text":"（FIFA第2）"}
+
+id: 668
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第2）"}}]}
+
+id: 671
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 672
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 675
+event: CHUNK_DELTA
+data: {"text":"优势：梅西领衔，迪"}
+
+id: 676
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：梅西领衔，迪"}}]}
+
+id: 679
+event: CHUNK_DELTA
+data: {"text":"玛利亚、劳塔罗辅佐，"}
+
+id: 680
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"玛利亚、劳塔罗辅佐，"}}]}
+
+id: 683
+event: CHUNK_DELTA
+data: {"text":"战术体系成熟，防守反击"}
+
+id: 684
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"战术体系成熟，防守反击"}}]}
+
+id: 684
+event: SSE_HEARTBEAT
+data: {}
+
+id: 687
+event: CHUNK_DELTA
+data: {"text":"犀利，凝聚力极强"}
+
+id: 688
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"犀利，凝聚力极强"}}]}
+
+id: 692
+event: CHUNK_DELTA
+data: {"text":"\n    - 特殊意义"}
+
+id: 693
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 特殊意义"}}]}
+
+id: 696
+event: CHUNK_DELTA
+data: {"text":"：梅西职业生涯最后一届世界杯"}
+
+id: 697
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：梅西职业生涯最后一届世界杯"}}]}
+
+id: 700
+event: CHUNK_DELTA
+data: {"text":"，“最后一舞”"}
+
+id: 701
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，“最后一舞”"}}]}
+
+id: 704
+event: CHUNK_DELTA
+data: {"text":"情怀拉满"}
+
+id: 705
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"情怀拉满"}}]}
+
+id: 709
+event: CHUNK_DELTA
+data: {"text":"\n\n4.  **英格兰"}
+
+id: 710
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n4.  **英格兰"}}]}
+
+id: 713
+event: CHUNK_DELTA
+data: {"text":"（FIFA第4）"}
+
+id: 714
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第4）"}}]}
+
+id: 717
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 718
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 721
+event: CHUNK_DELTA
+data: {"text":"优势：贝林厄姆"}
+
+id: 722
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：贝林厄姆"}}]}
+
+id: 725
+event: CHUNK_DELTA
+data: {"text":"+凯恩+萨卡中轴线"}
+
+id: 726
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"+凯恩+萨卡中轴线"}}]}
+
+id: 729
+event: CHUNK_DELTA
+data: {"text":"，福登、拉什"}
+
+id: 730
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，福登、拉什"}}]}
+
+id: 733
+event: CHUNK_DELTA
+data: {"text":"福德等替补实力强劲，"}
+
+id: 734
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"福德等替补实力强劲，"}}]}
+
+id: 737
+event: CHUNK_DELTA
+data: {"text":"索斯盖特战术革新"}
+
+id: 738
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"索斯盖特战术革新"}}]}
+
+id: 742
+event: CHUNK_DELTA
+data: {"text":"\n    - 亮点："}
+
+id: 743
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 亮点："}}]}
+
+id: 746
+event: CHUNK_DELTA
+data: {"text":"世预赛8战全胜零"}
+
+id: 747
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世预赛8战全胜零"}}]}
+
+id: 750
+event: CHUNK_DELTA
+data: {"text":"封晋级，创造队史"}
+
+id: 751
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"封晋级，创造队史"}}]}
+
+id: 754
+event: CHUNK_DELTA
+data: {"text":"最佳战绩"}
+
+id: 755
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"最佳战绩"}}]}
+
+id: 759
+event: CHUNK_DELTA
+data: {"text":"\n\n5.  **巴西"}
+
+id: 760
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n5.  **巴西"}}]}
+
+id: 763
+event: CHUNK_DELTA
+data: {"text":"（FIFA第5）"}
+
+id: 764
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第5）"}}]}
+
+id: 767
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 768
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 771
+event: CHUNK_DELTA
+data: {"text":"优势：安切洛蒂"}
+
+id: 772
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：安切洛蒂"}}]}
+
+id: 775
+event: CHUNK_DELTA
+data: {"text":"执教注入战术纪律，维尼"}
+
+id: 776
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"执教注入战术纪律，维尼"}}]}
+
+id: 779
+event: CHUNK_DELTA
+data: {"text":"修斯、罗德里戈、"}
+
+id: 780
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"修斯、罗德里戈、"}}]}
+
+id: 783
+event: CHUNK_DELTA
+data: {"text":"内马尔组成魔幻锋线"}
+
+id: 784
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"内马尔组成魔幻锋线"}}]}
+
+id: 787
+event: CHUNK_DELTA
+data: {"text":"，防守硬度提升"}
+
+id: 788
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，防守硬度提升"}}]}
+
+id: 792
+event: CHUNK_DELTA
+data: {"text":"\n    - 隐患："}
+
+id: 793
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 隐患："}}]}
+
+id: 796
+event: CHUNK_DELTA
+data: {"text":"南美预选赛表现起伏，客场"}
+
+id: 797
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"南美预选赛表现起伏，客场"}}]}
+
+id: 800
+event: CHUNK_DELTA
+data: {"text":"战绩不佳"}
+
+id: 801
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"战绩不佳"}}]}
+
+id: 802
+event: SSE_HEARTBEAT
+data: {}
+
+id: 805
+event: CHUNK_DELTA
+data: {"text":"\n\n6.  **葡萄牙"}
+
+id: 806
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n6.  **葡萄牙"}}]}
+
+id: 809
+event: CHUNK_DELTA
+data: {"text":"（FIFA第6）"}
+
+id: 810
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第6）"}}]}
+
+id: 813
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 814
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 817
+event: CHUNK_DELTA
+data: {"text":"优势：C罗+莱奥"}
+
+id: 818
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：C罗+莱奥"}}]}
+
+id: 821
+event: CHUNK_DELTA
+data: {"text":"+B费+鲁本"}
+
+id: 822
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"+B费+鲁本"}}]}
+
+id: 825
+event: CHUNK_DELTA
+data: {"text":"·迪亚斯，攻防均衡"}
+
+id: 826
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"·迪亚斯，攻防均衡"}}]}
+
+id: 829
+event: CHUNK_DELTA
+data: {"text":"，大赛经验丰富"}
+
+id: 830
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，大赛经验丰富"}}]}
+
+id: 834
+event: CHUNK_DELTA
+data: {"text":"\n    - 话题点"}
+
+id: 835
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 话题点"}}]}
+
+id: 838
+event: CHUNK_DELTA
+data: {"text":"：C罗可能最后一届世界杯"}
+
+id: 839
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：C罗可能最后一届世界杯"}}]}
+
+id: 842
+event: CHUNK_DELTA
+data: {"text":"，能否打破淘汰赛进球荒"}
+
+id: 843
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，能否打破淘汰赛进球荒"}}]}
+
+id: 847
+event: CHUNK_DELTA
+data: {"text":"\n\n7.  **德国"}
+
+id: 848
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n7.  **德国"}}]}
+
+id: 851
+event: CHUNK_DELTA
+data: {"text":"（FIFA第10"}
+
+id: 852
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第10"}}]}
+
+id: 855
+event: CHUNK_DELTA
+data: {"text":"）**\n    - "}
+
+id: 856
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"）**\n    - "}}]}
+
+id: 859
+event: CHUNK_DELTA
+data: {"text":"核心优势：弗里克打造"}
+
+id: 860
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"核心优势：弗里克打造"}}]}
+
+id: 863
+event: CHUNK_DELTA
+data: {"text":"新体系，穆夏拉"}
+
+id: 864
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"新体系，穆夏拉"}}]}
+
+id: 867
+event: CHUNK_DELTA
+data: {"text":"、哈弗茨、维尔茨"}
+
+id: 868
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、哈弗茨、维尔茨"}}]}
+
+id: 871
+event: CHUNK_DELTA
+data: {"text":"年轻才俊崛起，门将"}
+
+id: 872
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"年轻才俊崛起，门将"}}]}
+
+id: 875
+event: CHUNK_DELTA
+data: {"text":"诺伊尔经验丰富"}
+
+id: 876
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"诺伊尔经验丰富"}}]}
+
+id: 880
+event: CHUNK_DELTA
+data: {"text":"\n    - 趋势："}
+
+id: 881
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 趋势："}}]}
+
+id: 884
+event: CHUNK_DELTA
+data: {"text":"从2022年"}
+
+id: 885
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"从2022年"}}]}
+
+id: 890
+event: CHUNK_DELTA
+data: {"text":"小组赛出局阴影中走出，"}
+
+id: 891
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"小组赛出局阴影中走出，"}}]}
+
+id: 894
+event: CHUNK_DELTA
+data: {"text":"预选赛表现强势"}
+
+id: 895
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"预选赛表现强势"}}]}
+
+id: 899
+event: CHUNK_DELTA
+data: {"text":"\n\n8.  **荷兰"}
+
+id: 900
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n8.  **荷兰"}}]}
+
+id: 903
+event: CHUNK_DELTA
+data: {"text":"（FIFA第7）"}
+
+id: 904
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第7）"}}]}
+
+id: 907
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 908
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 908
+event: SSE_HEARTBEAT
+data: {}
+
+id: 911
+event: CHUNK_DELTA
+data: {"text":"优势：范戴克领衔"}
+
+id: 912
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：范戴克领衔"}}]}
+
+id: 915
+event: CHUNK_DELTA
+data: {"text":"世界级防线，德容掌控"}
+
+id: 916
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世界级防线，德容掌控"}}]}
+
+id: 919
+event: CHUNK_DELTA
+data: {"text":"中场，进攻端加克"}
+
+id: 920
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"中场，进攻端加克"}}]}
+
+id: 923
+event: CHUNK_DELTA
+data: {"text":"波、德佩状态火热"}
+
+id: 924
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"波、德佩状态火热"}}]}
+
+id: 928
+event: CHUNK_DELTA
+data: {"text":"\n    - 特点："}
+
+id: 929
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 特点："}}]}
+
+id: 932
+event: CHUNK_DELTA
+data: {"text":"全攻全守战术升级"}
+
+id: 933
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"全攻全守战术升级"}}]}
+
+id: 936
+event: CHUNK_DELTA
+data: {"text":"，防守反击效率高"}
+
+id: 937
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，防守反击效率高"}}]}
+
+id: 941
+event: CHUNK_DELTA
+data: {"text":"\n\n9.  **摩洛哥"}
+
+id: 942
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n9.  **摩洛哥"}}]}
+
+id: 945
+event: CHUNK_DELTA
+data: {"text":"（FIFA第8）"}
+
+id: 946
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第8）"}}]}
+
+id: 949
+event: CHUNK_DELTA
+data: {"text":"**\n    - 核心"}
+
+id: 950
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 核心"}}]}
+
+id: 953
+event: CHUNK_DELTA
+data: {"text":"优势：2022"}
+
+id: 954
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"优势：2022"}}]}
+
+id: 957
+event: CHUNK_DELTA
+data: {"text":"年世界杯四强班底，"}
+
+id: 958
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"年世界杯四强班底，"}}]}
+
+id: 961
+event: CHUNK_DELTA
+data: {"text":"阿什拉夫+齐"}
+
+id: 962
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"阿什拉夫+齐"}}]}
+
+id: 965
+event: CHUNK_DELTA
+data: {"text":"耶赫领衔，防守体系"}
+
+id: 966
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"耶赫领衔，防守体系"}}]}
+
+id: 969
+event: CHUNK_DELTA
+data: {"text":"稳固，反击犀利"}
+
+id: 970
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"稳固，反击犀利"}}]}
+
+id: 974
+event: CHUNK_DELTA
+data: {"text":"\n    - 亮点："}
+
+id: 975
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 亮点："}}]}
+
+id: 978
+event: CHUNK_DELTA
+data: {"text":"非洲足球新标杆，预选赛"}
+
+id: 979
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"非洲足球新标杆，预选赛"}}]}
+
+id: 982
+event: CHUNK_DELTA
+data: {"text":"提前三轮锁定资格"}
+
+id: 983
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"提前三轮锁定资格"}}]}
+
+id: 987
+event: CHUNK_DELTA
+data: {"text":"\n\n10. **挪威"}
+
+id: 988
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n10. **挪威"}}]}
+
+id: 991
+event: CHUNK_DELTA
+data: {"text":"（FIFA第32"}
+
+id: 992
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（FIFA第32"}}]}
+
+id: 995
+event: CHUNK_DELTA
+data: {"text":"）**\n    - "}
+
+id: 996
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"）**\n    - "}}]}
+
+id: 999
+event: CHUNK_DELTA
+data: {"text":"核心优势：哈兰德+"}
+
+id: 1000
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"核心优势：哈兰德+"}}]}
+
+id: 1003
+event: CHUNK_DELTA
+data: {"text":"厄德高“双子星"}
+
+id: 1004
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"厄德高“双子星"}}]}
+
+id: 1007
+event: CHUNK_DELTA
+data: {"text":"”，攻击力恐怖，中场"}
+
+id: 1008
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"”，攻击力恐怖，中场"}}]}
+
+id: 1008
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1011
+event: CHUNK_DELTA
+data: {"text":"控制力强"}
+
+id: 1012
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"控制力强"}}]}
+
+id: 1016
+event: CHUNK_DELTA
+data: {"text":"\n    - 特殊意义"}
+
+id: 1017
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 特殊意义"}}]}
+
+id: 1020
+event: CHUNK_DELTA
+data: {"text":"：时隔28年重返"}
+
+id: 1021
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：时隔28年重返"}}]}
+
+id: 1024
+event: CHUNK_DELTA
+data: {"text":"世界杯，哈兰德世界杯首"}
+
+id: 1025
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世界杯，哈兰德世界杯首"}}]}
+
+id: 1028
+event: CHUNK_DELTA
+data: {"text":"秀备受期待"}
+
+id: 1029
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"秀备受期待"}}]}
+
+id: 1033
+event: CHUNK_DELTA
+data: {"text":"\n\n---\n\n### 三"}
+
+id: 1034
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n---\n\n### 三"}}]}
+
+id: 1037
+event: CHUNK_DELTA
+data: {"text":"、热度TOP10详解"}
+
+id: 1038
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、热度TOP10详解"}}]}
+
+id: 1041
+event: CHUNK_DELTA
+data: {"text":"（话题性+关注度）"}
+
+id: 1042
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（话题性+关注度）"}}]}
+
+id: 1045
+event: CHUNK_DELTA
+data: {"text":"\n\n1.  **阿根廷"}
+
+id: 1046
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n1.  **阿根廷"}}]}
+
+id: 1049
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1050
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1053
+event: CHUNK_DELTA
+data: {"text":"来源：梅西“最后一"}
+
+id: 1054
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：梅西“最后一"}}]}
+
+id: 1057
+event: CHUNK_DELTA
+data: {"text":"舞”，卫冕冠军，"}
+
+id: 1058
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"舞”，卫冕冠军，"}}]}
+
+id: 1061
+event: CHUNK_DELTA
+data: {"text":"全球球迷情怀，社交媒体话题"}
+
+id: 1062
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"全球球迷情怀，社交媒体话题"}}]}
+
+id: 1065
+event: CHUNK_DELTA
+data: {"text":"量第一"}
+
+id: 1066
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"量第一"}}]}
+
+id: 1070
+event: CHUNK_DELTA
+data: {"text":"\n    - 关键赛事"}
+
+id: 1071
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 关键赛事"}}]}
+
+id: 1074
+event: CHUNK_DELTA
+data: {"text":"：小组赛、淘汰赛每一场"}
+
+id: 1075
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：小组赛、淘汰赛每一场"}}]}
+
+id: 1078
+event: CHUNK_DELTA
+data: {"text":"都是焦点，决赛若夺冠"}
+
+id: 1079
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"都是焦点，决赛若夺冠"}}]}
+
+id: 1082
+event: CHUNK_DELTA
+data: {"text":"将成历史传奇"}
+
+id: 1083
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"将成历史传奇"}}]}
+
+id: 1087
+event: CHUNK_DELTA
+data: {"text":"\n\n2.  **法国"}
+
+id: 1088
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n2.  **法国"}}]}
+
+id: 1091
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1092
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1095
+event: CHUNK_DELTA
+data: {"text":"来源：姆巴佩转会"}
+
+id: 1096
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：姆巴佩转会"}}]}
+
+id: 1099
+event: CHUNK_DELTA
+data: {"text":"传闻+卫冕话题，世界杯"}
+
+id: 1100
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"传闻+卫冕话题，世界杯"}}]}
+
+id: 1103
+event: CHUNK_DELTA
+data: {"text":"历史上第二支成功卫冕"}
+
+id: 1104
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"历史上第二支成功卫冕"}}]}
+
+id: 1107
+event: CHUNK_DELTA
+data: {"text":"球队的有力竞争者"}
+
+id: 1108
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"球队的有力竞争者"}}]}
+
+id: 1112
+event: CHUNK_DELTA
+data: {"text":"\n    - 球星效应"}
+
+id: 1113
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 球星效应"}}]}
+
+id: 1113
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1116
+event: CHUNK_DELTA
+data: {"text":"：姆巴佩（世界"}
+
+id: 1117
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：姆巴佩（世界"}}]}
+
+id: 1120
+event: CHUNK_DELTA
+data: {"text":"第一身价）、格列兹"}
+
+id: 1121
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"第一身价）、格列兹"}}]}
+
+id: 1124
+event: CHUNK_DELTA
+data: {"text":"曼（世界杯冠军核心）"}
+
+id: 1125
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"曼（世界杯冠军核心）"}}]}
+
+id: 1129
+event: CHUNK_DELTA
+data: {"text":"\n\n3.  **葡萄牙"}
+
+id: 1130
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n3.  **葡萄牙"}}]}
+
+id: 1133
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1134
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1137
+event: CHUNK_DELTA
+data: {"text":"来源：C罗最后一届世界杯"}
+
+id: 1138
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：C罗最后一届世界杯"}}]}
+
+id: 1141
+event: CHUNK_DELTA
+data: {"text":"，B费、莱奥"}
+
+id: 1142
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，B费、莱奥"}}]}
+
+id: 1145
+event: CHUNK_DELTA
+data: {"text":"等球星崛起，“C罗"}
+
+id: 1146
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"等球星崛起，“C罗"}}]}
+
+id: 1149
+event: CHUNK_DELTA
+data: {"text":"能否打破淘汰赛进球荒”"}
+
+id: 1150
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"能否打破淘汰赛进球荒”"}}]}
+
+id: 1153
+event: CHUNK_DELTA
+data: {"text":"成为全球话题"}
+
+id: 1154
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"成为全球话题"}}]}
+
+id: 1158
+event: CHUNK_DELTA
+data: {"text":"\n    - 故事线"}
+
+id: 1159
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 故事线"}}]}
+
+id: 1162
+event: CHUNK_DELTA
+data: {"text":"：38岁C罗冲击"}
+
+id: 1163
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：38岁C罗冲击"}}]}
+
+id: 1166
+event: CHUNK_DELTA
+data: {"text":"世界杯首冠，弥补职业生涯"}
+
+id: 1167
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世界杯首冠，弥补职业生涯"}}]}
+
+id: 1170
+event: CHUNK_DELTA
+data: {"text":"唯一遗憾"}
+
+id: 1171
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"唯一遗憾"}}]}
+
+id: 1175
+event: CHUNK_DELTA
+data: {"text":"\n\n4.  **挪威"}
+
+id: 1176
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n4.  **挪威"}}]}
+
+id: 1179
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1180
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1183
+event: CHUNK_DELTA
+data: {"text":"来源：哈兰德世界杯首"}
+
+id: 1184
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：哈兰德世界杯首"}}]}
+
+id: 1187
+event: CHUNK_DELTA
+data: {"text":"秀，与厄德高"}
+
+id: 1188
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"秀，与厄德高"}}]}
+
+id: 1191
+event: CHUNK_DELTA
+data: {"text":"组成“北欧双子星”"}
+
+id: 1192
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"组成“北欧双子星”"}}]}
+
+id: 1195
+event: CHUNK_DELTA
+data: {"text":"，时隔28年重返"}
+
+id: 1196
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，时隔28年重返"}}]}
+
+id: 1199
+event: CHUNK_DELTA
+data: {"text":"世界杯"}
+
+id: 1200
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世界杯"}}]}
+
+id: 1204
+event: CHUNK_DELTA
+data: {"text":"\n    - 期待值"}
+
+id: 1205
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 期待值"}}]}
+
+id: 1208
+event: CHUNK_DELTA
+data: {"text":"：哈兰德能否打破世界杯"}
+
+id: 1209
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：哈兰德能否打破世界杯"}}]}
+
+id: 1212
+event: CHUNK_DELTA
+data: {"text":"进球纪录，成为新一代“"}
+
+id: 1213
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"进球纪录，成为新一代“"}}]}
+
+id: 1216
+event: CHUNK_DELTA
+data: {"text":"外星人”"}
+
+id: 1217
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"外星人”"}}]}
+
+id: 1221
+event: CHUNK_DELTA
+data: {"text":"\n\n5.  **西班牙"}
+
+id: 1222
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n5.  **西班牙"}}]}
+
+id: 1225
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1226
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1229
+event: CHUNK_DELTA
+data: {"text":"来源：00后天才"}
+
+id: 1230
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：00后天才"}}]}
+
+id: 1230
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1233
+event: CHUNK_DELTA
+data: {"text":"集体亮相世界杯，亚马尔"}
+
+id: 1234
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"集体亮相世界杯，亚马尔"}}]}
+
+id: 1237
+event: CHUNK_DELTA
+data: {"text":"（18岁）、"}
+
+id: 1238
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"（18岁）、"}}]}
+
+id: 1241
+event: CHUNK_DELTA
+data: {"text":"佩德里（21岁"}
+
+id: 1242
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"佩德里（21岁"}}]}
+
+id: 1245
+event: CHUNK_DELTA
+data: {"text":"）成为新偶像"}
+
+id: 1246
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"）成为新偶像"}}]}
+
+id: 1250
+event: CHUNK_DELTA
+data: {"text":"\n    - 战术美学"}
+
+id: 1251
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 战术美学"}}]}
+
+id: 1254
+event: CHUNK_DELTA
+data: {"text":"：传控足球回归，"}
+
+id: 1255
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：传控足球回归，"}}]}
+
+id: 1258
+event: CHUNK_DELTA
+data: {"text":"“TIKI-TAKA"}
+
+id: 1259
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"“TIKI-TAKA"}}]}
+
+id: 1262
+event: CHUNK_DELTA
+data: {"text":" 2.0”版本"}
+
+id: 1263
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 2.0”版本"}}]}
+
+id: 1266
+event: CHUNK_DELTA
+data: {"text":"备受期待"}
+
+id: 1267
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"备受期待"}}]}
+
+id: 1271
+event: CHUNK_DELTA
+data: {"text":"\n\n6.  **巴西"}
+
+id: 1272
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n6.  **巴西"}}]}
+
+id: 1275
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1276
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1279
+event: CHUNK_DELTA
+data: {"text":"来源：五星巴西+安"}
+
+id: 1280
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：五星巴西+安"}}]}
+
+id: 1283
+event: CHUNK_DELTA
+data: {"text":"切洛蒂效应，桑"}
+
+id: 1284
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"切洛蒂效应，桑"}}]}
+
+id: 1287
+event: CHUNK_DELTA
+data: {"text":"巴足球与欧洲战术融合"}
+
+id: 1288
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"巴足球与欧洲战术融合"}}]}
+
+id: 1291
+event: CHUNK_DELTA
+data: {"text":"的新尝试"}
+
+id: 1292
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"的新尝试"}}]}
+
+id: 1296
+event: CHUNK_DELTA
+data: {"text":"\n    - 球星效应"}
+
+id: 1297
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 球星效应"}}]}
+
+id: 1300
+event: CHUNK_DELTA
+data: {"text":"：内马尔（最后一届"}
+
+id: 1301
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：内马尔（最后一届"}}]}
+
+id: 1304
+event: CHUNK_DELTA
+data: {"text":"世界杯）、维尼修斯、"}
+
+id: 1305
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世界杯）、维尼修斯、"}}]}
+
+id: 1308
+event: CHUNK_DELTA
+data: {"text":"罗德里戈等新生代球星"}
+
+id: 1309
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"罗德里戈等新生代球星"}}]}
+
+id: 1313
+event: CHUNK_DELTA
+data: {"text":"\n\n7.  **英格兰"}
+
+id: 1314
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n7.  **英格兰"}}]}
+
+id: 1317
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1318
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1321
+event: CHUNK_DELTA
+data: {"text":"来源：“欧洲中国队”"}
+
+id: 1322
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：“欧洲中国队”"}}]}
+
+id: 1325
+event: CHUNK_DELTA
+data: {"text":"能否打破大赛冠军荒，"}
+
+id: 1326
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"能否打破大赛冠军荒，"}}]}
+
+id: 1329
+event: CHUNK_DELTA
+data: {"text":"贝林厄姆成为英格兰"}
+
+id: 1330
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"贝林厄姆成为英格兰"}}]}
+
+id: 1333
+event: CHUNK_DELTA
+data: {"text":"新核心"}
+
+id: 1334
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"新核心"}}]}
+
+id: 1338
+event: CHUNK_DELTA
+data: {"text":"\n    - 商业价值"}
+
+id: 1339
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 商业价值"}}]}
+
+id: 1339
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1342
+event: CHUNK_DELTA
+data: {"text":"：英超联赛全球影响力加持"}
+
+id: 1343
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：英超联赛全球影响力加持"}}]}
+
+id: 1346
+event: CHUNK_DELTA
+data: {"text":"，凯恩冲击世界杯金靴"}
+
+id: 1347
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，凯恩冲击世界杯金靴"}}]}
+
+id: 1351
+event: CHUNK_DELTA
+data: {"text":"\n\n8.  **美国"}
+
+id: 1352
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n8.  **美国"}}]}
+
+id: 1355
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1356
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1359
+event: CHUNK_DELTA
+data: {"text":"来源：东道主之一，普利"}
+
+id: 1360
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：东道主之一，普利"}}]}
+
+id: 1363
+event: CHUNK_DELTA
+data: {"text":"西奇、雷纳等"}
+
+id: 1364
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"西奇、雷纳等"}}]}
+
+id: 1367
+event: CHUNK_DELTA
+data: {"text":"球星在欧洲豪门效力，"}
+
+id: 1368
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"球星在欧洲豪门效力，"}}]}
+
+id: 1371
+event: CHUNK_DELTA
+data: {"text":"“足球在美国崛起”叙事"}
+
+id: 1372
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"“足球在美国崛起”叙事"}}]}
+
+id: 1378
+event: CHUNK_DELTA
+data: {"text":"\n    - 主场优势"}
+
+id: 1379
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 主场优势"}}]}
+
+id: 1382
+event: CHUNK_DELTA
+data: {"text":"：多个比赛城市（纽约"}
+
+id: 1383
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：多个比赛城市（纽约"}}]}
+
+id: 1386
+event: CHUNK_DELTA
+data: {"text":"、洛杉矶）将创造世界杯"}
+
+id: 1387
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、洛杉矶）将创造世界杯"}}]}
+
+id: 1390
+event: CHUNK_DELTA
+data: {"text":"历史最高上座率"}
+
+id: 1391
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"历史最高上座率"}}]}
+
+id: 1395
+event: CHUNK_DELTA
+data: {"text":"\n\n9.  **墨西哥"}
+
+id: 1396
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n9.  **墨西哥"}}]}
+
+id: 1399
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1400
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1403
+event: CHUNK_DELTA
+data: {"text":"来源：东道主，北美足球"}
+
+id: 1404
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：东道主，北美足球"}}]}
+
+id: 1407
+event: CHUNK_DELTA
+data: {"text":"霸主，与美国的“"}
+
+id: 1408
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"霸主，与美国的“"}}]}
+
+id: 1411
+event: CHUNK_DELTA
+data: {"text":"北美德比”备受瞩目"}
+
+id: 1412
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"北美德比”备受瞩目"}}]}
+
+id: 1416
+event: CHUNK_DELTA
+data: {"text":"\n    - 主场效应"}
+
+id: 1417
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 主场效应"}}]}
+
+id: 1420
+event: CHUNK_DELTA
+data: {"text":"：墨西哥城阿兹台"}
+
+id: 1421
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：墨西哥城阿兹台"}}]}
+
+id: 1424
+event: CHUNK_DELTA
+data: {"text":"克体育场将举办开幕式，"}
+
+id: 1425
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"克体育场将举办开幕式，"}}]}
+
+id: 1428
+event: CHUNK_DELTA
+data: {"text":"成为全球焦点"}
+
+id: 1429
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"成为全球焦点"}}]}
+
+id: 1433
+event: CHUNK_DELTA
+data: {"text":"\n\n10. **日本"}
+
+id: 1434
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n10. **日本"}}]}
+
+id: 1437
+event: CHUNK_DELTA
+data: {"text":"**\n    - 热度"}
+
+id: 1438
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**\n    - 热度"}}]}
+
+id: 1441
+event: CHUNK_DELTA
+data: {"text":"来源：亚洲足球新希望"}
+
+id: 1442
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"来源：亚洲足球新希望"}}]}
+
+id: 1442
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1445
+event: CHUNK_DELTA
+data: {"text":"，世预赛8战全胜"}
+
+id: 1446
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，世预赛8战全胜"}}]}
+
+id: 1449
+event: CHUNK_DELTA
+data: {"text":"晋级，2022"}
+
+id: 1450
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"晋级，2022"}}]}
+
+id: 1453
+event: CHUNK_DELTA
+data: {"text":"年世界杯击败德国、西班牙"}
+
+id: 1454
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"年世界杯击败德国、西班牙"}}]}
+
+id: 1457
+event: CHUNK_DELTA
+data: {"text":"的“爆冷基因”"}
+
+id: 1458
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"的“爆冷基因”"}}]}
+
+id: 1462
+event: CHUNK_DELTA
+data: {"text":"\n    - 期待值"}
+
+id: 1463
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 期待值"}}]}
+
+id: 1466
+event: CHUNK_DELTA
+data: {"text":"：能否成为首支进入"}
+
+id: 1467
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：能否成为首支进入"}}]}
+
+id: 1470
+event: CHUNK_DELTA
+data: {"text":"世界杯四强的亚洲球队"}
+
+id: 1471
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"世界杯四强的亚洲球队"}}]}
+
+id: 1475
+event: CHUNK_DELTA
+data: {"text":"\n\n---\n\n### 四"}
+
+id: 1476
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n---\n\n### 四"}}]}
+
+id: 1479
+event: CHUNK_DELTA
+data: {"text":"、核心差异分析\n\n1"}
+
+id: 1480
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、核心差异分析\n\n1"}}]}
+
+id: 1483
+event: CHUNK_DELTA
+data: {"text":".  **实力榜vs"}
+
+id: 1484
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":".  **实力榜vs"}}]}
+
+id: 1487
+event: CHUNK_DELTA
+data: {"text":"热度榜关键区别**\n"}
+
+id: 1488
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"热度榜关键区别**\n"}}]}
+
+id: 1491
+event: CHUNK_DELTA
+data: {"text":"    - 实力榜："}
+
+id: 1492
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"    - 实力榜："}}]}
+
+id: 1495
+event: CHUNK_DELTA
+data: {"text":"更看重**战术成熟度"}
+
+id: 1496
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"更看重**战术成熟度"}}]}
+
+id: 1499
+event: CHUNK_DELTA
+data: {"text":"**、**阵容深度**"}
+
+id: 1500
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**、**阵容深度**"}}]}
+
+id: 1503
+event: CHUNK_DELTA
+data: {"text":"、**大赛经验**和"}
+
+id: 1504
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、**大赛经验**和"}}]}
+
+id: 1507
+event: CHUNK_DELTA
+data: {"text":"**近期表现**（如"}
+
+id: 1508
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**近期表现**（如"}}]}
+
+id: 1511
+event: CHUNK_DELTA
+data: {"text":"西班牙、法国、阿根廷、"}
+
+id: 1512
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"西班牙、法国、阿根廷、"}}]}
+
+id: 1515
+event: CHUNK_DELTA
+data: {"text":"英格兰稳居前四）"}
+
+id: 1516
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"英格兰稳居前四）"}}]}
+
+id: 1520
+event: CHUNK_DELTA
+data: {"text":"\n    - 热度榜"}
+
+id: 1521
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 热度榜"}}]}
+
+id: 1524
+event: CHUNK_DELTA
+data: {"text":"：更看重**球星效应"}
+
+id: 1525
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"：更看重**球星效应"}}]}
+
+id: 1528
+event: CHUNK_DELTA
+data: {"text":"**、**故事线**"}
+
+id: 1529
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**、**故事线**"}}]}
+
+id: 1532
+event: CHUNK_DELTA
+data: {"text":"、**东道主优势**和"}
+
+id: 1533
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、**东道主优势**和"}}]}
+
+id: 1536
+event: CHUNK_DELTA
+data: {"text":"**历史恩怨**（如"}
+
+id: 1537
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"**历史恩怨**（如"}}]}
+
+id: 1540
+event: CHUNK_DELTA
+data: {"text":"阿根廷、葡萄牙、挪威排名"}
+
+id: 1541
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"阿根廷、葡萄牙、挪威排名"}}]}
+
+id: 1544
+event: CHUNK_DELTA
+data: {"text":"更高）"}
+
+id: 1545
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"更高）"}}]}
+
+id: 1549
+event: CHUNK_DELTA
+data: {"text":"\n\n2.  **黑马"}
+
+id: 1550
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n2.  **黑马"}}]}
+
+id: 1553
+event: CHUNK_DELTA
+data: {"text":"球队预测**\n    -"}
+
+id: 1554
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"球队预测**\n    -"}}]}
+
+id: 1557
+event: CHUNK_DELTA
+data: {"text":" 挪威：哈兰德+"}
+
+id: 1558
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 挪威：哈兰德+"}}]}
+
+id: 1561
+event: CHUNK_DELTA
+data: {"text":"厄德高组合实力超群"}
+
+id: 1562
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"厄德高组合实力超群"}}]}
+
+id: 1565
+event: CHUNK_DELTA
+data: {"text":"，OPTA夺冠概率3"}
+
+id: 1566
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"，OPTA夺冠概率3"}}]}
+
+id: 1566
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1569
+event: CHUNK_DELTA
+data: {"text":".8%，热度榜"}
+
+id: 1570
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":".8%，热度榜"}}]}
+
+id: 1573
+event: CHUNK_DELTA
+data: {"text":"第4"}
+
+id: 1574
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"第4"}}]}
+
+id: 1578
+event: CHUNK_DELTA
+data: {"text":"\n    - 摩洛哥："}
+
+id: 1579
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 摩洛哥："}}]}
+
+id: 1582
+event: CHUNK_DELTA
+data: {"text":"2022年世界杯"}
+
+id: 1583
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"2022年世界杯"}}]}
+
+id: 1586
+event: CHUNK_DELTA
+data: {"text":"四强班底，防守体系"}
+
+id: 1587
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"四强班底，防守体系"}}]}
+
+id: 1590
+event: CHUNK_DELTA
+data: {"text":"稳固，有望再创非洲足球"}
+
+id: 1591
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"稳固，有望再创非洲足球"}}]}
+
+id: 1594
+event: CHUNK_DELTA
+data: {"text":"历史"}
+
+id: 1595
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"历史"}}]}
+
+id: 1599
+event: CHUNK_DELTA
+data: {"text":"\n    - 美国："}
+
+id: 1600
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 美国："}}]}
+
+id: 1603
+event: CHUNK_DELTA
+data: {"text":"东道主优势+年轻阵容，"}
+
+id: 1604
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"东道主优势+年轻阵容，"}}]}
+
+id: 1607
+event: CHUNK_DELTA
+data: {"text":"有望进入八强，创造队"}
+
+id: 1608
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"有望进入八强，创造队"}}]}
+
+id: 1611
+event: CHUNK_DELTA
+data: {"text":"史最佳战绩"}
+
+id: 1612
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"史最佳战绩"}}]}
+
+id: 1616
+event: CHUNK_DELTA
+data: {"text":"\n\n3.  **冠军"}
+
+id: 1617
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n3.  **冠军"}}]}
+
+id: 1620
+event: CHUNK_DELTA
+data: {"text":"归属预测**\n    -"}
+
+id: 1621
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"归属预测**\n    -"}}]}
+
+id: 1624
+event: CHUNK_DELTA
+data: {"text":" OPTA超级计算机预测："}
+
+id: 1625
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" OPTA超级计算机预测："}}]}
+
+id: 1628
+event: CHUNK_DELTA
+data: {"text":"西班牙（17%）"}
+
+id: 1629
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"西班牙（17%）"}}]}
+
+id: 1632
+event: CHUNK_DELTA
+data: {"text":"> 法国（14"}
+
+id: 1633
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"> 法国（14"}}]}
+
+id: 1636
+event: CHUNK_DELTA
+data: {"text":".1%）> "}
+
+id: 1637
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":".1%）> "}}]}
+
+id: 1640
+event: CHUNK_DELTA
+data: {"text":"英格兰（11.8"}
+
+id: 1641
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"英格兰（11.8"}}]}
+
+id: 1644
+event: CHUNK_DELTA
+data: {"text":"%）> 阿根廷（"}
+
+id: 1645
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"%）> 阿根廷（"}}]}
+
+id: 1648
+event: CHUNK_DELTA
+data: {"text":"8.7%）>"}
+
+id: 1649
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"8.7%）>"}}]}
+
+id: 1652
+event: CHUNK_DELTA
+data: {"text":" 德国（7.1"}
+
+id: 1653
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":" 德国（7.1"}}]}
+
+id: 1656
+event: CHUNK_DELTA
+data: {"text":"%）"}
+
+id: 1657
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"%）"}}]}
+
+id: 1661
+event: CHUNK_DELTA
+data: {"text":"\n    - 综合实力"}
+
+id: 1662
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n    - 综合实力"}}]}
+
+id: 1665
+event: CHUNK_DELTA
+data: {"text":"与热度：**西班牙**"}
+
+id: 1666
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"与热度：**西班牙**"}}]}
+
+id: 1669
+event: CHUNK_DELTA
+data: {"text":"、**法国**、**"}
+
+id: 1670
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"、**法国**、**"}}]}
+
+id: 1673
+event: CHUNK_DELTA
+data: {"text":"阿根廷**三足鼎立，**"}
+
+id: 1674
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"阿根廷**三足鼎立，**"}}]}
+
+id: 1677
+event: CHUNK_DELTA
+data: {"text":"英格兰**、**巴西**"}
+
+id: 1678
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"英格兰**、**巴西**"}}]}
+
+id: 1681
+event: CHUNK_DELTA
+data: {"text":"为有力竞争者"}
+
+id: 1682
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"为有力竞争者"}}]}
+
+id: 1686
+event: CHUNK_DELTA
+data: {"text":"\n\n需要我按你支持"}
+
+id: 1687
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"\n\n需要我按你支持"}}]}
+
+id: 1690
+event: CHUNK_DELTA
+data: {"text":"的球队，补充一份针对性"}
+
+id: 1691
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"的球队，补充一份针对性"}}]}
+
+id: 1694
+event: CHUNK_DELTA
+data: {"text":"的核心看点与潜在赛程"}
+
+id: 1695
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"的核心看点与潜在赛程"}}]}
+
+id: 1698
+event: CHUNK_DELTA
+data: {"text":"难点（如小组赛对手、"}
+
+id: 1699
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"难点（如小组赛对手、"}}]}
+
+id: 1702
+event: CHUNK_DELTA
+data: {"text":"关键对位）吗？只需"}
+
+id: 1703
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"关键对位）吗？只需"}}]}
+
+id: 1706
+event: CHUNK_DELTA
+data: {"text":"告诉我球队名即可。"}
+
+id: 1707
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":111,"patch_type":1,"patch_value":{"tts_content":"告诉我球队名即可。"}}]}
+
+id: 1710
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10025,"block_id":"9382457241574146","content":{"search_query_result_block":{"summary":"搜索 4 个关键词，参考 27 篇资料","queries":["2026美加墨世界杯 热度实力TOP10球队 最新排名","2026 FIFA World Cup top 10 teams by strength and popularity predictions","2026世界杯 夺冠热门 实力排名 最新","2026世界杯 已晋级球队 实力分析 热门程度"],"results":[{"text_card":{"id":9382801558500354,"summary":"<tr><th>#FC</th><th>SELECCIÓN</th><th>VOTOS COMO #1</th><th>RANKING FIFA</th><th>ÚLTIMO MUNDIAL</th></tr>\n<tr><td>1.</td><td>España</td><td>15</td><td>1</td><td>Octavos de final</td></tr>\n<tr><td>2.</td><...\n","title":"ESPN FC: Power Rankings a 100 días del Mundial 2026","sitename":"ESPN Deportes","url":"https://espndeportes.espn.com/futbol/mundial/nota/_/id/16379952/mundial-2026-100-dias-ranking-selecciones-candidatas-espn-fc","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/fab56abd026a1ea49754538e6f68b758~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=Gz5ifvXikaYxi9Yg%2FvfnPdYyyCg%3D","doc_id":"fce56f69ca8e1f3f-293a96b7aceaa227","publish_time_second":"2026-03-03T07:00:00+08:00","original_doc_rank":1,"index":1}},{"text_card":{"id":9382801558500610,"summary":"世界排名第四的英格兰队以15.4%紧随其后。现世界排名第二的阿根廷队，世界排名第三的法国队以及世界排名第五的巴西队均以11.1%的概率并列第3。世界排名第六的葡萄牙...\n现世界排名第32的挪威队，在魔王哈兰德和厄德高双子星的率领下，时隔28年重返世界杯正赛舞台，目前以3.8%的概率排名第9。","title":"美加 墨 世界杯 最新 夺冠 概率 新鲜 出炉 评论 留下 你 心目 中 的 冠军 队伍 吧 # 世界杯 # 美加 墨 世界杯 # 世界杯 竞猜 # 世界杯 冠军","sitename":"抖音","url":"https://www.iesdouyin.com/share/video/7619248668713609657","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/27422dd3ce8d2f41b45309e5aeca806b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=9b6u3OwSNw6M9DOaFZABaL2dMdo%3D","doc_id":"7619248668713609657","publish_time_second":"2026-03-20T16:16:12+08:00","original_doc_rank":3,"index":2}},{"text_card":{"id":9382801558500866,"summary":"根据《体育画报》发布的世界杯参赛国实力排名，前五名依次为西班牙、阿根廷、英格兰、法国和葡萄牙，日本队位列第17位。该杂志特别提到：“最引人注目的是森保一执教的日本队，此次排名中日本位列第17位。”\n报道指出，日本...\n本月初，美国体育专业媒体ESPN发布的实力排名中，日本队同样位列第15位，而韩国队无缘榜单。","title":"美媒发布2026年男足世界杯“实力排名”，亚洲仅日本国家队上榜 韩国队遗憾落榜_中华网","sitename":"中华网","url":"https://3g.china.com/act/news/10000169/20260325/49355892.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/de983b4feb89444f2e3c0b2fd1be8a6b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=gDLhnj2kkxcu7067vJkVWSB6qp8%3D","doc_id":"34ab71c5199b33b5-7ee73ed0691f761f","publish_time_second":"2026-03-25T19:16:29+08:00","original_doc_rank":4,"index":3}},{"text_card":{"id":9382801558501122,"summary":"ESPN15强排名（队伍/目前国际足联排名）\n1.西班牙 1\n2.法国 3\n3.阿根廷 2\n4.英格兰 4\n5.巴西 5\n6.葡萄牙 6\n7.德国 10\n8.荷兰 7\n9.摩洛哥 8\n10.哥伦比亚 14\n11.比利时 9\n12.挪威 32\n13.塞内加尔 ...\n","title":"360体育-ESPN评世界杯15强战力榜:西法前两名，阿根廷第三葡萄牙第六","sitename":"PP体育","url":"https://www.ppsports.com/360news/news/2496749.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/b5817172c53226088db591ffb4822443~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=dsfwJJA%2BP8LvxOgoRux2rX41eMs%3D","doc_id":"c3d46c5008fec62d-0d60a33f628424e5","publish_time_second":"2026-03-05T23:24:41+08:00","original_doc_rank":5,"index":4}},{"text_card":{"id":9382801558501378,"summary":"以下...\n20.乌拉圭\n19.科特迪瓦\n18.瑞士\n17.日本\n16.比利时\n15.厄瓜多尔\n14.美国队\n13.哥伦比亚\n12.克罗地亚\n11.塞内加尔\n10.巴西\n9.德国\n8.摩洛哥\n7.荷兰\n6.挪威\n5.葡萄牙\n4.法国\n3.英格兰\n2.阿根廷\n1.西班牙\n","title":"2026世界杯实力榜:西班牙、阿根廷领跑，挪威成最大黑马_茜茜爱体育","sitename":"今日头条","url":"http://m.toutiao.com/group/7619425652436894260/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"686aef676ec583ba-5c5af44fb3496737","publish_time_second":"2026-03-21T03:43:49+08:00","original_doc_rank":6,"index":5}},{"text_card":{"id":9382801558501634,"summary":"第一名：西班牙\n在本次首次实力榜评选中，西班牙获得21张第一名选票中的15张，几乎一边倒地占据榜首。\n在预选赛中，他们以6战5胜的成绩力压保加利亚、土耳其和格鲁吉亚晋级，虽然表现谈不上惊艳，但进攻端拥有亚马尔 、佩...\n第二名：法国\n第三名：阿根廷\n第四名：英格兰\n第五名：巴西\n第六名：葡萄牙\n第七名：德国\n第八名：荷兰\n","title":"世界杯倒计时100天!ESPN最新实力榜出炉:西班牙居首，巴西仅第五!_腾讯新闻","sitename":"腾讯网","url":"http://news.qq.com/rain/a/20260304A0602300","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/4de782aa583bda88c8448344ff36c656~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=7XEob2fHAIPvJ7yvG%2FJQkac396Y%3D","doc_id":"6219fad32ccff4d8-6a8d6fbafb1087c6","publish_time_second":"2026-03-04T18:00:00+08:00","original_doc_rank":7,"index":6}},{"text_card":{"id":9382801558501890,"summary":"2) Argentina – 1873.33 points\nThe reigning World Champions, Argentina will be looking to retain their crown this summer, and are only really behind Spain as the favourites. They’re certainly looking as strong as ever as they sit fourth in the world...\n10) Germany – 1724.15 points\nGermany haven’t been at their best for some time, despite a great history in World Cups, of which they’ve won four. ","title":"FIFA World rankings: How the top 10 national teams rank ahead of 2026 World Cup","sitename":"OneFootball","url":"https://onefootball.com/es/noticias/fifa-world-rankings-how-the-top-10-national-teams-rank-ahead-of-2026-world-cup-42577227","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/a642257d6790afa64c4c328e19d53907~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=Ys82gFsr7OzY2KYZQup014pn3i4%3D","doc_id":"1fc066f26afec3b8-f44d7cfbb7849acc","publish_time_second":"2026-03-18T00:00:00+08:00","index":7}},{"text_card":{"id":9382801558502146,"summary":"England follows closely at +550 to +6...\nBrazil and defending champion Argentina round out the top tier at +750 to +800, with Brazil's attacking flair and Argentina's Lionel Messi-led experience (potentially his final tournament) making them perennial threats.\nPortugal (+1100), Germany (+1200 to +1400) and the Netherlands (+1600 to +2000) follow as strong challengers. ","title":"2026 FIFA World Cup Predictions: Spain Emerges as Clear Favorite with Expanded 48-Team Format Looming","sitename":"International Business Times AU","url":"https://www.ibtimes.com.au/2026-fifa-world-cup-predictions-spain-emerges-clear-favorite-expanded-48-team-format-looming-1863768","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/e618e4983e3b1d58d9f9cb17e50edc15~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=qQQ4nqagZ5ZSU7%2BbGkrO1CSzJyw%3D","doc_id":"6e8c56ea17907dea-baa776922ff2a2d7","publish_time_second":"2026-03-19T13:29:00+08:00","original_doc_rank":2,"index":8}},{"text_card":{"id":9382801558502402,"summary":"FIFA men’s world ranking points: 1834.12\n5. Brazil National Soccer TeamBrazil climbs into top 5 under new manager Carlo Ancelotti. The Seleção currently sits fifth in the CONMEBOL World Cup qualifying standings and continues its quest to return to World Cup glory.\nThe team features a mix of established stars and exciting young talents as they build toward the 2026 tournament.\nBrazil’s Current Squad:\nGoalkeepers: Al...\n","title":"FIFA Men’s Power Ranking","sitename":"FIFA World Cup News","url":"https://www.fifaworldcupnews.com/fifa-mens-world-ranking/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/69b675c19f3c02e55ee2ddefd0d903e7~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=5MoNsGEpY1E8QD%2FZSZo8uBr9Q3U%3D","doc_id":"9e5d51b52390b8e8-b572c1b2dbe3fe72","publish_time_second":"2026-03-05T00:00:00+08:00","original_doc_rank":3,"index":9}},{"text_card":{"id":9382801558502914,"summary":"Can Spain Win the World Cup 2026?\nVerdict: 65-70% likelihood of reaching the semi-finals; 35-40% likelihood of winning the tournament.\nThe Case Against Spain\nInjury uncertainties surrounding Yamal, Rodri, Pedri, and Williams create significant depth concerns in a short tournament where recovery time is nonexistent. The groin injury plaguing Yamal (involving pain with cutting and turning—...\n","title":"Spain World Cup 2026 Analysis – Can Spain Win?","sitename":"FIFA World Cup News","url":"https://www.fifaworldcupnews.com/spain-world-cup-26-analysis-can-spain-win/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/69b675c19f3c02e55ee2ddefd0d903e7~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=5MoNsGEpY1E8QD%2FZSZo8uBr9Q3U%3D","doc_id":"9423e02651a1de0b-4814deffacaa7ccd","publish_time_second":"2025-12-22T00:00:00+08:00","original_doc_rank":4,"index":10}},{"text_card":{"id":9382801558503170,"summary":"FIFA World Cup 2026 Outright Betting Odds: Favourites, Predictions and Team-by-Team Analysis of the Top Options\nCheck out the current latest betting odds for the 2026 FIFA World Cup Outright winner market.\nby Ian John\non March 23rd, 2026\nThe countdown to the 2026 FIFA World Cup Finals is gathering pace, and with qualification nearing completion, attention is turning sharply towards the...\n","title":"FIFA World Cup 2026 Outright Betting Odds: Favourites, Predictions and Team-by-Team Analysis of the Top Options","sitename":"BonusCodePoker","url":"https://bonuscodepoker.com/fifa-world-cup-2026-outright-betting-odds","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/bf7868ee62b51bafbcd125e90540deba~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=%2FPGP98kFOUsl8PHGxwl5GlplBgs%3D","doc_id":"2ac3c8d314560bed-cada97dfb18e1603","publish_time_second":"2026-03-23T00:00:00+08:00","original_doc_rank":5,"index":11}},{"text_card":{"id":9382801558503426,"summary":"Argentina is in a golden era that delivered the 2021 Copa América, the 2022 Finalissima, and the 2022 World Cup.\nNow, they aren’t just Lionel...\nThe appointment of Thomas Tuchel has introduced a pragmatic, tournament-winning DNA that many felt was missing during the Gareth Southgate era.\nEngland currently boasts the highest Squad Market Value in the tournament, with Jude Bellingham and Phil Foden reaching their peaks simultaneously.\n","title":"2026 FIFA World Cup Predictions: Top 5 Strongest Contenders","sitename":"TWSN Sports","url":"https://twsn.net/2026/03/05/2026-fifa-world-cup-predictions-5-contenders/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/402146bf5a99b0739e2883ea3f04750b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=u%2BivekDsQS5hd6NZD0Y%2BKdJX6W0%3D","doc_id":"7bc275e28e0a70fd-7f03e76ca1dfa73b","publish_time_second":"2026-03-05T00:00:00+08:00","original_doc_rank":6,"index":12}},{"text_card":{"id":9382801558503682,"summary":"charnsitr / Shutterstock.com\nWith odds also at 66/1, Japan brings organization, technique, and tactical sharpness to every tournament. They’ve steadily climbed the global ranks and have the...\nRingo Chiu / Shutterstock.com\nAlways passionate and unpredictable, Mexico is listed at 50/1 and could benefit from the home advantage. Their tournament experience and massive local support might give them just enough fire to reach the latter stages.\n15. Denmark","title":"Top 20 Favorites to Win the 2026 FIFA World Cup","sitename":"Lentedesportiva","url":"https://lentedesportiva.com/top-20-favorites-to-win-the-2026-fifa-world-cup/","doc_id":"1194cfd25ebdb8c8-116ba920729500f8","publish_time_second":"2025-12-29T00:00:00+08:00","original_doc_rank":7,"index":13}},{"text_card":{"id":9382801558504450,"summary":"就在距离世界杯开幕不足百天之际，权威数据机构OPTA发布了最新的夺冠概率预测，为我们勾勒出一幅充满看点与悬念的争冠图景。\n根据OPTA超级计算机基于球队表现、历史数据和市场动态进行的上万次模拟，西班牙以17%的概率高居榜首，法国(14.1%)和英格兰(11.8%)分列二三位，卫冕冠军阿根廷以8.7%排名第四。然而，随着...\n","title":"OPTA最新预测美加墨世界杯冠军:西班牙居首，葡萄牙仅排第六_蜥蜴体育","sitename":"今日头条","url":"http://m.toutiao.com/group/7620603628331483658/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"6bafc31f90d8a5ca-bf1772f53868495b","publish_time_second":"2026-03-24T08:10:33+08:00","original_doc_rank":1,"index":14}},{"text_card":{"id":9382801558504706,"summary":"巴西\n赔率 9.00\nEngland 赔率 7.00\n德国\n赔率 13.00\n西班牙 赔率 5.50\n阿根廷 赔率 9.00\n意大利 赔率 34.00\n葡萄牙 赔率 11.00\n荷兰\n赔率 21.00\n比利时 赔率 41.00\nSlovakia 赔率 501.00\n罗马尼亚...\n","title":"2026年世界杯冠军及小组赛获胜者投注赔率","sitename":"2026年国际足联世界杯","url":"https://cn.wc2026fifa.com/soccer/livescore/outright/","doc_id":"0bfeecb16a3ba9d9-4cb913b8c7b15b46","publish_time_second":"2026-03-26T12:16:03+08:00","original_doc_rank":2,"index":15}},{"text_card":{"id":9382801558507010,"summary":"权威数据机构Opta给出的夺冠概率(最主流参考)：\n- 1.西班牙17%(FIFA第1，头号热门)。\n- 2.法国14.1%(FIFA第3，最强对手)。\n- 3.英格兰11.8%(FIFA第4、黄金一代)。\n- 4.阿根廷8.7%(卫冕冠军，梅西最后一舞)。\n- 5.德国7....\n","title":"# 世界杯 竞猜 # 世界杯 # 足球","sitename":"抖音","url":"https://www.iesdouyin.com/share/video/7621493899946078438","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/27422dd3ce8d2f41b45309e5aeca806b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=9b6u3OwSNw6M9DOaFZABaL2dMdo%3D","doc_id":"7621493899946078438","publish_time_second":"2026-03-26T17:28:51+08:00","original_doc_rank":3,"index":16}},{"text_card":{"id":9382801558507266,"summary":"排在第一的是西班牙，积分1877.18分。\n排在第二的是阿根廷，1873.33分。\n第三是法国，1870.00分。\n第四是英格兰，1834.12...\n第五是巴西，1760.46分。\n第九是比利时，1730.71分。\n第十是德国，1724.15分。\n","title":"最新世界排名出炉:2026世界杯热门球队前十揭晓!_腾讯新闻","sitename":"腾讯网","url":"http://news.qq.com/rain/a/20260318A08R5500","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/4de782aa583bda88c8448344ff36c656~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=7XEob2fHAIPvJ7yvG%2FJQkac396Y%3D","doc_id":"40d732db73b538e6-b87c3caf3a28dbf0","publish_time_second":"2026-03-18T23:48:00+08:00","original_doc_rank":4,"index":17}},{"text_card":{"id":9382801558509058,"summary":"Opta预测2026年世界杯夺冠概率TOP20：\n1. 西班牙 17%\n2. 法国 14.1%\n3. 英格兰 11.8%\n4. 阿根廷 8.7%\n5. 德国 7.1%\n6. 葡萄牙 6.6%\n7. 巴西 5.6%\n8. 荷兰 5.2%\n9. ...\n","title":"Opta预测世界杯夺冠概率:西班牙、法国、英格兰、阿根廷前4|日本|克罗地亚|英格兰|法国|德国|荷兰|葡萄牙|西班牙|墨西哥|美国|摩洛哥|塞内加尔|比利时|挪威|瑞士|阿根廷|哥伦比亚|厄瓜多尔|乌拉圭|巴西|懂球帝","sitename":"懂球帝","url":"https://m.dongqiudi.com/article/5541640.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/2f3026cd12816a8f246e6f2af0378474~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=XBPQtIcNSULyW3BkAJDKbJQmyC8%3D","doc_id":"9659b3989171ea37-615709ee7fca08aa","publish_time_second":"2025-12-06T00:47:00+08:00","original_doc_rank":5,"index":18}},{"text_card":{"id":9382801558509314,"summary":"2026美加墨世界杯四大夺冠热门是:西班牙、法国、英格兰、阿根廷。\n西班牙(17.0%，FIFA第1)\n法国(14.1%)\n英格兰(11.8%)\n- 凯恩+贝林厄姆+萨卡，阵容厚度欧洲第一\n阿根廷(8.7%，卫冕冠军)\n- 梅西大概率最后一舞，凝聚力极强\n- 南美技术流+铁血防守\n","title":"2026年美加墨世界杯四大夺冠热门_月光下骑车的蜗牛","sitename":"今日头条","url":"http://m.toutiao.com/group/7619168826340426255/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"399897615a48b53c-88fe8a9d4ac39ae1","publish_time_second":"2026-03-20T11:10:33+08:00","original_doc_rank":6,"index":19}},{"text_card":{"id":9382801558509570,"summary":"2026世界杯夺冠热门格局解析遥望北岛星2025.11.2814:32距离2026年美加墨世界杯开幕仅剩半年时间，全球足坛的夺冠之争已进入...","title":"2026世界杯夺冠热门格局解析|西班牙|巴西|西班牙足球队|费兰-托雷斯|法国足球队_新浪体育_新浪新闻","sitename":"新浪","url":"https://k.sina.cn/article_7880068681_1d5b04e4902001v0xy.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/d49a16889eed6b4372762458db3acc79~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=0yLnlqVN77wgwrBl7Ew%2FrMuPa60%3D","doc_id":"915b99cba2d2683f-106cbbadc1a50ead","publish_time_second":"2025-11-28T14:32:00+08:00","original_doc_rank":7,"index":20}},{"text_card":{"id":9382801558509826,"summary":"</td><td>F 组</td><td>F组对阵荷兰，能否重演“屠龙”剧本？</td></tr>\n<tr><td>韩国</td><td>孙兴慜领衔，锋线冲击力冠绝亚洲。</td><td>A 组</td><td>A组对阵东道主墨西哥，目标是小组前二。</td></tr>\n<tr><td>乌兹别克斯坦</td><td>队史首次晋级！ ...\n","title":"2026世界杯已晋级全名单(实时更新):亚洲2队创历史，这些强队爆冷出局太可惜!","sitename":"cn.globalgameguide.com","url":"https://cn.globalgameguide.com/article/fifa-world-cup-2026-qualifiers-list","doc_id":"1a134009374d993d-ef3e49f0d853d204","publish_time_second":"2026-03-20T21:37:39+08:00","index":21}},{"text_card":{"id":9382801558510082,"summary":"澳大利亚 袋鼠军团 亚足联第三轮C组亚军 2025年6月10日 7\n阿根廷 阿根廷蓝白军团 南美足联冠军 2025年3月25日 19\n巴西 桑巴军团 南美足联前六名 2025年6月10日 23\n乌拉圭 天蓝军团 南美洲前六名 2025年9月4日 15\n","title":"2026 年世界杯已晋级球队名单:48 支国家队全名单","sitename":"2026年国际足联世界杯","url":"https://cn.wc2026fifa.com/teams/","doc_id":"4b04fc2b48593a83-9c4fcb4ce6364695","publish_time_second":"2026-03-20T18:34:47+08:00","original_doc_rank":1,"index":22}},{"text_card":{"id":9382801558510338,"summary":"- 英格兰8战全胜零封晋级，身价冠绝...\n- 法国、巴西稳居第一梯队，五冠王桑巴军团随时能掀翻格局。\n- 今年世预赛最炸的黑马必须是日本，8战全胜锁晋级亚洲独一份，2022干翻德西，今年目标直接冲八强。\n","title":"# 2026 世界杯 夺冠 球队 盘点 夺冠 队伍 热门 夺冠 队伍 有 哪些 ？","sitename":"抖音","url":"https://www.iesdouyin.com/share/video/7621411015360466102","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/27422dd3ce8d2f41b45309e5aeca806b~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=9b6u3OwSNw6M9DOaFZABaL2dMdo%3D","doc_id":"7621411015360466102","publish_time_second":"2026-03-26T12:07:13+08:00","original_doc_rank":3,"index":23}},{"text_card":{"id":9382801558510594,"summary":"三、夺冠概率分析\n根据国外媒体S90发布的预测榜单，目前各豪强的夺冠概率如下：\n1. 西班牙（14%）：刚刚夺得2024年欧洲杯冠军，拥有亚马尔、佩德里等年轻天才，传控体系融合现代高位逼抢，但大赛抗压能力尚需检验。\n2. 巴西（11%）：安切洛蒂执教为球队注入战术纪律，维尼修斯和罗德里戈...\n","title":"2026美加墨世界杯格局初定:39强晋级，西班牙领跑夺冠概率榜_欧洲区_名额_比赛","sitename":"手机搜狐网","url":"https://m.sohu.com/a/956695840_122405260/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/6b1d3a6f49304d84d8268210e144399e~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=nnYYqVCpQ%2B2yBOBeRrnbumB6Y9M%3D","doc_id":"0cf6c8ebefd19c25-42420a06a5c0aaae","publish_time_second":"2025-11-21T00:08:00+08:00","original_doc_rank":4,"index":24}},{"text_card":{"id":9382801558510850,"summary":"•摩洛哥(E组头名):提前三轮锁定资格，成为首支出线队1\n•突尼斯(H组头名):以9胜1平不败战绩提前两轮晋级\n•埃及(A组头名):客场3比0击败吉布提后提前一轮出线1\n•阿尔及利亚(G组头名):客场3比0战胜索马里后成功突围1\n•加纳(I组头名):末轮主场1比0力克科摩罗惊险晋级1\n","title":"2026年世界杯非洲区晋级队伍综合实力分析_时间过得如此缓慢I","sitename":"今日头条","url":"http://m.toutiao.com/group/7612215760605151796/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"22239848ab99b2fc-8b8e1108cbe4bf12","publish_time_second":"2026-03-01T17:29:02+08:00","original_doc_rank":5,"index":25}},{"text_card":{"id":9382801558511106,"summary":"20.乌拉圭\n乌拉圭世预赛表现出色，与哥伦比亚、巴西、巴拉圭同分顺利晋级，还在预选赛中从巴西身上拿到4分。不过在贝尔萨执教下，球队近期友谊赛表现挣扎，11月更是1-5惨败于美国队。\n球队依旧具备竞争力，但苏亚雷斯、卡瓦尼、戈丁等传奇球员自2022年后退出国家队，乌拉圭正处于新老交替阶段。\n瑞士总能在世界杯...\n","title":"2026世界杯实力榜:西班牙、阿根廷领跑，挪威成最大黑马_茜茜爱体育","sitename":"今日头条","url":"http://m.toutiao.com/group/7619425652436894260/","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/118f7a3625ad8ebbbc11d04f118d2e10~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=YGdvNZvNExIVOqU4lW5bhbe90Ag%3D","doc_id":"686aef676ec583ba-5c5af44fb3496737","publish_time_second":"2026-03-21T03:43:49+08:00","original_doc_rank":6,"index":26}},{"text_card":{"id":9382801558511362,"summary":"终极舞台：42席已定，6席待争\n截至2026年3月下旬，2026年世界杯48强阵容已锁定42席。美国、加拿大、墨西哥作为东道主自动入围，传统豪强如阿根廷、巴西、法国、英格兰、德国、荷兰、日本、韩国等也已悉数晋级。剩余的最后6个珍贵名额，成为了全球足球版图上尚未完成的拼图，牵动着无数球迷的心。\n*...\n","title":"世界杯最后6席花落谁家?意大利等强队背水一战|墨西哥足球队|美加墨世界杯|日本足球队|韩国足球队|巴西足球队_手机新浪网","sitename":"新浪体育触屏版","url":"https://sports.sina.cn/2026-03-26/detail-inhsicuw2845048.d.html","logo_url":"https://p3-spider-image-sign.byteimg.com/isp-i18n-media/img/a393a3e4aef2059afb33de9fca415950~tplv-e9ol9do63j-thumbnail.jpeg?rk3s=feb11e32&x-expires=1779702515&x-signature=chlxpUCVWC%2Ftwg11jzhnK2P%2BE14%3D","doc_id":"51b6ee6a0597476d-b7339fe473178a3c","publish_time_second":"2026-03-26T16:21:32+08:00","original_doc_rank":7,"index":27}}],"icon_url":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Search.png","icon_url_dark":"https://lf3-static.bytednsdoc.com/obj/eden-cn/dvsm/ljhwZthlaukjlkulzlp/tool_icon/Search-1.png","scene":2,"search_type":1,"extend_fields":{"thinking_idx":1}}},"is_finish":true,"patch_type":2}]}}]}
+
+id: 1712
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":1,"patch_type":1,"patch_value":{"content_block":[{"block_type":10000,"block_id":"9382801558693634","content":{"text_block":{}},"is_finish":true,"patch_type":1}]}}]}
+
+id: 1713
+event: SSE_HEARTBEAT
+data: {}
+
+id: 1714
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":3,"patch_type":2,"patch_value":{}},{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"is_finish":"1"}}}]}
+
+id: 1716
+event: SSE_REPLY_END
+data: {"end_type":1,"msg_finish_attr":{"msgid":"41151322251708418","badge_count":2,"read_badge_count":1,"read_conv_version":1774518511143051,"pre_read_conv_version":1774518511143051,"brief":"2026美加墨世界杯TOP10球队从 实力 与 热度 双维度盘点如下，核心结论速览： 西班牙、法国、阿根廷、英格兰稳居双榜前列 ；实力榜以战术成熟度与阵容深度为核心，热度榜更看重球星效应与话题性（如梅西“最后一舞"}}
+
+id: 1718
+event: SSE_REPLY_END
+data: {"end_type":2,"answer_finish_attr":{"has_suggest":true}}
+
+id: 1719
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"has_suggest":"1","sp_v2":"[{\"suggest_type\":1,\"content\":\" 2026美加墨世界杯西班牙队的阵容名单\",\"icon_url\":\"\",\"icon_uri\":\"\",\"click_url\":\"\",\"bot_id\":\"\",\"dark_icon_url\":\"\"}]","tea_tags_time_cost":"{\"agent_id\":\"\",\"agent_name\":\"\",\"llm_intention\":\"browsing\",\"llm_intention_detail\":\"complex_browsing\"}"}}}]}
+
+id: 1721
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"has_suggest":"1","sp_v2":"[{\"suggest_type\":1,\"content\":\" 2026美加墨世界杯西班牙队的阵容名单\",\"icon_url\":\"\",\"icon_uri\":\"\",\"click_url\":\"\",\"bot_id\":\"\",\"dark_icon_url\":\"\"},{\"suggest_type\":1,\"content\":\" 2026美加墨世界杯的举办时间和地点\",\"icon_url\":\"\",\"icon_uri\":\"\",\"click_url\":\"\",\"bot_id\":\"\",\"dark_icon_url\":\"\"}]"}}}]}
+
+id: 1723
+event: STREAM_CHUNK
+data: {"message_id":"41151322251708418","patch_op":[{"patch_object":50,"patch_type":1,"patch_value":{"ext":{"has_suggest":"1","sp_v2":"[{\"suggest_type\":1,\"content\":\" 2026美加墨世界杯西班牙队的阵容名单\",\"icon_url\":\"\",\"icon_uri\":\"\",\"click_url\":\"\",\"bot_id\":\"\",\"dark_icon_url\":\"\"},{\"suggest_type\":1,\"content\":\" 2026美加墨世界杯的举办时间和地点\",\"icon_url\":\"\",\"icon_uri\":\"\",\"click_url\":\"\",\"bot_id\":\"\",\"dark_icon_url\":\"\"},{\"suggest_type\":1,\"content\":\" 2026美加墨世界杯的比赛规则有哪些变化？\",\"icon_url\":\"\",\"icon_uri\":\"\",\"click_url\":\"\",\"bot_id\":\"\",\"dark_icon_url\":\"\"}]"}}}]}
+
+id: 1725
+event: SSE_REPLY_END
+data: {"end_type":3}
+

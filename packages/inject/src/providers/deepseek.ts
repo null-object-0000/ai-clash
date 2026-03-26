@@ -46,9 +46,9 @@ export const deepseekProvider: ProviderConfig = {
   // 会话 ID 提取配置
   conversation: {
     // 从 URL 提取会话 ID
-    // DeepSeek URL 格式：https://chat.deepseek.com/c/{conversationId}
+    // DeepSeek URL 格式：https://chat.deepseek.com/a/chat/s/{conversationId}
     idFromUrl: {
-      pattern: '/c/([^/]+)',
+      pattern: '/a/chat/s/([^/]+)',
       captureGroup: 1,
     },
   },
@@ -62,51 +62,138 @@ export const deepseekProvider: ProviderConfig = {
     ],
   },
   // SSE 流式拦截配置
-  sse: {
-    urlPattern: '/api/v0/chat/completion',
-    detectionKeywords: ['event: ready', 'data: {"v"', 'data: {"p"', 'response_message_id', 'event: close'],
-    parseLine: (line: string, _currentEvent?: string) => {
-      if (line === 'event: close') {
-        return { text: '', isThink: null, done: true };
-      }
-      if (!line.startsWith('data: ')) return null;
+  // 使用闭包维护当前 fragment 类型状态，因为增量追加需要保持当前类型
+  sse: (() => {
+    // 当前正在输出的 fragment 是否是思考内容
+    let currentIsThink = false;
 
-      const json = line.substring(6).trim();
-      if (!json || json === '[DONE]') return null;
-
-      try {
-        const d = JSON.parse(json);
-        let text = '';
-        let isThink = false;
-
-        // 过滤状态消息
-        if (d.p === 'response/status' && d.v === 'FINISHED') {
+    return {
+      urlPattern: '/api/v0/chat/completion',
+      detectionKeywords: ['event: ready', 'data: {"v"', 'data: {"p"', 'response_message_id', 'event: close'],
+      parseLine: (line: string) => {
+        if (line === 'event: close') {
+          // 流结束，重置状态
+          currentIsThink = false;
           return { text: '', isThink: null, done: true };
         }
+        if (!line.startsWith('data: ')) return null;
 
-        if (d.choices && d.choices[0] && d.choices[0].delta && d.choices[0].delta.content != null) {
-          text = String(d.choices[0].delta.content);
-        } else if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
-          const f = d.v[0];
-          text = f && f.content ? f.content : (typeof f === 'string' ? f : '');
-          isThink = (f && f.type === 'THINK');
-        } else if (d.p === 'response/fragments/-1/content' && d.v != null) {
-          text = typeof d.v === 'string' ? d.v : String(d.v);
-          // 保持上一次的思考状态，DeepSeek 这里不需要改变
-        } else if (d.v && d.v.response && d.v.response.fragments && d.v.response.fragments.length) {
-          const fr = d.v.response.fragments[0];
-          text = fr && fr.content ? fr.content : '';
-          isThink = (fr && fr.type === 'THINK');
-        } else if (typeof d.v === 'string') {
-          text = String(d.v);
+        const json = line.substring(6).trim();
+        if (!json || json === '[DONE]') return null;
+
+        try {
+          const d = JSON.parse(json);
+          let text = '';
+          let hasOutput = false;
+
+          // 过滤状态消息 - 流完成
+          if (d.p === 'response/status' && d.o === 'SET' && d.v === 'FINISHED') {
+            currentIsThink = false;
+            return { text: '', isThink: null, done: true };
+          }
+
+          // DeepSeek SSE 协议解析
+          // 四种 fragment 类型: SEARCH (搜索中), THINK (深度思考), RESPONSE (最终回答)
+          // SEARCH 类型不输出给用户，只显示过程
+
+          // 案例 1: 完整初始化推送 {"v": {"response": {"fragments": [...]}}}
+          if (d.v?.response?.fragments) {
+            for (const fr of d.v.response.fragments) {
+              if (fr.content && fr.type !== 'SEARCH') {
+                text += fr.content;
+                currentIsThink = fr.type === 'THINK';
+                hasOutput = true;
+              }
+            }
+          }
+
+          // 案例 2: BATCH 操作，批量追加 fragments
+          // {"p": "response", "o": "BATCH", "v": [{p: "fragments", o: "APPEND", v: [...]}]}
+          if (d.p === 'response' && d.o === 'BATCH' && Array.isArray(d.v)) {
+            for (const batchOp of d.v) {
+              if (batchOp.p === 'fragments' && batchOp.o === 'APPEND' && Array.isArray(batchOp.v)) {
+                for (const fr of batchOp.v) {
+                  if (fr.content && fr.type !== 'SEARCH') {
+                    text += fr.content;
+                    currentIsThink = fr.type === 'THINK';
+                    hasOutput = true;
+                  }
+                }
+              }
+            }
+          }
+
+          // 案例 3: 直接向最后一个 fragment 追加内容
+          // {"p": "response/fragments/-1/content", "o": "APPEND", "v": "文字"}
+          if (d.p === 'response/fragments/-1/content' && d.v != null) {
+            text = typeof d.v === 'string' ? d.v : String(d.v);
+            hasOutput = text.length > 0;
+            // 增量追加，保持当前 currentIsThink 状态不变
+          }
+
+          // 案例 4: 顶级直接字符串推送 {"v": "文字"}
+          // 这实际上是增量追加到当前 fragment，保持原有类型
+          if (typeof d.v === 'string' && !d.p && !text) {
+            text = d.v;
+            hasOutput = text.length > 0;
+            // 增量追加，保持当前 currentIsThink 状态不变
+          }
+
+          // 案例 5: 多 fragments 直接推送 {"p": "response/fragments", "o": "APPEND", "v": [...]}
+          if (d.p === 'response/fragments' && d.o === 'APPEND' && Array.isArray(d.v)) {
+            for (const fr of d.v) {
+              if (fr.content && fr.type !== 'SEARCH') {
+                text += fr.content;
+                currentIsThink = fr.type === 'THINK';
+                hasOutput = true;
+              }
+            }
+          }
+
+          // API 模式格式兼容
+          if (d.choices && d.choices[0] && d.choices[0].delta) {
+            if (d.choices[0].delta.reasoning_content != null) {
+              text = String(d.choices[0].delta.reasoning_content);
+              currentIsThink = true;
+              hasOutput = true;
+            } else if (d.choices[0].delta.content != null) {
+              text = String(d.choices[0].delta.content);
+              currentIsThink = false;
+              hasOutput = true;
+            }
+          }
+
+          // 忽略搜索结果更新，这些不需要输出
+          if (d.p === 'response/fragments/-1/results') {
+            return null;
+          }
+
+          // 忽略状态更新
+          if (d.p === 'response/fragments/-1/status' || d.p === 'response/conversation_mode' || d.p === 'response/has_pending_fragment' || d.p === 'response/fragments/-1/elapsed_secs') {
+            return null;
+          }
+
+          // 忽略 TIP 类型（底部提示）
+          if (d.p === 'response/fragments' && Array.isArray(d.v) && (d.v as Array<{type?: string}>).every(fr => fr.type === 'TIP')) {
+            return null;
+          }
+
+          if (!hasOutput || !text) {
+            return null;
+          }
+
+          // 每一行都返回明确的 isThink 值
+          return {
+            text,
+            isThink: currentIsThink,
+            done: false
+          };
+        } catch {
+          return null;
         }
-
-        return { text, isThink, done: false };
-      } catch {
-        return null;
-      }
-    },
-  },
+      },
+    };
+  })(),
 };
 
 export default deepseekProvider;
