@@ -1136,8 +1136,22 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
     }
 
     // click 类型
-    const clickBtn = el.closest('button') || el.querySelector('button') || el;
-    simulateRealClick(clickBtn);
+    let clickTarget: Element = el;
+    // 如果配置了关闭按钮选择器，且需要关闭，尝试查找关闭按钮
+    if (!wantEnabled && thinking.toggle.closeButtonSelectors) {
+      for (const selector of thinking.toggle.closeButtonSelectors) {
+        const closeBtn = el.querySelector(selector);
+        if (closeBtn) {
+          clickTarget = closeBtn;
+          break;
+        }
+      }
+    }
+    // fallback: 尝试找 button，最后回到 el
+    if (clickTarget === el) {
+      clickTarget = el.closest('button') || el.querySelector('button') || el;
+    }
+    simulateRealClick(clickTarget);
     await wait(thinking.toggle.wait || 300);
   };
 
@@ -1219,7 +1233,22 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
     if (!el) return;
 
     if (search.toggle.type === 'click') {
-      (el as HTMLElement).click();
+      let clickTarget: Element = el;
+      // 如果配置了关闭按钮选择器，且需要关闭，尝试查找关闭按钮
+      if (!wantEnabled && search.toggle.closeButtonSelectors) {
+        for (const selector of search.toggle.closeButtonSelectors) {
+          const closeBtn = el.querySelector(selector);
+          if (closeBtn) {
+            clickTarget = closeBtn;
+            break;
+          }
+        }
+      }
+      // fallback: 尝试找 button，最后回到 el
+      if (clickTarget === el) {
+        clickTarget = el.closest('button') || el.querySelector('button') || el;
+      }
+      simulateRealClick(clickTarget);
       await wait(search.toggle.wait || 300);
     } else if (search.toggle.type === 'dropdown') {
       // 点击展开菜单

@@ -602,6 +602,14 @@ export interface ToggleActionConfig {
     texts: string[];
     fallbackSelectors?: string[];
   };
+
+  /**
+   * 关闭按钮选择器（仅 click 类型需要）
+   * 用于当需要关闭时，从 wrapper 元素中查找特定的关闭按钮
+   * 如果找到则点击关闭按钮，否则点击 wrapper 本身
+   * 场景：开启点击外层容器，关闭点击容器内部关闭按钮（如通义千问深度思考）
+   */
+  closeButtonSelectors?: string[];
 }
 
 // ============================================================================
