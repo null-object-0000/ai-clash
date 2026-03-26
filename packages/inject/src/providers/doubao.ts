@@ -89,126 +89,131 @@ export const doubaoProvider: ProviderConfig = {
     ],
   },
   // SSE 流式拦截配置
-  sse: {
-    urlPattern: '/chat/completion',
-    detectionKeywords: [
-      'event: CHUNK_DELTA',
-      'event: STREAM_MSG_NOTIFY',
-      'event: STREAM_CHUNK',
-      'event: SSE_REPLY_END',
-      '"alice/msg"',
-    ],
-    parseLine: (line: string) => {
-      // 非 data 行由 injector 处理，这里只处理 data 行
-      if (!line.startsWith('data: ')) {
-        return null;
-      }
+  sse: (() => {
+    // 状态标记：是否已经开始输出正式回答，一旦出现 111/tts_content，后续只处理 111
+    let hasStartedFormalAnswer = false;
+    return {
+      urlPattern: '/chat/completion',
+      detectionKeywords: [
+        'event: CHUNK_DELTA',
+        'event: STREAM_MSG_NOTIFY',
+        'event: STREAM_CHUNK',
+        'event: SSE_REPLY_END',
+        '"alice/msg"',
+      ],
+      parseLine: (line: string) => {
+        // 非 data 行由 injector 处理，这里只处理 data 行
+        if (!line.startsWith('data: ')) {
+          return null;
+        }
 
-      const json = line.substring(6).trim();
-      if (!json || json === '[DONE]') {
-        return { text: '', isThink: null, done: true };
-      }
-
-      try {
-        const d = JSON.parse(json);
-
-        // 处理 SSE_REPLY_END 结束信号
-        if (d.event === 'SSE_REPLY_END' || d.end_type === 1) {
+        const json = line.substring(6).trim();
+        if (!json || json === '[DONE]') {
+          // 结束时重置状态
+          hasStartedFormalAnswer = false;
           return { text: '', isThink: null, done: true };
         }
 
-        // 使用 JSON 中的 event 字段
-        const event = d.event;
+        try {
+          const d = JSON.parse(json);
 
-        // 处理 STREAM_MSG_NOTIFY - 首包通知
-        if (event === 'STREAM_MSG_NOTIFY' || (d.content && d.content.content_block)) {
-          const blocks = d.content?.content_block || [];
-          if (Array.isArray(blocks)) {
-            for (const block of blocks) {
-              const isThinkBlock = block.block_type === 10040 || block.content?.thinking_block;
-              const tb = block.content?.text_block?.text;
-              if (tb) {
+          // 处理 SSE_REPLY_END 结束信号
+          if (d.event === 'SSE_REPLY_END' || d.end_type === 1) {
+            // 结束时重置状态
+            hasStartedFormalAnswer = false;
+            return { text: '', isThink: null, done: true };
+          }
+
+          // 规则一：优先检查 STREAM_CHUNK 中的 patch_op
+          // 只有 patch_object = 111 的 tts_content 才是正式输出，其他所有内容都算作思考
+          const ops = d.patch_op || [];
+          if (Array.isArray(ops)) {
+            // 第一轮：先找有没有 111/tts_content
+            let formalText: string | undefined;
+            for (const op of ops) {
+              if (op.patch_object === 111 && typeof op.patch_value?.tts_content === 'string') {
+                formalText = op.patch_value.tts_content;
+                break;
+              }
+            }
+            // 找到正式内容，标记状态开始，直接返回
+            if (formalText) {
+              hasStartedFormalAnswer = true;
+              if (formalText) {
                 return {
-                  text: tb,
-                  isThink: isThinkBlock || block.type === 'thinking' || block.is_thinking === true,
+                  text: formalText,
+                  isThink: false, // tts_content = 正式输出
+                  done: false,
+                };
+              }
+            }
+
+            // 如果已经开始正式回答了，后面只处理 111，忽略其他内容
+            if (hasStartedFormalAnswer) {
+              return null;
+            }
+
+            // 还没开始正式回答，遍历找任何文本都算作思考
+            for (const op of ops) {
+              let txt: string | undefined;
+              if (op.patch_value?.content_block && Array.isArray(op.patch_value.content_block)) {
+                const cbs = op.patch_value.content_block;
+                for (const cb of cbs) {
+                  if (cb.content?.text_block?.text) {
+                    txt = cb.content.text_block.text;
+                    break;
+                  }
+                  if (cb.content?.thinking_block?.text) {
+                    txt = cb.content.thinking_block.text;
+                    break;
+                  }
+                }
+              }
+              if (!txt && typeof op.patch_value?.tts_content === 'string') {
+                txt = op.patch_value.tts_content;
+              }
+              if (!txt && typeof op.patch_value === 'string') {
+                txt = op.patch_value;
+              }
+              if (txt) {
+                return {
+                  text: txt,
+                  isThink: true, // 非 111 = 思考内容（搜索/思维链等）
                   done: false,
                 };
               }
             }
           }
-          return null;
-        }
 
-        // 处理 CHUNK_DELTA - 纯文本增量
-        if (event === 'CHUNK_DELTA') {
-          const text = typeof d.text === 'string' ? d.text : (typeof d.thinking_text === 'string' ? d.thinking_text : '');
+          // 已经开始正式回答了，不处理其他格式
+          if (hasStartedFormalAnswer) {
+            return null;
+          }
+
+          // 检查 CHUNK_DELTA / STREAM_MSG_NOTIFY 等其他格式，任何文本都算作思考
+          let text: string | undefined;
+          if (typeof d.text === 'string') text = d.text;
+          else if (typeof d.thinking_text === 'string') text = d.thinking_text;
+          else if (typeof d.content === 'string') text = d.content;
+          else if (d.choices?.[0]?.delta?.content != null) text = String(d.choices[0].delta.content);
+
           if (text) {
             return {
               text,
-              isThink: d.type === 'thinking' || d.is_thinking === true || !!d.thinking_text,
+              isThink: true, // 不是来自 111/tts_content = 全部算作思考
               done: false,
             };
           }
+
+          return null;
+        } catch {
+          // 出错重置状态
+          hasStartedFormalAnswer = false;
           return null;
         }
-
-        // 处理 STREAM_CHUNK - 增量 patch
-        if (event === 'STREAM_CHUNK' || (d.patch_op && Array.isArray(d.patch_op))) {
-          const ops = d.patch_op || [];
-          for (const op of ops) {
-            if (op.patch_object === 1 && op.patch_value?.content_block) {
-              const cbs = op.patch_value.content_block;
-              for (const cb of cbs) {
-                // 检测思考完成标记
-                if (cb.is_finish && cb.content?.thinking_block?.finish_title?.startsWith('已完成思考')) {
-                  continue;
-                }
-                if (cb.is_finish && !cb.content?.text_block?.text) continue;
-
-                const txt = cb.content?.text_block?.text;
-                if (txt) {
-                  const isThinkBlock = cb.block_type === 10040 || cb.content?.thinking_block;
-                  return {
-                    text: txt,
-                    isThink: isThinkBlock || cb.type === 'thinking' || cb.is_thinking === true,
-                    done: false,
-                  };
-                }
-              }
-            }
-          }
-          return null;
-        }
-
-        // Fallback: 通用模式匹配
-        let text = '';
-        let isThink = false;
-
-        if (d.choices?.[0]?.delta?.content != null) {
-          text = String(d.choices[0].delta.content);
-        } else if (typeof d.thinking_text === 'string') {
-          text = d.thinking_text;
-          isThink = true;
-        } else if (typeof d.text === 'string') {
-          text = d.text;
-        } else if (typeof d.content === 'string') {
-          text = d.content;
-        }
-
-        if (text) {
-          return {
-            text,
-            isThink: isThink || d.type === 'thinking' || d.is_thinking === true,
-            done: false,
-          };
-        }
-
-        return null;
-      } catch {
-        return null;
-      }
-    },
-  },
+      },
+    };
+  })(),
 };
 
 export default doubaoProvider;

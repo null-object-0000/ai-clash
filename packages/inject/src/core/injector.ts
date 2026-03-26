@@ -31,6 +31,10 @@ interface SSEMonitorState {
   chunkCount: number;
   endSent: boolean;
   buf: string;
+  // 完整文本累积（用于 SSE 完成后直接触发 onComplete）
+  fullThinkingText: string;
+  fullResponseText: string;
+  completeCalled: boolean;
 }
 
 let sseState: SSEMonitorState = {
@@ -38,6 +42,9 @@ let sseState: SSEMonitorState = {
   chunkCount: 0,
   endSent: false,
   buf: '',
+  fullThinkingText: '',
+  fullResponseText: '',
+  completeCalled: false,
 };
 
 let sseCallbacks: {
@@ -46,10 +53,13 @@ let sseCallbacks: {
     isThink: boolean,
     stage: 'thinking' | 'responding',
     conversationId?: string
-  ) => void
+  ) => void;
+  onComplete?: (fullText: string, conversationId?: string) => void;
 } | null = null;
 let sseConversationId: string | undefined;
 let currentProvider: ProviderConfig | null = null;
+// 保存完整回调引用，用于 SSE 完成触发
+let currentCallbacks: SendCallbacks | null = null;
 
 /**
  * 检查文本是否包含任意一个检测关键词
@@ -68,6 +78,9 @@ function resetSSEState() {
     chunkCount: 0,
     endSent: false,
     buf: '',
+    fullThinkingText: '',
+    fullResponseText: '',
+    completeCalled: false,
   };
 }
 
@@ -103,6 +116,14 @@ function parseSSELine(line: string) {
     // 根据 isThink 确定阶段，默认为 responding
     const isThinkBool = isThink ?? false;
     const stage: 'thinking' | 'responding' = isThinkBool ? 'thinking' : 'responding';
+
+    // 累积完整文本
+    if (isThinkBool) {
+      sseState.fullThinkingText += text;
+    } else {
+      sseState.fullResponseText += text;
+    }
+
     if (sseCallbacks?.onSseChunk) {
       sseCallbacks.onSseChunk(text, isThinkBool, stage, sseConversationId);
     }
@@ -110,8 +131,27 @@ function parseSSELine(line: string) {
 }
 
 function emitSSEEnd() {
-  if (sseState.endSent) return;
+  if (sseState.endSent || sseState.completeCalled) return;
   sseState.endSent = true;
+
+  // 如果 SSE 已经累积了内容，优先用 SSE 数据触发 onComplete
+  if (sseState.chunkCount > 0 && currentCallbacks?.onComplete) {
+    const fullText = buildFullSSEText();
+    sseState.completeCalled = true;
+    currentCallbacks.onComplete(fullText, sseConversationId);
+  }
+}
+
+/**
+ * 从 SSE 累积的内容构建完整回复文本
+ */
+function buildFullSSEText(): string {
+  const think = sseState.fullThinkingText;
+  const resp = sseState.fullResponseText;
+  if (!think && !resp) return '';
+  if (!think) return resp;
+  if (!resp) return `<think>${think}</think>`;
+  return `<think>${think}</think>\n\n${resp}`;
 }
 
 function isCompletionUrl(url: string): boolean {
@@ -512,11 +552,15 @@ function monitorResponse(
   callbacks: SendCallbacks,
   provider: ProviderConfig
 ): void {
-  // 设置 SSE 拦截器的回调
-  sseCallbacks = { onSseChunk: callbacks.onSseChunk };
+  // 设置 SSE 拦截器的回调，保存完整 callbacks 引用
+  sseCallbacks = {
+    onSseChunk: callbacks.onSseChunk,
+    onComplete: callbacks.onComplete,
+  };
+  currentCallbacks = callbacks;
   // 注意：不覆盖 sseConversationId，由 _send 方法在调用 setupSSEInterceptor 前设置
 
-  // 同时启动 DOM 轮询监听
+  // 同时启动 DOM 轮询监听（作为兜底）
   monitorResponseDom(callbacks, provider);
 }
 
@@ -577,7 +621,8 @@ function monitorResponseDom(
     // 如果没有新内容，增加计数器
     if (!deltaChanged(state, current)) {
       consecutiveEmptyCount++;
-      if (consecutiveEmptyCount >= MAX_EMPTY_CHECKS && text) {
+      // 如果 SSE 已经完成，不重复触发 onComplete
+      if (consecutiveEmptyCount >= MAX_EMPTY_CHECKS && text && !sseState.completeCalled) {
         state.isComplete = true;
         cleanup();
 
