@@ -1,0 +1,3679 @@
+event: ready
+data: {"request_message_id":7,"response_message_id":8}
+
+event: update_session
+data: {"updated_at":1774513204.832417}
+
+data: {"v":{"response":{"message_id":8,"parent_id":7,"model":"","role":"ASSISTANT","thinking_enabled":false,"ban_edit":false,"ban_regenerate":false,"status":"WIP","accumulated_token_usage":0,"files":[],"feedback":null,"inserted_at":1774513204.825424,"search_enabled":true,"fragments":[{"id":2,"type":"SEARCH","status":"WIP","content":null,"queries":[{"query":"2026 美加墨世界杯 夺冠热门 球队 实力排名"},{"query":"2026 美加墨世界杯 关注度 最高 球队"},{"query":"2026 FIFA World Cup top 10 teams popularity strength"}],"results":[]}],"has_pending_fragment":false,"auto_continue":false}}}
+
+data: {"p":"response/fragments/-1/results","v":[{"url":"https://sn.ifeng.com/c/8rkgWf9MtaO","title":"2026世界杯前瞻：365体育分析三强鼎立，北美亚洲新篇章——当足球盛宴首次跨越三国，48支劲旅将如何重绘世界足坛版图？","snippet":"二、 夺冠热门巡礼：新旧势力的巅峰对决 ... 1. 法国队：姆巴佩时代的开启 ... 2. 阿根廷队：梅西的谢幕与传承 ... 三、 东道主表现：美加墨的足球野望","cite_index":1,"published_at":1774281600.0,"site_icon":"https://cdn.deepseek.com/site-icons/ifeng.com","site_name":"凤凰网","query_indexes":[0]},{"url":"https://www.ghanaweb.com/GhanaHomePage/SportsArchive/2026-FIFA-World-Cup-Spain-lead-ESPN-s-rankings-as-favorites-2027229","title":"2026 FIFA World Cup: Spain lead ESPN's rankings as favorites","snippet":"contenders. Topping the list is Spain, a nation that has won the World Cup once, in 2010. Spain’s recent resurgence, highlighted by strong performances in international competitions, signals a return to elite status. ... two-time world champions (1998, 2018)...","cite_index":2,"published_at":1774281600.0,"site_icon":"https://cdn.deepseek.com/site-icons/ghanaweb.com","site_name":"GhanaWeb","query_indexes":[2]},{"url":"https://voice.hupu.com/bbs/635871471","title":"英媒评-国际足球-国际足球资讯-虎扑社区","snippet":"前日本国脚本田圭佑坚称他们有潜力加冕大力神杯，这目前来看或许有点牵强，但他们肯定是一支实力强劲的球队，在各位置上都拥有优秀球员。 《足球部落》：美加墨世界杯夺冠热门TOP10 1 西班牙 2 阿根廷 3 英格兰 4 法国 5 葡萄牙 6 巴西 7 挪威 8 摩洛哥","cite_index":3,"published_at":1763654400.0,"site_icon":"https://cdn.deepseek.com/site-icons/hupu.com","site_name":"虎扑","query_indexes":[0,2]},{"url":"https://www.si.com/soccer/world-cup-2026-power-rankings-spain-argentina-favorites-norway-dark-horses","title":"World Cup 2026 Power Rankings: Spain & Argentina Favorites, Norway the Dark Horses","snippet":"Here, Sports Illustrated unveils its 2026 World Cup Power Rankings, breaking down the 20 leading contenders based on qualifying form, momentum, squad strength and everything else in between. ## 20. Uruguay ... 18. Switzerland ... 16. Belgium","cite_index":4,"published_at":1773936000.0,"site_icon":"https://cdn.deepseek.com/site-icons/si.com","site_name":"Sports Illustrated","query_indexes":[2]},{"url":"http://m.pdvolunteer.org.cn/news/zuqiu/19264.html","title":"超级计算机预测2026年冠军：阿森纳领跑，西班牙成世界杯头号热门","snippet":"在英格兰赛场，阿森纳被Opta视为最大夺冠热门。模型显示，“枪手”赢得2025/26赛季英超冠军的概率高达78.98%，远超曼城（16.69%）。","cite_index":5,"published_at":1767369600.0,"site_icon":"https://cdn.deepseek.com/site-icons/pdvolunteer.org.cn","site_name":"pdvolunteer.org.cn","query_indexes":[0]},{"url":"https://www.foxsports.com/stories/soccer/2026-world-cup-power-rankings-why-colombia-belongs-top-5","title":"2026 World Cup Power Rankings: Why Colombia Belongs In the Top 5","snippet":"11: #10 United States previously unranked FIFA Rank: 15 ... It’s not crazy to put USA here in the top-10. In the FIFA Rankings, the U.S. is at 15th, but again, this isn’t just a World Cup...","cite_index":6,"published_at":1772640000.0,"site_icon":"https://cdn.deepseek.com/site-icons/foxsports.com","site_name":"FOX Sports","query_indexes":[2]},{"url":"https://www.thedailystar.net/sports/football/news/2026-fifa-world-cup-how-favourites-stack-4050361","title":"2026 FIFA World Cup: How the favourites stack up","snippet":"Ahead of Friday's 2026 World Cup draw, here we take a look at the leading contenders at the first-ever 48-team finals to take place across North America next June and July (current world ranking in brackets): ## Spain (1)","cite_index":7,"published_at":1764777600.0,"site_icon":"https://cdn.deepseek.com/site-icons/thedailystar.net","site_name":"The Daily Star","query_indexes":[2]},{"url":"https://m.qtx.com/worldcup/276955.html","title":"今年世界杯冠亚季军预测 西班牙成最大热门","snippet":"2026年美加墨世界杯的冠亚季军争夺，大概率仍将集中在欧洲传统豪强与少数南美劲旅之间，西班牙、法国、英格兰三支球队成为冠亚季军的热门人选，这一预测也贴合当前足坛的实力格局与主流夺冠赔率走向，各支球队的竞争优势与潜在短板，也决定了其在世界杯赛场的大概率走势。","cite_index":8,"published_at":1771430400.0,"site_icon":"https://cdn.deepseek.com/site-icons/qtx.com","site_name":"球天下","query_indexes":[0]},{"url":"https://mauth.cbssports.com/soccer/news/2026-world-cup-power-rankings-usmnt-argentina-spain-brazil-mexico/","title":"2026 World Cup Power Rankings: USMNT close to top 10; Lionel Messi's Argentina not No. 1","snippet":"2026 World Cup Power Rankings: USMNT close to top 10; Lionel Messi's Argentina not No. 1 ## The 2026 World Cup will take place next year in the United States, Mexico and Canada","cite_index":9,"published_at":1763481600.0,"site_icon":"https://cdn.deepseek.com/site-icons/cbssports.com","site_name":"CBS Sports","query_indexes":[2]}]}
+
+data: {"p":"response/fragments/-1/status","v":"FINISHED"}
+
+data: {"p":"response/conversation_mode","v":"SEARCH"}
+
+data: {"p":"response/has_pending_fragment","v":true}
+
+data: {"p":"response","o":"BATCH","v":[{"p":"fragments","o":"APPEND","v":[{"id":3,"type":"RESPONSE","content":"距离","references":[],"stage_id":2}]},{"p":"has_pending_fragment","o":"SET","v":false}]}
+
+data: {"p":"response/fragments/-1/content","o":"APPEND","v":"202"}
+
+data: {"v":"6"}
+
+data: {"v":"年"}
+
+data: {"v":"美"}
+
+data: {"v":"加"}
+
+data: {"v":"墨"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"开"}
+
+data: {"v":"赛"}
+
+data: {"v":"还有"}
+
+data: {"v":"不到"}
+
+data: {"v":"三个月"}
+
+data: {"v":"，"}
+
+data: {"v":"关于"}
+
+data: {"v":"夺冠"}
+
+data: {"v":"热"}
+
+data: {"v":"门的"}
+
+data: {"v":"讨论"}
+
+data: {"v":"已经"}
+
+data: {"v":"非常"}
+
+data: {"v":"热烈"}
+
+data: {"v":"。"}
+
+data: {"v":"我从"}
+
+data: {"v":"**"}
+
+data: {"v":"专业"}
+
+data: {"v":"机构的"}
+
+data: {"v":"实力"}
+
+data: {"v":"预测"}
+
+data: {"v":"**"}
+
+data: {"v":"和"}
+
+data: {"v":"**"}
+
+data: {"v":"媒体"}
+
+data: {"v":"球迷"}
+
+data: {"v":"的关注"}
+
+data: {"v":"热度"}
+
+data: {"v":"**"}
+
+data: {"v":"这两个"}
+
+data: {"v":"维度"}
+
+data: {"v":"，"}
+
+data: {"v":"为你"}
+
+data: {"v":"整理了"}
+
+data: {"v":"目前"}
+
+data: {"v":"公认"}
+
+data: {"v":"的"}
+
+data: {"v":"TOP"}
+
+data: {"v":" "}
+
+data: {"v":"10"}
+
+data: {"v":"球队"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"简单"}
+
+data: {"v":"来说"}
+
+data: {"v":"，"}
+
+data: {"v":"**"}
+
+data: {"v":"西班牙"}
+
+data: {"v":"是"}
+
+data: {"v":"当前"}
+
+data: {"v":"毫无"}
+
+data: {"v":"争议"}
+
+data: {"v":"的头"}
+
+data: {"v":"号"}
+
+data: {"v":"热门"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"法国"}
+
+data: {"v":"、"}
+
+data: {"v":"阿根廷"}
+
+data: {"v":"、"}
+
+data: {"v":"英格兰"}
+
+data: {"v":"紧随"}
+
+data: {"v":"其后"}
+
+data: {"v":"形成"}
+
+data: {"v":"第一"}
+
+data: {"v":"集团"}
+
+data: {"v":"。"}
+
+data: {"v":"值得一提的是"}
+
+data: {"v":"，"}
+
+data: {"v":"**"}
+
+data: {"v":"挪威"}
+
+data: {"v":"和"}
+
+data: {"v":"日本"}
+
+data: {"v":"**"}
+
+data: {"v":"凭借"}
+
+data: {"v":"出色的"}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"表现"}
+
+data: {"v":"和"}
+
+data: {"v":"年轻"}
+
+data: {"v":"球"}
+
+data: {"v":"星的"}
+
+data: {"v":"崛起"}
+
+data: {"v":"，"}
+
+data: {"v":"在"}
+
+data: {"v":"热度"}
+
+data: {"v":"榜"}
+
+data: {"v":"上"}
+
+data: {"v":"占据"}
+
+data: {"v":"了一"}
+
+data: {"v":"席"}
+
+data: {"v":"之地"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"综合"}
+
+data: {"v":"盘点"}
+
+data: {"v":"："}
+
+data: {"v":"202"}
+
+data: {"v":"6"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"TOP"}
+
+data: {"v":" "}
+
+data: {"v":"10"}
+
+data: {"v":"热门"}
+
+data: {"v":"球队"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"|"}
+
+data: {"v":" "}
+
+data: {"v":"排名"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"球队"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"热度"}
+
+data: {"v":"指数"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"评级"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"核心"}
+
+data: {"v":"看点"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" :"}
+
+data: {"v":"---"}
+
+data: {"v":" |"}
+
+data: {"v":" :"}
+
+data: {"v":"---"}
+
+data: {"v":" |"}
+
+data: {"v":" :"}
+
+data: {"v":"---"}
+
+data: {"v":" |"}
+
+data: {"v":" :"}
+
+data: {"v":"---"}
+
+data: {"v":" |"}
+
+data: {"v":" :"}
+
+data: {"v":"---"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"1"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"西班牙"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" S"}
+
+data: {"v":"+"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"新"}
+
+data: {"v":"黄金"}
+
+data: {"v":"一代"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"亚"}
+
+data: {"v":"马尔"}
+
+data: {"v":"领"}
+
+data: {"v":"衔"}
+
+data: {"v":"，"}
+
+data: {"v":"欧洲"}
+
+data: {"v":"杯"}
+
+data: {"v":"冠军"}
+
+data: {"v":"+"}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"全"}
+
+data: {"v":"胜"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"2"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"法国"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" S"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"姆"}
+
+data: {"v":"巴"}
+
+data: {"v":"佩"}
+
+data: {"v":"**"}
+
+data: {"v":"巅峰"}
+
+data: {"v":"期"}
+
+data: {"v":"，"}
+
+data: {"v":"阵容"}
+
+data: {"v":"天赋"}
+
+data: {"v":"顶级"}
+
+data: {"v":"，"}
+
+data: {"v":"近"}
+
+data: {"v":"两"}
+
+data: {"v":"届"}
+
+data: {"v":"一"}
+
+data: {"v":"冠"}
+
+data: {"v":"一"}
+
+data: {"v":"亚"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"3"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"阿根廷"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" S"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"梅西"}
+
+data: {"v":"的"}
+
+data: {"v":"谢"}
+
+data: {"v":"幕"}
+
+data: {"v":"演出"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"卫"}
+
+data: {"v":"冕"}
+
+data: {"v":"冠军"}
+
+data: {"v":"，"}
+
+data: {"v":"大赛"}
+
+data: {"v":"气质"}
+
+data: {"v":"出众"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"4"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"英格兰"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":"☆"}
+
+data: {"v":" |"}
+
+data: {"v":" S"}
+
+data: {"v":"-"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"黄金"}
+
+data: {"v":"一代"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"凯"}
+
+data: {"v":"恩"}
+
+data: {"v":"+"}
+
+data: {"v":"贝"}
+
+data: {"v":"林"}
+
+data: {"v":"厄"}
+
+data: {"v":"姆"}
+
+data: {"v":"，"}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"8"}
+
+data: {"v":"战"}
+
+data: {"v":"0"}
+
+data: {"v":"失"}
+
+data: {"v":"球"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"5"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"巴西"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":"☆"}
+
+data: {"v":" |"}
+
+data: {"v":" A"}
+
+data: {"v":"+"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"安"}
+
+data: {"v":"切"}
+
+data: {"v":"洛"}
+
+data: {"v":"蒂"}
+
+data: {"v":"**"}
+
+data: {"v":"挂"}
+
+data: {"v":"帅"}
+
+data: {"v":"，"}
+
+data: {"v":"巨星"}
+
+data: {"v":"云"}
+
+data: {"v":"集"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"表现"}
+
+data: {"v":"磕"}
+
+data: {"v":"绊"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"6"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"葡萄牙"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" A"}
+
+data: {"v":"+"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"C"}
+
+data: {"v":"罗"}
+
+data: {"v":"的"}
+
+data: {"v":"最后一"}
+
+data: {"v":"舞"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"中场"}
+
+data: {"v":"配置"}
+
+data: {"v":"顶级"}
+
+data: {"v":"，"}
+
+data: {"v":"阵容"}
+
+data: {"v":"极具"}
+
+data: {"v":"深度"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"7"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"德国"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"☆"}
+
+data: {"v":" |"}
+
+data: {"v":" A"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"老"}
+
+data: {"v":"牌"}
+
+data: {"v":"劲"}
+
+data: {"v":"旅"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"大赛"}
+
+data: {"v":"底蕴"}
+
+data: {"v":"深厚"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"近"}
+
+data: {"v":"两"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"小组"}
+
+data: {"v":"出"}
+
+data: {"v":"局"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"8"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"荷兰"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" A"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"无"}
+
+data: {"v":"冕"}
+
+data: {"v":"之王"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"阵容"}
+
+data: {"v":"配置"}
+
+data: {"v":"均衡"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"缺乏"}
+
+data: {"v":"顶级"}
+
+data: {"v":"冠军"}
+
+data: {"v":"气质"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"9"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"摩"}
+
+data: {"v":"洛"}
+
+data: {"v":"哥"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" A"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"最强"}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"**"}
+
+data: {"v":"，"}
+
+data: {"v":"上"}
+
+data: {"v":"届"}
+
+data: {"v":"四"}
+
+data: {"v":"强"}
+
+data: {"v":"，"}
+
+data: {"v":"防守"}
+
+data: {"v":"坚韧"}
+
+data: {"v":"，"}
+
+data: {"v":"非洲"}
+
+data: {"v":"足球"}
+
+data: {"v":"的"}
+
+data: {"v":"旗帜"}
+
+data: {"v":" |\n"}
+
+data: {"v":"|"}
+
+data: {"v":" **"}
+
+data: {"v":"10"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"挪威"}
+
+data: {"v":"**"}
+
+data: {"v":" |"}
+
+data: {"v":" ⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" B"}
+
+data: {"v":"+"}
+
+data: {"v":" |"}
+
+data: {"v":" **"}
+
+data: {"v":"哈"}
+
+data: {"v":"兰德"}
+
+data: {"v":"**"}
+
+data: {"v":"领"}
+
+data: {"v":"衔"}
+
+data: {"v":"，"}
+
+data: {"v":"超级"}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"候选"}
+
+data: {"v":"，"}
+
+data: {"v":"时隔"}
+
+data: {"v":"多年"}
+
+data: {"v":"重返"}
+
+data: {"v":"世界杯"}
+
+data: {"v":" |\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"详细"}
+
+data: {"v":"解读"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" 🔥"}
+
+data: {"v":" "}
+
+data: {"v":"第一"}
+
+data: {"v":"梯队"}
+
+data: {"v":"："}
+
+data: {"v":"冠军"}
+
+data: {"v":"最"}
+
+data: {"v":"有力"}
+
+data: {"v":"争夺"}
+
+data: {"v":"者"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"1"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"西班牙"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"S"}
+
+data: {"v":"+"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"西班牙"}
+
+data: {"v":"是"}
+
+data: {"v":"当下"}
+
+data: {"v":"状态"}
+
+data: {"v":"最"}
+
+data: {"v":"火"}
+
+data: {"v":"热的"}
+
+data: {"v":"球队"}
+
+data: {"v":"，"}
+
+data: {"v":"几乎"}
+
+data: {"v":"被"}
+
+data: {"v":"所有"}
+
+data: {"v":"权威"}
+
+data: {"v":"媒体"}
+
+data: {"v":"和"}
+
+data: {"v":"超级"}
+
+data: {"v":"计算机"}
+
+data: {"v":"列为"}
+
+data: {"v":"头"}
+
+data: {"v":"号"}
+
+data: {"v":"热门"}
+
+data: {"v":"[citation:2]"}
+
+data: {"v":"[citation:5]"}
+
+data: {"v":"[citation:6]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"202"}
+
+data: {"v":"4"}
+
+data: {"v":"年"}
+
+data: {"v":"欧洲"}
+
+data: {"v":"杯"}
+
+data: {"v":"冠军"}
+
+data: {"v":"的光"}
+
+data: {"v":"环"}
+
+data: {"v":"，"}
+
+data: {"v":"以及"}
+
+data: {"v":"以"}
+
+data: {"v":"**"}
+
+data: {"v":"亚"}
+
+data: {"v":"马尔"}
+
+data: {"v":"**"}
+
+data: {"v":"、"}
+
+data: {"v":"加"}
+
+data: {"v":"维"}
+
+data: {"v":"为代表的"}
+
+data: {"v":"“"}
+
+data: {"v":"新"}
+
+data: {"v":"黄金"}
+
+data: {"v":"一代"}
+
+data: {"v":"”"}
+
+data: {"v":"掀"}
+
+data: {"v":"起的"}
+
+data: {"v":"青春"}
+
+data: {"v":"风暴"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"[citation:8]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"表现"}
+
+data: {"v":"极具"}
+
+data: {"v":"统治"}
+
+data: {"v":"力"}
+
+data: {"v":"，"}
+
+data: {"v":"防守"}
+
+data: {"v":"稳固"}
+
+data: {"v":"且"}
+
+data: {"v":"攻击"}
+
+data: {"v":"力"}
+
+data: {"v":"强大"}
+
+data: {"v":"。"}
+
+data: {"v":"主帅"}
+
+data: {"v":"德拉"}
+
+data: {"v":"富"}
+
+data: {"v":"恩"}
+
+data: {"v":"特"}
+
+data: {"v":"打造的"}
+
+data: {"v":"体系"}
+
+data: {"v":"运转"}
+
+data: {"v":"成熟"}
+
+data: {"v":"，"}
+
+data: {"v":"是目前"}
+
+data: {"v":"战术"}
+
+data: {"v":"素养"}
+
+data: {"v":"最高的"}
+
+data: {"v":"球队"}
+
+data: {"v":"[citation:3]"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"2"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"法国"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"S"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"作为"}
+
+data: {"v":"近"}
+
+data: {"v":"两"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"一"}
+
+data: {"v":"冠"}
+
+data: {"v":"一"}
+
+data: {"v":"亚"}
+
+data: {"v":"的"}
+
+data: {"v":"顶级"}
+
+data: {"v":"强"}
+
+data: {"v":"队"}
+
+data: {"v":"，"}
+
+data: {"v":"法国的"}
+
+data: {"v":"实力"}
+
+data: {"v":"和"}
+
+data: {"v":"热度"}
+
+data: {"v":"都"}
+
+data: {"v":"稳"}
+
+data: {"v":"居"}
+
+data: {"v":"前三"}
+
+data: {"v":"[citation:1]"}
+
+data: {"v":"[citation:2]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"**"}
+
+data: {"v":"姆"}
+
+data: {"v":"巴"}
+
+data: {"v":"佩"}
+
+data: {"v":"**"}
+
+data: {"v":"正式"}
+
+data: {"v":"步入"}
+
+data: {"v":"巅峰"}
+
+data: {"v":"期"}
+
+data: {"v":"，"}
+
+data: {"v":"加上"}
+
+data: {"v":"登"}
+
+data: {"v":"贝"}
+
+data: {"v":"莱"}
+
+data: {"v":"、"}
+
+data: {"v":"琼"}
+
+data: {"v":"阿"}
+
+data: {"v":"梅"}
+
+data: {"v":"尼"}
+
+data: {"v":"等"}
+
+data: {"v":"球星"}
+
+data: {"v":"，"}
+
+data: {"v":"阵容"}
+
+data: {"v":"天赋"}
+
+data: {"v":"令人"}
+
+data: {"v":"艳"}
+
+data: {"v":"羡"}
+
+data: {"v":"。"}
+
+data: {"v":"这"}
+
+data: {"v":"将是"}
+
+data: {"v":"主帅"}
+
+data: {"v":"德"}
+
+data: {"v":"尚"}
+
+data: {"v":"离"}
+
+data: {"v":"任"}
+
+data: {"v":"前的"}
+
+data: {"v":"最后一"}
+
+data: {"v":"舞"}
+
+data: {"v":"，"}
+
+data: {"v":"备受"}
+
+data: {"v":"瞩"}
+
+data: {"v":"目"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"人才"}
+
+data: {"v":"储备"}
+
+data: {"v":"极其"}
+
+data: {"v":"雄厚"}
+
+data: {"v":"，"}
+
+data: {"v":"各个"}
+
+data: {"v":"位置"}
+
+data: {"v":"几乎没有"}
+
+data: {"v":"短板"}
+
+data: {"v":"。"}
+
+data: {"v":"尽管"}
+
+data: {"v":"有时"}
+
+data: {"v":"面临"}
+
+data: {"v":"更"}
+
+data: {"v":"衣"}
+
+data: {"v":"室"}
+
+data: {"v":"话题"}
+
+data: {"v":"的"}
+
+data: {"v":"讨论"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"硬"}
+
+data: {"v":"实力"}
+
+data: {"v":"足以"}
+
+data: {"v":"让他们"}
+
+data: {"v":"冲击"}
+
+data: {"v":"任何"}
+
+data: {"v":"对手"}
+
+data: {"v":"[citation:1]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"3"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"阿根廷"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"S"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"作为"}
+
+data: {"v":"卫"}
+
+data: {"v":"冕"}
+
+data: {"v":"冠军"}
+
+data: {"v":"，"}
+
+data: {"v":"阿根廷"}
+
+data: {"v":"的关注"}
+
+data: {"v":"度"}
+
+data: {"v":"无疑"}
+
+data: {"v":"是最"}
+
+data: {"v":"高的"}
+
+data: {"v":"之一"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"这"}
+
+data: {"v":"极"}
+
+data: {"v":"大概率"}
+
+data: {"v":"是"}
+
+data: {"v":"**"}
+
+data: {"v":"梅西"}
+
+data: {"v":"**"}
+
+data: {"v":"的"}
+
+data: {"v":"最后一"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"，"}
+
+data: {"v":"全世界"}
+
+data: {"v":"都想"}
+
+data: {"v":"看他"}
+
+data: {"v":"如何在"}
+
+data: {"v":"北美"}
+
+data: {"v":"完成"}
+
+data: {"v":"史诗"}
+
+data: {"v":"般的"}
+
+data: {"v":"谢"}
+
+data: {"v":"幕"}
+
+data: {"v":"[citation:1]"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"球队"}
+
+data: {"v":"在"}
+
+data: {"v":"斯卡"}
+
+data: {"v":"洛"}
+
+data: {"v":"尼"}
+
+data: {"v":"的"}
+
+data: {"v":"带领下"}
+
+data: {"v":"非常"}
+
+data: {"v":"团结"}
+
+data: {"v":"，"}
+
+data: {"v":"大赛"}
+
+data: {"v":"经验"}
+
+data: {"v":"丰富"}
+
+data: {"v":"。"}
+
+data: {"v":"虽然"}
+
+data: {"v":"梅西"}
+
+data: {"v":"年"}
+
+data: {"v":"事"}
+
+data: {"v":"已"}
+
+data: {"v":"高"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"劳"}
+
+data: {"v":"塔"}
+
+data: {"v":"罗"}
+
+data: {"v":"、"}
+
+data: {"v":"阿尔"}
+
+data: {"v":"瓦"}
+
+data: {"v":"雷斯"}
+
+data: {"v":"等"}
+
+data: {"v":"中生"}
+
+data: {"v":"代"}
+
+data: {"v":"已经"}
+
+data: {"v":"挑起"}
+
+data: {"v":"大"}
+
+data: {"v":"梁"}
+
+data: {"v":"，"}
+
+data: {"v":"阵容"}
+
+data: {"v":"平稳"}
+
+data: {"v":"过渡"}
+
+data: {"v":"[citation:1]"}
+
+data: {"v":"[citation:3]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"4"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"英格兰"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"☆"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"S"}
+
+data: {"v":"-"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"英格兰"}
+
+data: {"v":"拥有"}
+
+data: {"v":"被"}
+
+data: {"v":"媒体"}
+
+data: {"v":"称为"}
+
+data: {"v":"“"}
+
+data: {"v":"黄金"}
+
+data: {"v":"一代"}
+
+data: {"v":"”"}
+
+data: {"v":"的"}
+
+data: {"v":"豪华"}
+
+data: {"v":"阵容"}
+
+data: {"v":"，"}
+
+data: {"v":"但在"}
+
+data: {"v":"关键"}
+
+data: {"v":"比赛"}
+
+data: {"v":"中的"}
+
+data: {"v":"心理"}
+
+data: {"v":"素质"}
+
+data: {"v":"常"}
+
+data: {"v":"被"}
+
+data: {"v":"质疑"}
+
+data: {"v":"[citation:1]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"**"}
+
+data: {"v":"哈里"}
+
+data: {"v":"·"}
+
+data: {"v":"凯"}
+
+data: {"v":"恩"}
+
+data: {"v":"**"}
+
+data: {"v":"、"}
+
+data: {"v":"**"}
+
+data: {"v":"贝"}
+
+data: {"v":"林"}
+
+data: {"v":"厄"}
+
+data: {"v":"姆"}
+
+data: {"v":"**"}
+
+data: {"v":"、"}
+
+data: {"v":"福"}
+
+data: {"v":"登"}
+
+data: {"v":"等"}
+
+data: {"v":"球星"}
+
+data: {"v":"在"}
+
+data: {"v":"俱乐部"}
+
+data: {"v":"表现"}
+
+data: {"v":"耀眼"}
+
+data: {"v":"，"}
+
+data: {"v":"总"}
+
+data: {"v":"能让"}
+
+data: {"v":"球迷"}
+
+data: {"v":"对"}
+
+data: {"v":"国家队"}
+
+data: {"v":"寄"}
+
+data: {"v":"予"}
+
+data: {"v":"厚"}
+
+data: {"v":"望"}
+
+data: {"v":"[citation:1]"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"8"}
+
+data: {"v":"战"}
+
+data: {"v":"全"}
+
+data: {"v":"胜"}
+
+data: {"v":"且"}
+
+data: {"v":"一"}
+
+data: {"v":"球"}
+
+data: {"v":"未"}
+
+data: {"v":"失"}
+
+data: {"v":"，"}
+
+data: {"v":"攻"}
+
+data: {"v":"防"}
+
+data: {"v":"两端"}
+
+data: {"v":"展现了"}
+
+data: {"v":"极强的"}
+
+data: {"v":"统治"}
+
+data: {"v":"力"}
+
+data: {"v":"。"}
+
+data: {"v":"新"}
+
+data: {"v":"帅"}
+
+data: {"v":"图"}
+
+data: {"v":"赫尔"}
+
+data: {"v":"为"}
+
+data: {"v":"球队"}
+
+data: {"v":"注"}
+
+data: {"v":"入了"}
+
+data: {"v":"务"}
+
+data: {"v":"实的"}
+
+data: {"v":"战术"}
+
+data: {"v":"纪律"}
+
+data: {"v":"[citation:3]"}
+
+data: {"v":"[citation:8]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" ⚡"}
+
+data: {"v":"️"}
+
+data: {"v":" "}
+
+data: {"v":"第二"}
+
+data: {"v":"梯队"}
+
+data: {"v":"："}
+
+data: {"v":"顶级"}
+
+data: {"v":"搅"}
+
+data: {"v":"局"}
+
+data: {"v":"者"}
+
+data: {"v":"与"}
+
+data: {"v":"老"}
+
+data: {"v":"牌"}
+
+data: {"v":"劲"}
+
+data: {"v":"旅"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"5"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"巴西"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"☆"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"A"}
+
+data: {"v":"+"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"巴西"}
+
+data: {"v":"永远"}
+
+data: {"v":"是世界"}
+
+data: {"v":"足"}
+
+data: {"v":"坛"}
+
+data: {"v":"的"}
+
+data: {"v":"流量"}
+
+data: {"v":"担当"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"近"}
+
+data: {"v":"几"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"的表现"}
+
+data: {"v":"略显"}
+
+data: {"v":"挣扎"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"五星"}
+
+data: {"v":"巴西"}
+
+data: {"v":"的品牌"}
+
+data: {"v":"号召"}
+
+data: {"v":"力"}
+
+data: {"v":"，"}
+
+data: {"v":"以及"}
+
+data: {"v":"维"}
+
+data: {"v":"尼"}
+
+data: {"v":"修斯"}
+
+data: {"v":"、"}
+
+data: {"v":"罗"}
+
+data: {"v":"德里"}
+
+data: {"v":"戈"}
+
+data: {"v":"等"}
+
+data: {"v":"锋"}
+
+data: {"v":"线"}
+
+data: {"v":"群"}
+
+data: {"v":"星的"}
+
+data: {"v":"华丽"}
+
+data: {"v":"踢"}
+
+data: {"v":"法"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"新"}
+
+data: {"v":"帅"}
+
+data: {"v":"**"}
+
+data: {"v":"安"}
+
+data: {"v":"切"}
+
+data: {"v":"洛"}
+
+data: {"v":"蒂"}
+
+data: {"v":"**"}
+
+data: {"v":"的"}
+
+data: {"v":"调"}
+
+data: {"v":"教"}
+
+data: {"v":"效果"}
+
+data: {"v":"是"}
+
+data: {"v":"最大"}
+
+data: {"v":"看点"}
+
+data: {"v":"。"}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"表现"}
+
+data: {"v":"磕"}
+
+data: {"v":"磕"}
+
+data: {"v":"绊"}
+
+data: {"v":"绊"}
+
+data: {"v":"，"}
+
+data: {"v":"防守"}
+
+data: {"v":"端"}
+
+data: {"v":"存在"}
+
+data: {"v":"隐患"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"淘汰"}
+
+data: {"v":"赛"}
+
+data: {"v":"阶段"}
+
+data: {"v":"，"}
+
+data: {"v":"巨星"}
+
+data: {"v":"的能力"}
+
+data: {"v":"永远"}
+
+data: {"v":"是不可"}
+
+data: {"v":"忽视"}
+
+data: {"v":"的"}
+
+data: {"v":"变量"}
+
+data: {"v":"[citation:4]"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"6"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"葡萄牙"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"A"}
+
+data: {"v":"+"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"葡萄牙"}
+
+data: {"v":"近年来"}
+
+data: {"v":"人才"}
+
+data: {"v":"井"}
+
+data: {"v":"喷"}
+
+data: {"v":"，"}
+
+data: {"v":"加上"}
+
+data: {"v":"传奇"}
+
+data: {"v":"球"}
+
+data: {"v":"星的"}
+
+data: {"v":"最后一"}
+
+data: {"v":"舞"}
+
+data: {"v":"，"}
+
+data: {"v":"热度"}
+
+data: {"v":"极高"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"**"}
+
+data: {"v":"C"}
+
+data: {"v":"罗"}
+
+data: {"v":"**"}
+
+data: {"v":"的"}
+
+data: {"v":"最后一"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"，"}
+
+data: {"v":"情怀"}
+
+data: {"v":"拉"}
+
+data: {"v":"满"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"阵容"}
+
+data: {"v":"配置"}
+
+data: {"v":"非常"}
+
+data: {"v":"豪华"}
+
+data: {"v":"，"}
+
+data: {"v":"尤其是"}
+
+data: {"v":"中场"}
+
+data: {"v":"拥有"}
+
+data: {"v":"B"}
+
+data: {"v":"席"}
+
+data: {"v":"、"}
+
+data: {"v":"B"}
+
+data: {"v":"费"}
+
+data: {"v":"、"}
+
+data: {"v":"维"}
+
+data: {"v":"蒂"}
+
+data: {"v":"尼亚"}
+
+data: {"v":"等"}
+
+data: {"v":"世界"}
+
+data: {"v":"级"}
+
+data: {"v":"指挥官"}
+
+data: {"v":"，"}
+
+data: {"v":"攻"}
+
+data: {"v":"防"}
+
+data: {"v":"平衡"}
+
+data: {"v":"。"}
+
+data: {"v":"只要"}
+
+data: {"v":"处理好"}
+
+data: {"v":"C"}
+
+data: {"v":"罗"}
+
+data: {"v":"的角色"}
+
+data: {"v":"定位"}
+
+data: {"v":"，"}
+
+data: {"v":"他们"}
+
+data: {"v":"具备"}
+
+data: {"v":"掀"}
+
+data: {"v":"翻"}
+
+data: {"v":"任何"}
+
+data: {"v":"强"}
+
+data: {"v":"队的"}
+
+data: {"v":"实力"}
+
+data: {"v":"[citation:6]"}
+
+data: {"v":"[citation:7]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"7"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"德国"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":"☆"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"A"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"经历了"}
+
+data: {"v":"连续"}
+
+data: {"v":"两"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"小组"}
+
+data: {"v":"出"}
+
+data: {"v":"局的"}
+
+data: {"v":"低谷"}
+
+data: {"v":"后"}
+
+data: {"v":"，"}
+
+data: {"v":"德国"}
+
+data: {"v":"队"}
+
+data: {"v":"正在"}
+
+data: {"v":"慢慢"}
+
+data: {"v":"复苏"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"传统"}
+
+data: {"v":"豪"}
+
+data: {"v":"门的"}
+
+data: {"v":"底蕴"}
+
+data: {"v":"，"}
+
+data: {"v":"以及"}
+
+data: {"v":"**"}
+
+data: {"v":"维尔"}
+
+data: {"v":"茨"}
+
+data: {"v":"**"}
+
+data: {"v":"、"}
+
+data: {"v":"穆"}
+
+data: {"v":"西亚"}
+
+data: {"v":"拉"}
+
+data: {"v":"等"}
+
+data: {"v":"新生"}
+
+data: {"v":"代"}
+
+data: {"v":"球"}
+
+data: {"v":"星的"}
+
+data: {"v":"崛起"}
+
+data: {"v":"[citation:4]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"虽然"}
+
+data: {"v":"世界"}
+
+data: {"v":"排名"}
+
+data: {"v":"不高"}
+
+data: {"v":"，"}
+
+data: {"v":"但在"}
+
+data: {"v":"大赛"}
+
+data: {"v":"中"}
+
+data: {"v":"德国"}
+
+data: {"v":"人"}
+
+data: {"v":"一向"}
+
+data: {"v":"以"}
+
+data: {"v":"坚韧"}
+
+data: {"v":"著称"}
+
+data: {"v":"。"}
+
+data: {"v":"纳"}
+
+data: {"v":"格"}
+
+data: {"v":"尔斯"}
+
+data: {"v":"曼"}
+
+data: {"v":"的"}
+
+data: {"v":"战术"}
+
+data: {"v":"改革"}
+
+data: {"v":"初见"}
+
+data: {"v":"成效"}
+
+data: {"v":"，"}
+
+data: {"v":"他们"}
+
+data: {"v":"依然是"}
+
+data: {"v":"任何"}
+
+data: {"v":"对手"}
+
+data: {"v":"都不想"}
+
+data: {"v":"碰"}
+
+data: {"v":"到的"}
+
+data: {"v":"球队"}
+
+data: {"v":"[citation:6]"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"####"}
+
+data: {"v":" 🐎"}
+
+data: {"v":" "}
+
+data: {"v":"第三"}
+
+data: {"v":"梯队"}
+
+data: {"v":"："}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"候选"}
+
+data: {"v":"与"}
+
+data: {"v":"潜力"}
+
+data: {"v":"股"}
+
+data: {"v":"\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"8"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"荷兰"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"A"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"“"}
+
+data: {"v":"无"}
+
+data: {"v":"冕"}
+
+data: {"v":"之王"}
+
+data: {"v":"”"}
+
+data: {"v":"荷兰"}
+
+data: {"v":"队"}
+
+data: {"v":"总是"}
+
+data: {"v":"能在"}
+
+data: {"v":"不被"}
+
+data: {"v":"看"}
+
+data: {"v":"好的"}
+
+data: {"v":"情况下"}
+
+data: {"v":"踢"}
+
+data: {"v":"出"}
+
+data: {"v":"漂亮的"}
+
+data: {"v":"足球"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"全"}
+
+data: {"v":"攻"}
+
+data: {"v":"全"}
+
+data: {"v":"守"}
+
+data: {"v":"的"}
+
+data: {"v":"足球"}
+
+data: {"v":"哲学"}
+
+data: {"v":"拥有"}
+
+data: {"v":"大量"}
+
+data: {"v":"拥"}
+
+data: {"v":"趸"}
+
+data: {"v":"，"}
+
+data: {"v":"加上"}
+
+data: {"v":"范"}
+
+data: {"v":"戴"}
+
+data: {"v":"克"}
+
+data: {"v":"、"}
+
+data: {"v":"德"}
+
+data: {"v":"容"}
+
+data: {"v":"等"}
+
+data: {"v":"球星"}
+
+data: {"v":"领"}
+
+data: {"v":"衔"}
+
+data: {"v":"[citation:2]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"阵容"}
+
+data: {"v":"配置"}
+
+data: {"v":"均衡"}
+
+data: {"v":"，"}
+
+data: {"v":"后"}
+
+data: {"v":"防线"}
+
+data: {"v":"尤其"}
+
+data: {"v":"豪华"}
+
+data: {"v":"。"}
+
+data: {"v":"但"}
+
+data: {"v":"球队"}
+
+data: {"v":"在"}
+
+data: {"v":"关键"}
+
+data: {"v":"比赛"}
+
+data: {"v":"中的"}
+
+data: {"v":"稳定性"}
+
+data: {"v":"稍"}
+
+data: {"v":"显"}
+
+data: {"v":"不足"}
+
+data: {"v":"，"}
+
+data: {"v":"能否"}
+
+data: {"v":"在"}
+
+data: {"v":"淘汰"}
+
+data: {"v":"赛"}
+
+data: {"v":"走"}
+
+data: {"v":"得更"}
+
+data: {"v":"远"}
+
+data: {"v":"要看"}
+
+data: {"v":"临"}
+
+data: {"v":"场"}
+
+data: {"v":"发挥"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"9"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"摩"}
+
+data: {"v":"洛"}
+
+data: {"v":"哥"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"A"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"上"}
+
+data: {"v":"届"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"的四"}
+
+data: {"v":"强"}
+
+data: {"v":"奇迹"}
+
+data: {"v":"让"}
+
+data: {"v":"摩"}
+
+data: {"v":"洛"}
+
+data: {"v":"哥"}
+
+data: {"v":"一跃"}
+
+data: {"v":"成为"}
+
+data: {"v":"非洲"}
+
+data: {"v":"足球"}
+
+data: {"v":"的新"}
+
+data: {"v":"名片"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"作为"}
+
+data: {"v":"上"}
+
+data: {"v":"届"}
+
+data: {"v":"最大"}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"，"}
+
+data: {"v":"他们"}
+
+data: {"v":"被"}
+
+data: {"v":"寄"}
+
+data: {"v":"予"}
+
+data: {"v":"厚"}
+
+data: {"v":"望"}
+
+data: {"v":"，"}
+
+data: {"v":"球迷"}
+
+data: {"v":"期待"}
+
+data: {"v":"他们"}
+
+data: {"v":"能"}
+
+data: {"v":"再次"}
+
+data: {"v":"上演"}
+
+data: {"v":"奇迹"}
+
+data: {"v":"[citation:6]"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"防守"}
+
+data: {"v":"极其"}
+
+data: {"v":"坚韧"}
+
+data: {"v":"，"}
+
+data: {"v":"战术"}
+
+data: {"v":"纪律"}
+
+data: {"v":"严"}
+
+data: {"v":"明"}
+
+data: {"v":"。"}
+
+data: {"v":"队"}
+
+data: {"v":"内"}
+
+data: {"v":"拥有"}
+
+data: {"v":"多名"}
+
+data: {"v":"在欧洲"}
+
+data: {"v":"顶级"}
+
+data: {"v":"联赛"}
+
+data: {"v":"效"}
+
+data: {"v":"力的"}
+
+data: {"v":"球员"}
+
+data: {"v":"，"}
+
+data: {"v":"实力"}
+
+data: {"v":"早已"}
+
+data: {"v":"不是"}
+
+data: {"v":"纯粹的"}
+
+data: {"v":"“"}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"”"}
+
+data: {"v":"级别"}
+
+data: {"v":"[citation:4]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"**"}
+
+data: {"v":"10"}
+
+data: {"v":"."}
+
+data: {"v":" "}
+
+data: {"v":"挪威"}
+
+data: {"v":"（"}
+
+data: {"v":"热度"}
+
+data: {"v":"："}
+
+data: {"v":"⭐⭐"}
+
+data: {"v":"⭐"}
+
+data: {"v":" |"}
+
+data: {"v":" "}
+
+data: {"v":"实力"}
+
+data: {"v":"："}
+
+data: {"v":"B"}
+
+data: {"v":"+"}
+
+data: {"v":"）"}
+
+data: {"v":"**\n"}
+
+data: {"v":"挪威"}
+
+data: {"v":"是"}
+
+data: {"v":"这份"}
+
+data: {"v":"榜单"}
+
+data: {"v":"中最"}
+
+data: {"v":"特殊的"}
+
+data: {"v":"球队"}
+
+data: {"v":"，"}
+
+data: {"v":"凭借"}
+
+data: {"v":"球星"}
+
+data: {"v":"效应"}
+
+data: {"v":"和"}
+
+data: {"v":"令人"}
+
+data: {"v":"惊喜"}
+
+data: {"v":"的"}
+
+data: {"v":"世"}
+
+data: {"v":"预"}
+
+data: {"v":"赛"}
+
+data: {"v":"表现"}
+
+data: {"v":"杀"}
+
+data: {"v":"入"}
+
+data: {"v":"视野"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"热度"}
+
+data: {"v":"来源"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"拥有"}
+
+data: {"v":"当今"}
+
+data: {"v":"足"}
+
+data: {"v":"坛"}
+
+data: {"v":"最"}
+
+data: {"v":"恐怖的"}
+
+data: {"v":"进球"}
+
+data: {"v":"机器"}
+
+data: {"v":"——"}
+
+data: {"v":"**"}
+
+data: {"v":"哈"}
+
+data: {"v":"兰德"}
+
+data: {"v":"**"}
+
+data: {"v":"。"}
+
+data: {"v":"他的"}
+
+data: {"v":"存在"}
+
+data: {"v":"让"}
+
+data: {"v":"任何"}
+
+data: {"v":"球队"}
+
+data: {"v":"都不敢"}
+
+data: {"v":"小"}
+
+data: {"v":"觑"}
+
+data: {"v":"挪威"}
+
+data: {"v":"[citation:3]"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n"}
+
+data: {"v":"*"}
+
+data: {"v":"  "}
+
+data: {"v":" **"}
+
+data: {"v":"实力"}
+
+data: {"v":"支撑"}
+
+data: {"v":"**"}
+
+data: {"v":"："}
+
+data: {"v":"在"}
+
+data: {"v":"预"}
+
+data: {"v":"选"}
+
+data: {"v":"赛中"}
+
+data: {"v":"双"}
+
+data: {"v":"杀"}
+
+data: {"v":"意大利"}
+
+data: {"v":"，"}
+
+data: {"v":"展现了"}
+
+data: {"v":"强大的"}
+
+data: {"v":"竞争力"}
+
+data: {"v":"。"}
+
+data: {"v":"虽然"}
+
+data: {"v":"整体"}
+
+data: {"v":"阵容"}
+
+data: {"v":"深度"}
+
+data: {"v":"不如"}
+
+data: {"v":"传统"}
+
+data: {"v":"豪门"}
+
+data: {"v":"，"}
+
+data: {"v":"但"}
+
+data: {"v":"“"}
+
+data: {"v":"北欧"}
+
+data: {"v":"海盗"}
+
+data: {"v":"”"}
+
+data: {"v":"拥有"}
+
+data: {"v":"成为"}
+
+data: {"v":"超级"}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"的一切"}
+
+data: {"v":"潜"}
+
+data: {"v":"质"}
+
+data: {"v":"[citation:3]"}
+
+data: {"v":"[citation:9]"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"---\n\n"}
+
+data: {"v":"###"}
+
+data: {"v":" "}
+
+data: {"v":"总结"}
+
+data: {"v":"\n"}
+
+data: {"v":"综合"}
+
+data: {"v":"来看"}
+
+data: {"v":"，"}
+
+data: {"v":"**"}
+
+data: {"v":"西班牙"}
+
+data: {"v":"**"}
+
+data: {"v":"在"}
+
+data: {"v":"数据和"}
+
+data: {"v":"媒体"}
+
+data: {"v":"眼中"}
+
+data: {"v":"处于"}
+
+data: {"v":"领"}
+
+data: {"v":"跑"}
+
+data: {"v":"位置"}
+
+data: {"v":"，"}
+
+data: {"v":"**"}
+
+data: {"v":"法国"}
+
+data: {"v":"**"}
+
+data: {"v":"和"}
+
+data: {"v":"**"}
+
+data: {"v":"阿根廷"}
+
+data: {"v":"**"}
+
+data: {"v":"则"}
+
+data: {"v":"拥有"}
+
+data: {"v":"顶"}
+
+data: {"v":"级的"}
+
+data: {"v":"球星"}
+
+data: {"v":"个人"}
+
+data: {"v":"能力"}
+
+data: {"v":"与"}
+
+data: {"v":"大赛"}
+
+data: {"v":"经验"}
+
+data: {"v":"。"}
+
+data: {"v":"**"}
+
+data: {"v":"英格兰"}
+
+data: {"v":"**"}
+
+data: {"v":"阵容"}
+
+data: {"v":"豪华"}
+
+data: {"v":"但"}
+
+data: {"v":"需要"}
+
+data: {"v":"突破"}
+
+data: {"v":"心"}
+
+data: {"v":"魔"}
+
+data: {"v":"。"}
+
+data: {"v":"而在"}
+
+data: {"v":"黑"}
+
+data: {"v":"马"}
+
+data: {"v":"层面"}
+
+data: {"v":"，"}
+
+data: {"v":"拥有"}
+
+data: {"v":"哈"}
+
+data: {"v":"兰"}
+
+data: {"v":"德的"}
+
+data: {"v":"**"}
+
+data: {"v":"挪威"}
+
+data: {"v":"**"}
+
+data: {"v":"和"}
+
+data: {"v":"以"}
+
+data: {"v":"摩"}
+
+data: {"v":"洛"}
+
+data: {"v":"哥"}
+
+data: {"v":"为代表的"}
+
+data: {"v":"非洲"}
+
+data: {"v":"力量"}
+
+data: {"v":"，"}
+
+data: {"v":"很可能"}
+
+data: {"v":"在"}
+
+data: {"v":"北美"}
+
+data: {"v":"大陆"}
+
+data: {"v":"掀起"}
+
+data: {"v":"波澜"}
+
+data: {"v":"。\n\n"}
+
+data: {"v":"202"}
+
+data: {"v":"6"}
+
+data: {"v":"年的"}
+
+data: {"v":"夏天"}
+
+data: {"v":"，"}
+
+data: {"v":"我们将"}
+
+data: {"v":"见证"}
+
+data: {"v":"梅西"}
+
+data: {"v":"、"}
+
+data: {"v":"C"}
+
+data: {"v":"罗"}
+
+data: {"v":"等"}
+
+data: {"v":"传奇"}
+
+data: {"v":"的"}
+
+data: {"v":"谢"}
+
+data: {"v":"幕"}
+
+data: {"v":"，"}
+
+data: {"v":"也"}
+
+data: {"v":"极"}
+
+data: {"v":"有可能"}
+
+data: {"v":"迎来"}
+
+data: {"v":"亚"}
+
+data: {"v":"马尔"}
+
+data: {"v":"、"}
+
+data: {"v":"哈"}
+
+data: {"v":"兰德"}
+
+data: {"v":"等"}
+
+data: {"v":"新"}
+
+data: {"v":"王"}
+
+data: {"v":"者的"}
+
+data: {"v":"登"}
+
+data: {"v":"基"}
+
+data: {"v":"。"}
+
+data: {"v":"这"}
+
+data: {"v":"届"}
+
+data: {"v":"史"}
+
+data: {"v":"无"}
+
+data: {"v":"前"}
+
+data: {"v":"例"}
+
+data: {"v":"的"}
+
+data: {"v":"48"}
+
+data: {"v":"队"}
+
+data: {"v":"世界杯"}
+
+data: {"v":"，"}
+
+data: {"v":"注定"}
+
+data: {"v":"充满"}
+
+data: {"v":"故事"}
+
+data: {"v":"。"}
+
+data: {"p":"response","o":"BATCH","v":[{"p":"accumulated_token_usage","v":22},{"p":"quasi_status","v":"FINISHED"}]}
+
+data: {"p":"response/status","o":"SET","v":"FINISHED"}
+
+event: update_session
+data: {"updated_at":1774513248.71874}
+
+event: title
+data: {"content":"世界杯十大热门盘点"}
+
+event: close
+data: {"click_behavior":"none","auto_resume":false}
+
