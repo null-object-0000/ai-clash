@@ -91,7 +91,10 @@ await window.__AI_CLASH.chat.newChat()
 // 获取思考模式状态
 await window.__AI_CLASH.thinking.getState()
 
-await window.__AI_CLASH.thinking.sync(true)
+await window.__AI_CLASH.thinking.enable()
+await window.__AI_CLASH.thinking.getState()
+
+await window.__AI_CLASH.thinking.disable()
 await window.__AI_CLASH.thinking.getState()
 
 // 一站式发送并监听流式输出
@@ -167,7 +170,7 @@ await injector.call('chat', 'send', {
 ```html
 <script src="http://localhost:5173/standalone.js"></script>
 <script>
-  await window.__AI_CLASH.thinking.sync(true);
+  await window.__AI_CLASH.thinking.enable();
 </script>
 ```
 

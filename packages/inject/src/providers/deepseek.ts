@@ -2,7 +2,63 @@
  * DeepSeek Provider Configuration
  */
 
-import type { ProviderConfig } from '../core/types.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
+import { findAnyElement, hasClass, simulateRealClick } from '../core/dom-utils.js';
+
+// 思考模式实现
+const thinkingAction: ToggleAction = {
+  async getState() {
+    const selectors = ['.ds-toggle-button[role="button"] >> 深度思考'];
+    const el = findAnyElement(selectors);
+    const parent = el?.parentElement?.parentElement;
+    if (!parent || !el) return { found: false, enabled: false };
+    return { found: true, enabled: hasClass(parent, 'ds-toggle-button--selected') };
+  },
+
+  async enable() {
+    const selectors = ['.ds-toggle-button[role="button"] >> 深度思考'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+
+  async disable() {
+    const selectors = ['.ds-toggle-button[role="button"] >> 深度思考'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+};
+
+// 智能搜索实现
+const searchAction: ToggleAction = {
+  async getState() {
+    const selectors = ['.ds-toggle-button[role="button"] >> 智能搜索'];
+    const el = findAnyElement(selectors);
+    if (!el) return { found: false, enabled: false };
+    const parent = el.parentElement?.parentElement;
+    if (!parent) return { found: false, enabled: false };
+    return { found: true, enabled: hasClass(parent, 'ds-toggle-button--selected') };
+  },
+
+  async enable() {
+    const selectors = ['.ds-toggle-button[role="button"] >> 智能搜索'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+
+  async disable() {
+    const selectors = ['.ds-toggle-button[role="button"] >> 智能搜索'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+};
 
 export const deepseekProvider: ProviderConfig = {
   id: 'deepseek',
@@ -30,18 +86,10 @@ export const deepseekProvider: ProviderConfig = {
         ],
       },
     },
-    // 思考模式
-    thinking: {
-      button: ['.ds-toggle-button[role="button"] >> 深度思考'],
-      enabledState: { hasClass: 'ds-toggle-button--selected' },
-      toggle: { type: 'click', wait: 300 },
-    },
-    // 智能搜索
-    search: {
-      button: ['.ds-toggle-button[role="button"] >> 智能搜索'],
-      enabledState: { hasClass: 'ds-toggle-button--selected' },
-      toggle: { type: 'click', wait: 300 },
-    },
+    // 思考模式 - 使用抽象接口
+    thinking: thinkingAction,
+    // 智能搜索 - 使用抽象接口
+    search: searchAction,
   },
   // 会话 ID 提取配置
   conversation: {

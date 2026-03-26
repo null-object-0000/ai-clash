@@ -12,8 +12,18 @@ import type {
   SendOptions,
   ThinkingCapability,
   SearchCapability,
+  ThinkingAction,
+  SearchAction,
 } from './types.js';
 import { getProviderConfig, getProviderIds, type ProviderId } from '../providers/index.js';
+import {
+  findElement,
+  findAnyElement,
+  waitForElement,
+  waitForAnyElement,
+  simulateRealClick,
+  wait,
+} from './dom-utils.js';
 
 // ============================================================================
 // 常量定义
@@ -369,7 +379,7 @@ function setupSSEInterceptor() {
 // 工具函数
 // ============================================================================
 
-const wait = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+// 注意：wait 函数已从 dom-utils.js 导入
 
 /**
  * 从 URL 提取会话 ID
@@ -656,140 +666,13 @@ function monitorResponseDom(
   check();
 }
 
-/**
- * 解析伪选择器语法
- *
- * 支持以下格式：
- * - 纯 CSS: 'button.btn' → { css: 'button.btn', text: null }
- * - CSS + 文本：'button.btn >> 发送' → { css: 'button.btn', text: '发送' }
- * - 纯文本：'>> 发送' → { css: '*', text: '发送' }
- */
-function parseSelector(selector: string): { css: string; text: string | null } {
-  const parts = selector.split('>>');
+// ============================================================================
+// DOM 操作工具（使用 dom-utils 模块）
+// ============================================================================
 
-  if (parts.length === 1) {
-    // 纯 CSS 选择器
-    return { css: parts[0].trim(), text: null };
-  }
-
-  // CSS + 文本 或 纯文本
-  const css = parts[0].trim() || '*';
-  const text = parts.slice(1).join('>>').trim();
-  return { css, text: text || null };
-}
-
-/**
- * 检查元素文本是否包含指定文本
- */
-function elementTextContains(el: Element, text: string): boolean {
-  const elText = getElementText(el);
-  return elText.includes(text);
-}
-
-/**
- * 伪选择器查询 - 支持 >> 语法
- *
- * @example
- * select('button.n-button >> 发送') // 查找 class 为 n-button 且文本包含"发送"的按钮
- * select('span >> 深度思考') // 查找文本包含"深度思考"的 span 元素
- * select('>> 发送') // 查找任意文本包含"发送"的元素
- * select('button.btn') // 纯 CSS 选择器
- */
-function select(selector: string): Element | null {
-  const { css, text } = parseSelector(selector);
-
-  // 纯 CSS 选择器，直接使用 querySelector
-  if (!text) {
-    return document.querySelector(css);
-  }
-
-  // CSS + 文本过滤
-  const elements = document.querySelectorAll(css);
-  for (const el of elements) {
-    if (elementTextContains(el, text)) {
-      return el;
-    }
-  }
-
-  return null;
-}
-
-/**
- * 伪选择器查询所有匹配元素 - 支持 >> 语法
- */
-function selectAll(selector: string): Element[] {
-  const { css, text } = parseSelector(selector);
-
-  // 纯 CSS 选择器
-  if (!text) {
-    return Array.from(document.querySelectorAll(css));
-  }
-
-  // CSS + 文本过滤
-  const elements = document.querySelectorAll(css);
-  const result: Element[] = [];
-  for (const el of elements) {
-    if (elementTextContains(el, text)) {
-      result.push(el);
-    }
-  }
-  return result;
-}
-
-/**
- * 查找元素 - 支持 >> 伪选择器语法
- */
-function findElement(selector: string): Element | null {
-  return select(selector);
-}
-
-/**
- * 查找元素列表中的第一个匹配项
- */
-function findAnyElement(selectors: string[]): Element | null {
-  for (const selector of selectors) {
-    const el = findElement(selector);
-    if (el) return el;
-  }
-  return null;
-}
-
-/**
- * 等待元素出现 - 支持 >> 伪选择器语法
- */
-function waitForElement(selector: string, timeout = 8000): Promise<Element | null> {
-  return new Promise(resolve => {
-    const start = Date.now();
-    const check = () => {
-      const el = findElement(selector);
-      if (el) {
-        resolve(el);
-        return;
-      }
-      if (Date.now() - start > timeout) {
-        resolve(null);
-        return;
-      }
-      setTimeout(check, 100);
-    };
-    check();
-  });
-}
-
-/**
- * 等待任意元素出现
- */
-async function waitForAnyElement(selectors: string[], timeout = 8000): Promise<Element | null> {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    for (const selector of selectors) {
-      const el = findElement(selector);
-      if (el) return el;
-    }
-    await wait(100);
-  }
-  return null;
-}
+// 注意：findElement, findAnyElement, waitForElement, waitForAnyElement,
+// simulateRealClick 等函数已从 dom-utils.js 导入
+// 本地保留 getElementText, elementTextContains 供内部 DOM 轮询使用
 
 // ============================================================================
 // 能力实现工厂
@@ -869,7 +752,7 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
         if (options?.thinking !== undefined && provider.actions.thinking) {
           const thinking = createThinkingCapability(provider);
           if (thinking) {
-            await thinking.sync(options.thinking);
+            await (options.thinking ? thinking.enable() : thinking.disable());
             await wait(300);
           }
         }
@@ -878,7 +761,7 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
         if (options?.search !== undefined && provider.actions.search) {
           const search = createSearchCapability(provider);
           if (search) {
-            await search.sync(options.search);
+            await (options.search ? search.enable() : search.disable());
             await wait(300);
           }
         }
@@ -1008,18 +891,7 @@ function simulateEnter(el: Element): void {
   }));
 }
 
-function simulateRealClick(element: Element): void {
-  if (!element) return;
-
-  const events = [
-    new PointerEvent('pointerdown', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
-    new MouseEvent('mousedown', { bubbles: true, cancelable: true }),
-    new PointerEvent('pointerup', { bubbles: true, cancelable: true, pointerType: 'mouse' }),
-    new MouseEvent('mouseup', { bubbles: true, cancelable: true }),
-    new MouseEvent('click', { bubbles: true, cancelable: true }),
-  ];
-  events.forEach(ev => element.dispatchEvent(ev));
-}
+// 注意：simulateRealClick 函数已从 dom-utils.js 导入
 
 /**
  * 创建思考模式切换能力
@@ -1032,157 +904,32 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
     return undefined;
   }
 
-  const findToggleEl = () => findAnyElement(thinking.button);
-
-  // Type guard for string config
-  const isStringConfig = (cfg: any): cfg is string => typeof cfg === 'string';
-  // Type guard for hasClass config
-  const isHasClassConfig = (cfg: any): cfg is { hasClass: string } =>
-    typeof cfg === 'object' && cfg !== null && 'hasClass' in cfg && cfg.hasClass;
-  // Type guard for classContains config
-  const isClassContainsConfig = (cfg: any): cfg is { classContains: string } =>
-    typeof cfg === 'object' && cfg !== null && 'classContains' in cfg && cfg.classContains;
-  // Type guard for textContains config
-  const isTextContainsConfig = (cfg: any): cfg is { textContains: string } =>
-    typeof cfg === 'object' && cfg !== null && 'textContains' in cfg && cfg.textContains;
-
-  const checkEnabled: (el: Element) => boolean = typeof thinking.enabledState === 'function'
-    ? thinking.enabledState
-    : (el) => {
-      if (isStringConfig(thinking.enabledState)) {
-        return el.classList.contains(thinking.enabledState);
-      }
-      if (isHasClassConfig(thinking.enabledState)) {
-        return el.classList.contains(thinking.enabledState.hasClass);
-      }
-      if (isClassContainsConfig(thinking.enabledState)) {
-        const kw = thinking.enabledState.classContains.toLowerCase();
-        return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
-      }
-      if (isTextContainsConfig(thinking.enabledState)) {
-        return (el.textContent || '').includes(thinking.enabledState.textContains);
-      }
-      return false;
-    };
-
-  const doToggle = async (wantEnabled?: boolean): Promise<void> => {
-    const el = findToggleEl();
-    if (!el) return;
-
-    if (thinking.toggle.type === 'dropdown') {
-      // 对于 dropdown 类型，需要找到真正的触发器按钮
-      // 使用配置中的选择器查找触发器按钮
-      const triggerSelectors = thinking.toggle.triggerButtonSelectors || [];
-      let targetBtn: Element | null = null;
-      for (const selector of triggerSelectors) {
-        targetBtn = el.closest(selector) || el.querySelector(selector);
-        if (targetBtn) break;
-      }
-      targetBtn = targetBtn || el;
-
-      // 使用真实点击模拟展开菜单
-      simulateRealClick(targetBtn);
-      await wait(thinking.toggle.wait || 800);
-
-      // 根据期望状态选择菜单项
-      const targetMatch = wantEnabled ? thinking.toggle.enableMatch : thinking.toggle.disableMatch;
-
-      // 使用配置中的菜单项选择器（按优先级查找）
-      const menuItemSelectors = thinking.toggle.menuItemSelectors || [];
-      const menuItems: Element[] = [];
-      for (const selector of menuItemSelectors) {
-        menuItems.push(...Array.from(document.querySelectorAll(selector)));
-      }
-
-      // 根据文本匹配目标菜单项
-      let targetItem: Element | undefined;
-      if (targetMatch?.texts) {
-        targetItem = menuItems.find(item =>
-          targetMatch!.texts.some(text => item.textContent?.includes(text))
-        );
-      }
-
-      // Fallback: 使用选择器查找
-      if (!targetItem && targetMatch?.fallbackSelectors) {
-        for (const selector of targetMatch.fallbackSelectors) {
-          const item = document.querySelector(selector);
-          if (item) {
-            targetItem = item;
-            break;
-          }
-        }
-      }
-
-      if (targetItem) {
-        // 找到真正可点击的菜单项元素
-        const clickableSelectors = thinking.toggle.clickableItemSelectors || [];
-        let clickableOption: Element | null = null;
-        for (const selector of clickableSelectors) {
-          clickableOption = targetItem.closest(selector) || targetItem.querySelector(selector);
-          if (clickableOption) break;
-        }
-        clickableOption = clickableOption || targetItem;
-
-        simulateRealClick(clickableOption);
-        await wait(thinking.toggle.wait || 800);
-
-        // 关闭菜单（点击 body）
-        simulateRealClick(document.body);
-      } else {
-        // 关闭菜单
-        simulateRealClick(document.body);
-      }
-      return;
-    }
-
-    // click 类型
-    let clickTarget: Element = el;
-    // 如果配置了关闭按钮选择器，且需要关闭，尝试查找关闭按钮
-    if (!wantEnabled && thinking.toggle.closeButtonSelectors) {
-      for (const selector of thinking.toggle.closeButtonSelectors) {
-        const closeBtn = el.querySelector(selector);
-        if (closeBtn) {
-          clickTarget = closeBtn;
-          break;
-        }
-      }
-    }
-    // fallback: 尝试找 button，最后回到 el
-    if (clickTarget === el) {
-      clickTarget = el.closest('button') || el.querySelector('button') || el;
-    }
-    simulateRealClick(clickTarget);
-    await wait(thinking.toggle.wait || 300);
-  };
-
+  const impl = thinking as ThinkingAction;
   return {
     async getState() {
-      const el = findToggleEl();
-      if (!el) return { found: false, enabled: false };
-      return { found: true, enabled: checkEnabled(el) };
+      return impl.getState();
     },
-
-    async sync(wantEnabled) {
-      const el = findToggleEl();
-      if (!el) {
+    async enable() {
+      const current = await impl.getState();
+      if (!current.found) {
         return { success: false, changed: false, reason: 'not-found' };
       }
-
-      const current = checkEnabled(el);
-      if (current === wantEnabled) {
+      if (current.enabled) {
         return { success: true, changed: false };
       }
-
-      await doToggle(wantEnabled);
-
-      // 验证切换结果
-      const afterEl = findToggleEl();
-      if (!afterEl) {
-        return { success: false, changed: true, reason: 'disappeared-after-toggle' };
+      const success = await impl.enable();
+      return { success, changed: success };
+    },
+    async disable() {
+      const current = await impl.getState();
+      if (!current.found) {
+        return { success: false, changed: false, reason: 'not-found' };
       }
-
-      const after = checkEnabled(afterEl);
-      return { success: after === wantEnabled, changed: true };
+      if (!current.enabled) {
+        return { success: true, changed: false };
+      }
+      const success = await impl.disable();
+      return { success, changed: success };
     },
   };
 }
@@ -1198,135 +945,32 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
     return undefined;
   }
 
-  // 复用 thinking 的实现逻辑
-  const findToggleEl = () => findAnyElement(search.button);
-
-  const isStringConfig = (cfg: any): cfg is string => typeof cfg === 'string';
-  const isHasClassConfig = (cfg: any): cfg is { hasClass: string } =>
-    typeof cfg === 'object' && cfg !== null && 'hasClass' in cfg && cfg.hasClass;
-  const isClassContainsConfig = (cfg: any): cfg is { classContains: string } =>
-    typeof cfg === 'object' && cfg !== null && 'classContains' in cfg && cfg.classContains;
-  const isTextContainsConfig = (cfg: any): cfg is { textContains: string } =>
-    typeof cfg === 'object' && cfg !== null && 'textContains' in cfg && cfg.textContains;
-
-  const checkEnabled: (el: Element) => boolean = typeof search.enabledState === 'function'
-    ? search.enabledState
-    : (el) => {
-      if (isStringConfig(search.enabledState)) {
-        return el.classList.contains(search.enabledState);
-      }
-      if (isHasClassConfig(search.enabledState)) {
-        return el.classList.contains(search.enabledState.hasClass);
-      }
-      if (isClassContainsConfig(search.enabledState)) {
-        const kw = search.enabledState.classContains.toLowerCase();
-        return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
-      }
-      if (isTextContainsConfig(search.enabledState)) {
-        return (el.textContent || '').includes(search.enabledState.textContains);
-      }
-      return false;
-    };
-
-  const doToggle = async (wantEnabled?: boolean): Promise<void> => {
-    const el = findToggleEl();
-    if (!el) return;
-
-    if (search.toggle.type === 'click') {
-      let clickTarget: Element = el;
-      // 如果配置了关闭按钮选择器，且需要关闭，尝试查找关闭按钮
-      if (!wantEnabled && search.toggle.closeButtonSelectors) {
-        for (const selector of search.toggle.closeButtonSelectors) {
-          const closeBtn = el.querySelector(selector);
-          if (closeBtn) {
-            clickTarget = closeBtn;
-            break;
-          }
-        }
-      }
-      // fallback: 尝试找 button，最后回到 el
-      if (clickTarget === el) {
-        clickTarget = el.closest('button') || el.querySelector('button') || el;
-      }
-      simulateRealClick(clickTarget);
-      await wait(search.toggle.wait || 300);
-    } else if (search.toggle.type === 'dropdown') {
-      // 点击展开菜单
-      (el as HTMLElement).click();
-      await wait(search.toggle.wait || 800);
-
-      // 根据期望状态选择菜单项
-      const targetMatch = wantEnabled ? search.toggle.enableMatch : search.toggle.disableMatch;
-      if (!targetMatch) return;
-
-      // 查找菜单项
-      const selectors = search.toggle.menuItemSelectors || [
-        '[role="menuitem"]',
-        '[data-slot="dropdown-menu-item"]',
-      ];
-
-      let menuItems: Element[] = [];
-      for (const selector of selectors) {
-        const items = Array.from(document.querySelectorAll(selector));
-        if (items.length > 0) {
-          menuItems = items;
-          break;
-        }
-      }
-
-      // 根据文本匹配目标菜单项
-      let targetItem: Element | undefined;
-      if (targetMatch.texts) {
-        targetItem = menuItems.find(item =>
-          targetMatch!.texts.some(text => item.textContent?.includes(text))
-        );
-      }
-
-      // Fallback: 使用选择器查找
-      if (!targetItem && targetMatch?.fallbackSelectors) {
-        for (const selector of targetMatch.fallbackSelectors) {
-          const item = document.querySelector(selector);
-          if (item) {
-            targetItem = item;
-            break;
-          }
-        }
-      }
-
-      if (targetItem) {
-        (targetItem as HTMLElement).click();
-        await wait(search.toggle.wait || 800);
-      }
-    }
-  };
-
+  const impl = search as SearchAction;
   return {
     async getState() {
-      const el = findToggleEl();
-      if (!el) return { found: false, enabled: false };
-      return { found: true, enabled: checkEnabled(el) };
+      return impl.getState();
     },
-
-    async sync(wantEnabled) {
-      const el = findToggleEl();
-      if (!el) {
+    async enable() {
+      const current = await impl.getState();
+      if (!current.found) {
         return { success: false, changed: false, reason: 'not-found' };
       }
-
-      const current = checkEnabled(el);
-      if (current === wantEnabled) {
+      if (current.enabled) {
         return { success: true, changed: false };
       }
-
-      await doToggle(wantEnabled);
-
-      const afterEl = findToggleEl();
-      if (!afterEl) {
-        return { success: false, changed: true, reason: 'disappeared-after-toggle' };
+      const success = await impl.enable();
+      return { success, changed: success };
+    },
+    async disable() {
+      const current = await impl.getState();
+      if (!current.found) {
+        return { success: false, changed: false, reason: 'not-found' };
       }
-
-      const after = checkEnabled(afterEl);
-      return { success: after === wantEnabled, changed: true };
+      if (!current.enabled) {
+        return { success: true, changed: false };
+      }
+      const success = await impl.disable();
+      return { success, changed: success };
     },
   };
 }

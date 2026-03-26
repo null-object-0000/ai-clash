@@ -2,7 +2,67 @@
  * 豆包 (Doubao) Provider Configuration
  */
 
-import type { ProviderConfig } from '../core/types.js';
+import type { ProviderConfig, ThinkingAction } from '../core/types.js';
+import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
+
+// 思考模式实现
+const thinkingAction: ThinkingAction = {
+  async getState() {
+    // 通过 .items-center 文本判断："思考" = 已开启，"快速" = 未开启
+    const el = document.querySelector('[data-testid="deep-thinking-action-button"] .items-center');
+    if (!el) return { found: false, enabled: false };
+    const text = el.textContent?.trim() || '';
+    return { found: true, enabled: text.includes('思考') && !text.includes('快速') };
+  },
+
+  async enable() {
+    const selectors = ['[data-testid="deep-thinking-action-button"]'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+
+    // 点击触发器按钮展开菜单
+    const triggerBtn = el.querySelector('[data-slot="dropdown-menu-trigger"]') || el.querySelector('button');
+    if (!triggerBtn) return false;
+    simulateRealClick(triggerBtn);
+
+    // 等待菜单展开
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // 查找包含"思考"文本的菜单项并点击
+    const menuItems = Array.from(document.querySelectorAll('[role="menuitem"], [data-slot="dropdown-menu-item"]'));
+    const targetItem = menuItems.find(item => item.textContent?.includes('思考'));
+    if (targetItem) {
+      simulateRealClick(targetItem);
+      return true;
+    }
+
+    return false;
+  },
+
+  async disable() {
+    const selectors = ['[data-testid="deep-thinking-action-button"]'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+
+    // 点击触发器按钮展开菜单
+    const triggerBtn = el.querySelector('[data-slot="dropdown-menu-trigger"]') || el.querySelector('button');
+    if (!triggerBtn) return false;
+    simulateRealClick(triggerBtn);
+
+    // 等待菜单展开
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    // 查找包含"快速"文本的菜单项并点击（关闭思考模式）
+    const menuItems = Array.from(document.querySelectorAll('[role="menuitem"], [data-slot="dropdown-menu-item"]'));
+    const targetItem = menuItems.find(item => item.textContent?.includes('快速'));
+    if (targetItem) {
+      simulateRealClick(targetItem);
+      return true;
+    }
+
+    return false;
+  },
+};
 
 export const doubaoProvider: ProviderConfig = {
   id: 'doubao',
@@ -30,43 +90,8 @@ export const doubaoProvider: ProviderConfig = {
         ],
       },
     },
-    // 思考模式
-    thinking: {
-      // 注意：data-testid="deep-thinking-action-button" 是一个 wrapper div，
-      // 真正的触发器按钮在其内部，通过 closest 查找
-      button: ['[data-testid="deep-thinking-action-button"]'],
-      enabledState: { textContains: '思考' },
-      toggle: {
-        type: 'dropdown',
-        wait: 800,
-        // 触发器按钮选择器（从 wrapper 中找到真正的按钮）
-        triggerButtonSelectors: [
-          '[data-slot="dropdown-menu-trigger"]',
-          'button[aria-haspopup="menu"]',
-          'button',
-        ],
-        // 菜单项选择器（按优先级）
-        menuItemSelectors: [
-          '[data-testid*="deep-thinking-action-item"]',
-          '[role="menuitem"]',
-          '[data-slot="dropdown-menu-item"]',
-        ],
-        // 菜单项内部可点击元素选择器
-        clickableItemSelectors: [
-          '[role="menuitem"]',
-          '[data-slot="dropdown-menu-item"]',
-          'button',
-        ],
-        enableMatch: {
-          texts: ['思考', '擅长解决更难的问题'],
-          fallbackSelectors: ['[data-testid="deep-thinking-action-item-1"]'],
-        },
-        disableMatch: {
-          texts: ['快速', '适用于大部分情况'],
-          fallbackSelectors: ['[data-testid="deep-thinking-action-item-0"]'],
-        },
-      },
-    },
+    // 思考模式 - 使用抽象接口
+    thinking: thinkingAction,
     // 注意：豆包没有手动开关的联网搜索功能，搜索由系统自动判断是否需要联网
   },
   // 会话 ID 提取配置

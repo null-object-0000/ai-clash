@@ -2,7 +2,39 @@
  * 通义千问 (Qianwen) Provider Configuration
  */
 
-import type { ProviderConfig } from '../core/types.js';
+import type { ProviderConfig, ThinkingAction } from '../core/types.js';
+import { simulateRealClick } from '../core/dom-utils.js';
+
+// 思考模式实现（深度思考）
+const thinkingAction: ThinkingAction = {
+  async getState() {
+    // 查找关闭按钮，找到就说明已开启深度思考
+    const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');
+    const container = document.querySelector('[data-log-params*="deepThink"]');
+    if (!container) return { found: false, enabled: false };
+    return { found: true, enabled: !!closeBtn };
+  },
+
+  async enable() {
+    // 先检查是否已开启（有关闭按钮说明已开启）
+    const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');
+    if (closeBtn) return true; // 已开启，无需操作
+
+    // 未开启时点击容器开启深度思考
+    const container = document.querySelector('[data-log-params*="deepThink"]');
+    if (!container) return false;
+    simulateRealClick(container);
+    return true;
+  },
+
+  async disable() {
+    // 点击关闭按钮来关闭深度思考
+    const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');
+    if (!closeBtn) return false; // 未开启，无需关闭
+    simulateRealClick(closeBtn);
+    return true;
+  },
+};
 
 export const qianwenProvider: ProviderConfig = {
   id: 'qianwen',
@@ -34,19 +66,8 @@ export const qianwenProvider: ProviderConfig = {
         ],
       },
     },
-    // 思考模式（深度思考）
-    thinking: {
-      button: ['[data-log-params*="deepThink"]'],
-      enabledState: { hasClass: 'selected-WK762S' },
-      toggle: {
-        type: 'click',
-        wait: 300,
-        // 当已开启需要关闭时，从 button wrapper 内查找关闭按钮
-        closeButtonSelectors: [
-          '[data-icon-type="qwpcicon-close2"]', // 已开启：点击内部关闭叉号
-        ],
-      },
-    },
+    // 思考模式（深度思考）- 使用抽象接口
+    thinking: thinkingAction,
   },
   // 会话 ID 提取配置
   // 通义千问 URL 格式：https://www.qianwen.com/chat/{conversationId}

@@ -2,7 +2,60 @@
  * 腾讯元宝 (Yuanbao) Provider Configuration
  */
 
-import type { ProviderConfig } from '../core/types.js';
+import type { ProviderConfig, ThinkingAction, SearchAction } from '../core/types.js';
+import { findAnyElement, simulateRealClick, classContains } from '../core/dom-utils.js';
+
+// 思考模式实现
+const thinkingAction: ThinkingAction = {
+  async getState() {
+    const selectors = ['[data-testid*="deep-thought"], .deep-thought-toggle'];
+    const el = findAnyElement(selectors);
+    if (!el) return { found: false, enabled: false };
+    return { found: true, enabled: classContains(el, 'active') };
+  },
+
+  async enable() {
+    const selectors = ['[data-testid*="deep-thought"], .deep-thought-toggle'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+
+  async disable() {
+    const selectors = ['[data-testid*="deep-thought"], .deep-thought-toggle'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+};
+
+// 智能搜索实现
+const searchAction: SearchAction = {
+  async getState() {
+    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const el = findAnyElement(selectors);
+    if (!el) return { found: false, enabled: false };
+    return { found: true, enabled: classContains(el, 'active') };
+  },
+
+  async enable() {
+    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+
+  async disable() {
+    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const el = findAnyElement(selectors);
+    if (!el) return false;
+    simulateRealClick(el);
+    return true;
+  },
+};
 
 export const yuanbaoProvider: ProviderConfig = {
   id: 'yuanbao',
@@ -37,18 +90,10 @@ export const yuanbaoProvider: ProviderConfig = {
         ],
       },
     },
-    // 思考模式（如果有）
-    thinking: {
-      button: ['[data-testid*="deep-thought"], .deep-thought-toggle'],
-      enabledState: { classContains: 'active' },
-      toggle: { type: 'click', wait: 300 },
-    },
-    // 智能搜索（联网搜索）
-    search: {
-      button: ['[data-testid*="search"], .search-toggle'],
-      enabledState: { classContains: 'active' },
-      toggle: { type: 'click', wait: 300 },
-    },
+    // 思考模式 - 使用抽象接口
+    thinking: thinkingAction,
+    // 智能搜索（联网搜索） - 使用抽象接口
+    search: searchAction,
   },
 };
 
