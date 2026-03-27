@@ -2,11 +2,11 @@
  * LongCat (天工) Provider Configuration
  */
 
-import type { ProviderConfig, ThinkingAction, SearchAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
 import { findAnyElement, hasClass, simulateRealClick, classContains } from '../core/dom-utils.js';
 
 // 思考模式实现
-const thinkingAction: ThinkingAction = {
+const thinkingAction: ToggleAction = {
   async getState() {
     const selectors = ['[data-testid*="thinking"], .thinking-mode'];
     const el = findAnyElement(selectors);
@@ -32,7 +32,7 @@ const thinkingAction: ThinkingAction = {
 };
 
 // 智能搜索实现
-const searchAction: SearchAction = {
+const searchAction: ToggleAction = {
   async getState() {
     const selectors = ['[data-testid*="search"], .search-toggle'];
     const el = findAnyElement(selectors);

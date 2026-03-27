@@ -2,20 +2,21 @@
  * 腾讯元宝 (Yuanbao) Provider Configuration
  */
 
-import type { ProviderConfig, ThinkingAction, SearchAction } from '../core/types.js';
-import { findAnyElement, simulateRealClick, classContains } from '../core/dom-utils.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
+import { findAnyElement, hasClass, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
-const thinkingAction: ThinkingAction = {
+const thinkingAction: ToggleAction = {
   async getState() {
-    const selectors = ['[data-testid*="deep-thought"], .deep-thought-toggle'];
+    const selectors = ['[dt-button-id="deep_think"]'];
     const el = findAnyElement(selectors);
     if (!el) return { found: false, enabled: false };
-    return { found: true, enabled: classContains(el, 'active') };
+    const hasSelectedClass = Array.from(el.classList).some(c => c.startsWith('ThinkSelector_selected__'));
+    return { found: true, enabled: hasSelectedClass };
   },
 
   async enable() {
-    const selectors = ['[data-testid*="deep-thought"], .deep-thought-toggle'];
+    const selectors = ['[dt-button-id="deep_think"]'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -23,7 +24,7 @@ const thinkingAction: ThinkingAction = {
   },
 
   async disable() {
-    const selectors = ['[data-testid*="deep-thought"], .deep-thought-toggle'];
+    const selectors = ['[dt-button-id="deep_think"]'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -32,16 +33,43 @@ const thinkingAction: ThinkingAction = {
 };
 
 // 智能搜索实现
-const searchAction: SearchAction = {
+const searchAction: ToggleAction = {
   async getState() {
-    const selectors = ['[data-testid*="search"], .search-toggle'];
+    // 元宝有点特殊，它可以开启自动搜索，如果开启自动搜索，我们认为智能搜索是关闭的
+    const selectors = ['[dt-button-id="internet_search"]'];
     const el = findAnyElement(selectors);
     if (!el) return { found: false, enabled: false };
-    return { found: true, enabled: classContains(el, 'active') };
+
+    // 找 el 子节点中类名为 index_v2_mainSection__ 的子节点中 index_v2_contentText__ 开头的，看他的文本内容，如果包含"自动搜索"则认为智能搜索是关闭的，否则认为是开启的
+    const mainSectionEl = Array.from(el.children).find(child => Array.from(child.classList).some(c => c.startsWith('index_v2_mainSection__')));
+    const contentEl = mainSectionEl ? Array.from(mainSectionEl.children).find(child => Array.from(child.classList).some(c => c.startsWith('index_v2_contentText__'))) : null;
+    console.log('Yuanbao search button content element:', contentEl);
+    if (contentEl && contentEl.textContent === '自动搜索') {
+      // 强行改成手动模式并关闭智能搜索
+      simulateRealClick(el);
+
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // 找 .internet-search-switch-popup .t-dropdown__item-text 的子节点的子节点的内部 index_v2_dropDownItemName__ 开头的元素且内部文本等于"手动"，点击它
+      const popupItem = Array.from(document.querySelectorAll('.internet-search-switch-popup .t-dropdown__item-text div div'))
+        .find(item => Array.from(item.classList).some(c => c.startsWith('index_v2_dropDownItemName__')) && item.textContent === '手动');
+      if (popupItem) {
+        simulateRealClick(popupItem.parentElement?.parentElement!);
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        return await this.getState(); // 重新获取状态，应该就变成智能搜索已开启了
+      }
+
+      return { found: true, enabled: false };
+    }
+
+    const hasSelectedClass = Array.from(el.classList).some(c => c.startsWith('index_v2_active__'));
+    return { found: true, enabled: hasSelectedClass };
   },
 
   async enable() {
-    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const selectors = ['[dt-button-id="internet_search"]'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -49,7 +77,7 @@ const searchAction: SearchAction = {
   },
 
   async disable() {
-    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const selectors = ['[dt-button-id="internet_search"]'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);

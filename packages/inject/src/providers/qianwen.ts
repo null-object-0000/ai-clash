@@ -2,12 +2,12 @@
  * 通义千问 (Qianwen) Provider Configuration
  */
 
-import type { ProviderConfig, ThinkingAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
 import { simulateRealClick } from '../core/dom-utils.js';
 import { IncrementalHelper } from '../core/incremental-utils.js';
 
 // 思考模式实现（深度思考）
-const thinkingAction: ThinkingAction = {
+const thinkingAction: ToggleAction = {
   async getState() {
     // 查找关闭按钮，找到就说明已开启深度思考
     const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');

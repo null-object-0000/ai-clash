@@ -165,37 +165,6 @@ export interface ToggleAction {
 }
 
 /**
- * 思考模式动作配置
- */
-export type ThinkingAction = ToggleAction;
-
-/**
- * 搜索模式动作配置
- */
-export type SearchAction = ToggleAction;
-
-/**
- * 切换模式能力（对外暴露的 API 接口）
- *
- * 与 ToggleAction 方法签名相同，但返回值包含更详细的执行结果信息。
- */
-export interface ToggleCapability {
-  getState(): Promise<{ found: boolean; enabled: boolean }>;
-  enable(): Promise<{ success: boolean; changed: boolean; reason?: string }>;
-  disable(): Promise<{ success: boolean; changed: boolean; reason?: string }>;
-}
-
-/**
- * 思考模式能力（对外暴露的 API 接口）
- */
-export type ThinkingCapability = ToggleCapability;
-
-/**
- * 搜索模式能力（对外暴露的 API 接口）
- */
-export type SearchCapability = ToggleCapability;
-
-/**
  * 新对话动作配置
  */
 export interface NewChatAction {
@@ -286,8 +255,8 @@ export interface ConversationConfig {
  */
 export interface ProviderActions {
   chat: ChatActions;
-  thinking?: ThinkingAction;
-  search?: SearchAction;
+  thinking?: ToggleAction;
+  search?: ToggleAction;
   model?: ModelAction;
 }
 

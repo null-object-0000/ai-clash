@@ -2,11 +2,11 @@
  * 豆包 (Doubao) Provider Configuration
  */
 
-import type { ProviderConfig, ThinkingAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
 import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
-const thinkingAction: ThinkingAction = {
+const thinkingAction: ToggleAction = {
   async getState() {
     // 通过 .items-center 文本判断："思考" = 已开启，"快速" = 未开启
     const el = document.querySelector('[data-testid="deep-thinking-action-button"] .items-center');
