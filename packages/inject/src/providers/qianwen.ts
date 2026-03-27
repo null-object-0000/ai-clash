@@ -4,6 +4,7 @@
 
 import type { ProviderConfig, ThinkingAction } from '../core/types.js';
 import { simulateRealClick } from '../core/dom-utils.js';
+import { IncrementalHelper } from '../core/incremental-utils.js';
 
 // 思考模式实现（深度思考）
 const thinkingAction: ThinkingAction = {
@@ -90,89 +91,22 @@ export const qianwenProvider: ProviderConfig = {
   },
   // SSE 流式拦截配置
   sse: (() => {
-    // 跟踪完整内容状态（千问每次发送完整内容，需要提取增量）
-    let lastFullContent = '';
-    let lastFullThinking = '';
-    let currentEvent = '';
-
-    // 从后往前找第一个有直接 string content 的消息
-    function findContentMessage(messages: any[]) {
-      for (let i = messages.length - 1; i >= 0; i--) {
-        const msg = messages[i];
-        if (msg && typeof msg.content === 'string') {
-          return msg;
-        }
-      }
-      return null;
-    }
-
-    // 根据消息类型判断是否是思考内容
-    function isThinkingMessage(msg: any) {
-      if (!msg) return false;
-
-      // 千问新格式：multi_load/iframe 如果 content 已经包含 [(deep_think)] 开头
-      // 说明整个 content 就是最终输出（已经包含思考块），直接当作回答
-      if (msg.mime_type === 'multi_load/iframe') {
-        // 如果 content 已经打包好 [(deep_think)]，直接输出为回答
-        if (typeof msg.content === 'string' && msg.content.includes('[(deep_think)]')) {
-          return false;
-        }
-        // 纯思考块：meta 有 deep_think 且 content 只是占位/空
-        if (msg.meta_data && Array.isArray(msg.meta_data.multi_load)) {
-          for (const item of msg.meta_data.multi_load) {
-            if (item && item.type && item.type.includes('deep_think')) {
-              // 只有当 content 为空或只是 [(deep_think)] 标记时才判定为思考
-              if (!msg.content || msg.content === '[(deep_think)]') {
-                return true;
-              }
-            }
-          }
-        }
-        // 其他情况 multi_load/iframe 都是回答
-        return false;
-      }
-
-      // bar/progress + type=deep_thinking / deep_thought 是思考进度
-      if (msg.mime_type === 'bar/progress') {
-        if (msg.meta_data?.type === 'deep_thinking' || msg.meta_data?.type === 'deep_thought') {
-          return true;
-        }
-        return false;
-      }
-
-      return false;
-    }
+    const helper = new IncrementalHelper();
+    let isFinalized = false; // 标记是否已完成
 
     return {
       urlPattern: '/api/v2/chat',
-      detectionKeywords: ['data:{"error_msg":', '"error_code":', '"messages":'],
+      detectionKeywords: ['"messages":', '"error_code":'],
       parseLine: (line: string) => {
-        // trim 整行，处理换行空格问题
+        if (isFinalized) return null; // 已完成后不再处理
+
         line = line.trim();
         if (!line) return null;
 
-        // 处理 event 行（跟踪事件类型）
-        if (line.startsWith('event:')) {
-          const eventVal = line.substring(6).trim();
-          currentEvent = eventVal;
-          // event:complete 表示整个响应结束
-          if (currentEvent === 'complete') {
-            const result = { text: '', isThink: null, done: true };
-            // 重置状态
-            lastFullContent = '';
-            lastFullThinking = '';
-            currentEvent = '';
-            return result;
-          }
-          return null;
-        }
-
-        if (!line.startsWith('data:')) return null;
-
         const json = line.substring(5).trim();
-        if (!json || json === '[DONE]') {
-          lastFullContent = '';
-          lastFullThinking = '';
+        if (!json || line === 'event:complete') {
+          // 重置状态
+          helper.reset();
           return { text: '', isThink: null, done: true };
         }
 
@@ -184,83 +118,91 @@ export const qianwenProvider: ProviderConfig = {
             return null;
           }
 
+          // 获取消息数组
           let msgArr: any[] | null = null;
           if (d.data && Array.isArray(d.data.messages)) {
             msgArr = d.data.messages;
-          } else if (Array.isArray(d.messages)) {
-            msgArr = d.messages;
           }
 
-          if (!msgArr) {
-            // 回退到 OpenAI 格式
-            if (d.choices && d.choices[0] && d.choices[0].delta) {
-              const delta = d.choices[0].delta;
-              if (delta.reasoning_content != null) {
-                return {
-                  text: String(delta.reasoning_content),
-                  isThink: true,
-                  done: false,
-                };
-              } else if (delta.content != null) {
-                return {
-                  text: String(delta.content),
-                  isThink: false,
-                  done: false,
-                };
-              }
-            }
+          if (!msgArr || msgArr.length === 0) {
             return null;
           }
 
-          // 千问 v2 格式处理 - 分离思考和回答
-          let thinkingDelta = '';
-          let answerDelta = '';
+          // 找到 mime_type = "multi_load/iframe" 的消息
+          let targetMsg: any = null;
+          for (let i = msgArr.length - 1; i >= 0; i--) {
+            const msg = msgArr[i];
+            if (msg && msg.mime_type === 'multi_load/iframe') {
+              targetMsg = msg;
+              break;
+            }
+          }
 
-          // 收集所有有 content 的消息
-          const allWithContent = msgArr.filter(msg => typeof msg.content === 'string');
+          if (!targetMsg) {
+            return null;
+          }
 
-          // 查找思考内容 - 所有思考消息中最后一个
-          const thinkingMsgs = allWithContent.filter(isThinkingMessage);
-          if (thinkingMsgs.length > 0) {
-            const thinkingMsg = thinkingMsgs[thinkingMsgs.length - 1];
-            if (thinkingMsg.status === 'processing') {
-              const fullContent = thinkingMsg.content;
-              if (fullContent.length > lastFullThinking.length) {
-                thinkingDelta = fullContent.substring(lastFullThinking.length);
-                lastFullThinking = fullContent;
+          console.log('Detected target message for incremental parsing:', targetMsg);
+
+          // 检查是否有思考块 (type = deep_think)
+          let thinkContent: string | null = null;
+          let thinkingCompleted = false;
+
+          if (targetMsg.meta_data && Array.isArray(targetMsg.meta_data.multi_load)) {
+            for (const item of targetMsg.meta_data.multi_load) {
+              if (item && item.type === 'deep_think' && item.content) {
+                thinkContent = item.content.think_content.trimStart();
+                // 检查思考是否完成
+                if (thinkContent && item.content.status === 'complete') {
+                  thinkingCompleted = true;
+                  // 剔除思考内容结尾的换行符
+                  thinkContent = thinkContent.trimEnd();
+                }
+                break;
               }
             }
           }
 
-          // 查找回答内容 - 所有非思考消息中最后一个
-          const answerMsgs = allWithContent.filter(msg => !isThinkingMessage(msg));
-          if (answerMsgs.length > 0) {
-            const answerMsg = answerMsgs[answerMsgs.length - 1];
-            if (answerMsg.status === 'processing' || !answerMsg.status) {
-              const fullContent = answerMsg.content;
-              if (fullContent.length > lastFullContent.length) {
-                answerDelta = fullContent.substring(lastFullContent.length);
-                lastFullContent = fullContent;
-              }
-            }
+          // 使用公共方法处理思考内容增量
+          let thinkResult: ReturnType<IncrementalHelper['process']> | null = null;
+          if (thinkContent !== null) {
+            thinkResult = helper.process('thinking', thinkContent, thinkingCompleted, true);
           }
 
-          // 优先返回思考增量，如果没有思考增量返回回答增量
-          if (thinkingDelta && thinkingDelta.length > 0) {
+          // 优先返回思考增量
+          if (thinkResult && thinkResult.delta) {
             return {
-              text: thinkingDelta,
+              text: thinkResult.delta,
               isThink: true,
-              done: false,
-            };
-          } else if (answerDelta && answerDelta.length > 0) {
-            return {
-              text: answerDelta,
-              isThink: false,
-              done: false,
+              done: thinkResult.done,
             };
           }
 
-          // 没有增量，返回 null
+          // 使用公共方法处理正式内容增量
+          let contentResult: ReturnType<IncrementalHelper['process']> | null = null;
+          if (targetMsg.content && typeof targetMsg.content === 'string') {
+            // 跳过 [(deep_think)] 占位标记
+            const contentStr = targetMsg.content.replace('[(deep_think)]\n\n\n', '').replace('[(deep_think)]\n\n', '').replace('[(deep_think)]\n', '').replace('[(deep_think)]', '');
+            const contentDone = targetMsg.status === 'complete';
+            contentResult = helper.process('content', contentStr, contentDone, false);
+          }
+
+          // 返回正式内容增量
+          if (contentResult && contentResult.delta) {
+            return {
+              text: contentResult.delta,
+              isThink: false,
+              done: contentResult.done,
+            };
+          }
+
+          // 全部完成
+          if (contentResult?.done) {
+            isFinalized = true; // 标记已完成
+            helper.reset();
+            return { text: '', isThink: null, done: true };
+          }
+
           return null;
         } catch (e) {
           return null;

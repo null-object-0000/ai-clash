@@ -11,6 +11,7 @@
 
 // Core
 export { createInjector } from './core/injector.js';
+export { IncrementalHelper, extractIncrement } from './core/incremental-utils.js';
 export type {
   Injector,
   InjectorOptions,
@@ -26,6 +27,10 @@ export type {
   SendCallbacks,
   ConversationInfo,
 } from './core/types.js';
+export type {
+  StreamState,
+  IncrementalResult,
+} from './core/incremental-utils.js';
 
 // Providers
 export {
