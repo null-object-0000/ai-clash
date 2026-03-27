@@ -100,9 +100,10 @@ function resetSSEState() {
 function parseSSELine(line: string) {
   if (!currentProvider?.sse?.parseLine) return;
 
-  if (line.startsWith('event: ')) {
+  // 兼容 "event: name" (带空格) 和 "event:name" (无空格) 两种格式
+  if (line.startsWith('event:') || line.startsWith('event: ')) {
     return;
-  } else if (line.startsWith('id: ')) {
+  } else if (line.startsWith('id:') || line.startsWith('id: ')) {
     // 忽略 id: 行
     return;
   }

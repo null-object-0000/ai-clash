@@ -39,7 +39,7 @@ const thinkingAction: ThinkingAction = {
 export const qianwenProvider: ProviderConfig = {
   id: 'qianwen',
   name: '通义千问',
-  domain: 'tongyi.aliyun.com',
+  domain: 'qianwen.com',  // 支持 www.qianwen.com / chat2.qianwen.com
   actions: {
     // 基础对话能力
     chat: {
@@ -90,66 +90,179 @@ export const qianwenProvider: ProviderConfig = {
   },
   // SSE 流式拦截配置
   sse: (() => {
-    // 当前正在输出的 fragment 是否是思考内容
-    let currentIsThink = false;
+    // 跟踪完整内容状态（千问每次发送完整内容，需要提取增量）
+    let lastFullContent = '';
+    let lastFullThinking = '';
+    let currentEvent = '';
+
+    // 从后往前找第一个有直接 string content 的消息
+    function findContentMessage(messages: any[]) {
+      for (let i = messages.length - 1; i >= 0; i--) {
+        const msg = messages[i];
+        if (msg && typeof msg.content === 'string') {
+          return msg;
+        }
+      }
+      return null;
+    }
+
+    // 根据消息类型判断是否是思考内容
+    function isThinkingMessage(msg: any) {
+      if (!msg) return false;
+
+      // 千问新格式：multi_load/iframe 如果 content 已经包含 [(deep_think)] 开头
+      // 说明整个 content 就是最终输出（已经包含思考块），直接当作回答
+      if (msg.mime_type === 'multi_load/iframe') {
+        // 如果 content 已经打包好 [(deep_think)]，直接输出为回答
+        if (typeof msg.content === 'string' && msg.content.includes('[(deep_think)]')) {
+          return false;
+        }
+        // 纯思考块：meta 有 deep_think 且 content 只是占位/空
+        if (msg.meta_data && Array.isArray(msg.meta_data.multi_load)) {
+          for (const item of msg.meta_data.multi_load) {
+            if (item && item.type && item.type.includes('deep_think')) {
+              // 只有当 content 为空或只是 [(deep_think)] 标记时才判定为思考
+              if (!msg.content || msg.content === '[(deep_think)]') {
+                return true;
+              }
+            }
+          }
+        }
+        // 其他情况 multi_load/iframe 都是回答
+        return false;
+      }
+
+      // bar/progress + type=deep_thinking / deep_thought 是思考进度
+      if (msg.mime_type === 'bar/progress') {
+        if (msg.meta_data?.type === 'deep_thinking' || msg.meta_data?.type === 'deep_thought') {
+          return true;
+        }
+        return false;
+      }
+
+      return false;
+    }
 
     return {
-      urlPattern: '/qingtian/api/chat',
-      detectionKeywords: ['data: {', '"id":', '"delta":', '"object":'],
+      urlPattern: '/api/v2/chat',
+      detectionKeywords: ['data:{"error_msg":', '"error_code":', '"messages":'],
       parseLine: (line: string) => {
-        if (!line.startsWith('data: ')) return null;
+        // trim 整行，处理换行空格问题
+        line = line.trim();
+        if (!line) return null;
 
-        const json = line.substring(6).trim();
+        // 处理 event 行（跟踪事件类型）
+        if (line.startsWith('event:')) {
+          const eventVal = line.substring(6).trim();
+          currentEvent = eventVal;
+          // event:complete 表示整个响应结束
+          if (currentEvent === 'complete') {
+            const result = { text: '', isThink: null, done: true };
+            // 重置状态
+            lastFullContent = '';
+            lastFullThinking = '';
+            currentEvent = '';
+            return result;
+          }
+          return null;
+        }
+
+        if (!line.startsWith('data:')) return null;
+
+        const json = line.substring(5).trim();
         if (!json || json === '[DONE]') {
-          // 流结束，重置状态
-          currentIsThink = false;
+          lastFullContent = '';
+          lastFullThinking = '';
           return { text: '', isThink: null, done: true };
         }
 
         try {
           const d = JSON.parse(json);
-          let text = '';
-          let hasOutput = false;
 
-          // 通义千问 SSE 格式类似 OpenAI
-          // reasoning_content = 思考，content = 正式回答
-          if (d.choices && d.choices[0] && d.choices[0].delta) {
-            const delta = d.choices[0].delta;
-
-            if (delta.reasoning_content != null) {
-              text = String(delta.reasoning_content);
-              currentIsThink = true;
-              hasOutput = text.length > 0;
-            } else if (delta.content != null) {
-              text = String(delta.content);
-              currentIsThink = false;
-              hasOutput = text.length > 0;
-            } else if (delta.reasoning != null) {
-              // 备选字段名
-              text = String(delta.reasoning);
-              currentIsThink = true;
-              hasOutput = text.length > 0;
-            }
-          }
-
-          // 通义千问自定义格式
-          if (!hasOutput && typeof d.content === 'string') {
-            text = d.content;
-            hasOutput = text.length > 0;
-            // 自定义格式默认是正式回答
-            currentIsThink = false;
-          }
-
-          if (!hasOutput || !text) {
+          // 检查错误码
+          if (d.error_code !== 0) {
             return null;
           }
 
-          return {
-            text,
-            isThink: currentIsThink,
-            done: false,
-          };
-        } catch {
+          let msgArr: any[] | null = null;
+          if (d.data && Array.isArray(d.data.messages)) {
+            msgArr = d.data.messages;
+          } else if (Array.isArray(d.messages)) {
+            msgArr = d.messages;
+          }
+
+          if (!msgArr) {
+            // 回退到 OpenAI 格式
+            if (d.choices && d.choices[0] && d.choices[0].delta) {
+              const delta = d.choices[0].delta;
+              if (delta.reasoning_content != null) {
+                return {
+                  text: String(delta.reasoning_content),
+                  isThink: true,
+                  done: false,
+                };
+              } else if (delta.content != null) {
+                return {
+                  text: String(delta.content),
+                  isThink: false,
+                  done: false,
+                };
+              }
+            }
+            return null;
+          }
+
+          // 千问 v2 格式处理 - 分离思考和回答
+          let thinkingDelta = '';
+          let answerDelta = '';
+
+          // 收集所有有 content 的消息
+          const allWithContent = msgArr.filter(msg => typeof msg.content === 'string');
+
+          // 查找思考内容 - 所有思考消息中最后一个
+          const thinkingMsgs = allWithContent.filter(isThinkingMessage);
+          if (thinkingMsgs.length > 0) {
+            const thinkingMsg = thinkingMsgs[thinkingMsgs.length - 1];
+            if (thinkingMsg.status === 'processing') {
+              const fullContent = thinkingMsg.content;
+              if (fullContent.length > lastFullThinking.length) {
+                thinkingDelta = fullContent.substring(lastFullThinking.length);
+                lastFullThinking = fullContent;
+              }
+            }
+          }
+
+          // 查找回答内容 - 所有非思考消息中最后一个
+          const answerMsgs = allWithContent.filter(msg => !isThinkingMessage(msg));
+          if (answerMsgs.length > 0) {
+            const answerMsg = answerMsgs[answerMsgs.length - 1];
+            if (answerMsg.status === 'processing' || !answerMsg.status) {
+              const fullContent = answerMsg.content;
+              if (fullContent.length > lastFullContent.length) {
+                answerDelta = fullContent.substring(lastFullContent.length);
+                lastFullContent = fullContent;
+              }
+            }
+          }
+
+          // 优先返回思考增量，如果没有思考增量返回回答增量
+          if (thinkingDelta && thinkingDelta.length > 0) {
+            return {
+              text: thinkingDelta,
+              isThink: true,
+              done: false,
+            };
+          } else if (answerDelta && answerDelta.length > 0) {
+            return {
+              text: answerDelta,
+              isThink: false,
+              done: false,
+            };
+          }
+
+          // 没有增量，返回 null
+          return null;
+        } catch (e) {
           return null;
         }
       },
