@@ -78,17 +78,6 @@ export const qianwenProvider: ProviderConfig = {
       captureGroup: 1,
     },
   },
-  // 响应内容提取（DOM 轮询模式）
-  response: {
-    responseSelectors: [
-      '.message-content .markdown-body',
-      '.answer-content .markdown',
-    ],
-    thinkingSelectors: [
-      '.thinking-content .markdown-body',
-      '.reasoning-content .markdown',
-    ],
-  },
   // SSE 流式拦截配置
   sse: (() => {
     let helper = new IncrementalHelper();
@@ -147,10 +136,7 @@ export const qianwenProvider: ProviderConfig = {
           // 看是否是首包
           if (targetMsg.meta_data && targetMsg.meta_data.first_packet) {
             helper = new IncrementalHelper(); // 首包重置状态
-            console.log('Detected first packet, resetting incremental helper state.');
           }
-
-          console.log('Detected target message for incremental parsing:', targetMsg);
 
           // 检查是否有思考块 (type = deep_think)
           let thinkContent: string | null = null;
