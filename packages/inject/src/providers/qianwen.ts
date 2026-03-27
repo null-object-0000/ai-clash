@@ -91,15 +91,12 @@ export const qianwenProvider: ProviderConfig = {
   },
   // SSE 流式拦截配置
   sse: (() => {
-    const helper = new IncrementalHelper();
-    let isFinalized = false; // 标记是否已完成
+    let helper = new IncrementalHelper();
 
     return {
       urlPattern: '/api/v2/chat',
       detectionKeywords: ['"messages":', '"error_code":'],
       parseLine: (line: string) => {
-        if (isFinalized) return null; // 已完成后不再处理
-
         line = line.trim();
         if (!line) return null;
 
@@ -115,6 +112,11 @@ export const qianwenProvider: ProviderConfig = {
 
           // 检查错误码
           if (d.error_code !== 0) {
+            return null;
+          }
+
+          // 屏蔽千问最后还会输出一次全量信息的情况
+          if (d.error_msg === 'request process success!') {
             return null;
           }
 
@@ -140,6 +142,12 @@ export const qianwenProvider: ProviderConfig = {
 
           if (!targetMsg) {
             return null;
+          }
+
+          // 看是否是首包
+          if (targetMsg.meta_data && targetMsg.meta_data.first_packet) {
+            helper = new IncrementalHelper(); // 首包重置状态
+            console.log('Detected first packet, resetting incremental helper state.');
           }
 
           console.log('Detected target message for incremental parsing:', targetMsg);
@@ -198,7 +206,6 @@ export const qianwenProvider: ProviderConfig = {
 
           // 全部完成
           if (contentResult?.done) {
-            isFinalized = true; // 标记已完成
             helper.reset();
             return { text: '', isThink: null, done: true };
           }
