@@ -44,7 +44,6 @@ const searchAction: ToggleAction = {
     // 找 el 子节点中类名为 index_v2_mainSection__ 的子节点中 index_v2_contentText__ 开头的，看他的文本内容，如果包含"自动搜索"则认为智能搜索是关闭的，否则认为是开启的
     const mainSectionEl = Array.from(el.children).find(child => Array.from(child.classList).some(c => c.startsWith('index_v2_mainSection__')));
     const contentEl = mainSectionEl ? Array.from(mainSectionEl.children).find(child => Array.from(child.classList).some(c => c.startsWith('index_v2_contentText__'))) : null;
-    console.log('Yuanbao search button content element:', contentEl);
     if (contentEl && contentEl.textContent === '自动搜索') {
       // 强行改成手动模式并关闭智能搜索
       simulateRealClick(el);
@@ -200,6 +199,27 @@ export const yuanbaoProvider: ProviderConfig = {
               isThink: true,
               done: thinkingDone,
             };
+          }
+
+          // 搜索思考内容 - type: deepSearch
+          // 内容在 contents[].msg 中
+          if (d.type === 'deepSearch' && Array.isArray(d.contents)) {
+            let text = '';
+            let hasOutput = false;
+            for (const item of d.contents) {
+              if (item && typeof item.msg === 'string' && item.msg) {
+                text += item.msg;
+                hasOutput = true;
+              }
+            }
+            if (hasOutput && text) {
+              thinkingDone = d.status === 2;
+              return {
+                text,
+                isThink: true,
+                done: thinkingDone,
+              };
+            }
           }
 
           // 正式回答内容 - type: text
