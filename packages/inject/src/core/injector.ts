@@ -10,16 +10,12 @@ import type {
   ProviderConfig,
   SendCallbacks,
   SendOptions,
-  ThinkingCapability,
-  SearchCapability,
-  ThinkingAction,
-  SearchAction,
+  AuthInfo,
+  ToggleAction,
 } from './types.js';
 import { getProviderConfig, getProviderIds, type ProviderId } from '../providers/index.js';
 import {
-  findElement,
   findAnyElement,
-  waitForElement,
   waitForAnyElement,
   simulateRealClick,
   wait,
@@ -905,7 +901,7 @@ function createThinkingCapability(provider: ProviderConfig): Capabilities['think
     return undefined;
   }
 
-  const impl = thinking as ThinkingAction;
+  const impl = thinking as ToggleAction;
   return {
     async getState() {
       return impl.getState();
@@ -946,7 +942,7 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
     return undefined;
   }
 
-  const impl = search as SearchAction;
+  const impl = search as ToggleAction;
   return {
     async getState() {
       return impl.getState();
@@ -977,6 +973,52 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
 }
 
 /**
+ * 创建 Auth 能力（获取登录信息）
+ */
+function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
+  const { actions } = provider;
+  const auth = actions.auth;
+
+  if (!auth) {
+    return undefined;
+  }
+
+  return {
+    async getInfo(): Promise<AuthInfo> {
+      // 检查是否已登录：只要 loggedInSelectors 中任意一个元素存在即视为已登录
+      const loggedInEl = findAnyElement(auth.loggedInSelectors);
+      if (!loggedInEl) {
+        return { loggedIn: false };
+      }
+
+      // 提取用户名
+      let username: string | undefined;
+      if (auth.usernameSelectors) {
+        const usernameEl = findAnyElement(auth.usernameSelectors);
+        if (usernameEl) {
+          username = usernameEl.textContent?.trim() || undefined;
+        }
+      }
+
+      // 提取头像 URL
+      let avatarUrl: string | undefined;
+      if (auth.avatarSelectors) {
+        const avatarEl = findAnyElement(auth.avatarSelectors);
+        if (avatarEl && avatarEl.tagName === 'IMG') {
+          avatarUrl = (avatarEl as HTMLImageElement).src || (avatarEl as HTMLImageElement).dataset.src || undefined;
+        }
+      }
+
+      return {
+        loggedIn: true,
+        username,
+        avatarUrl,
+      };
+    },
+  };
+}
+
+/**
  * 创建完整能力对象
  */
 function createCapabilities(provider: ProviderConfig): Capabilities {
@@ -984,6 +1026,7 @@ function createCapabilities(provider: ProviderConfig): Capabilities {
     chat: createChatCapability(provider),
     thinking: createThinkingCapability(provider),
     search: createSearchCapability(provider),
+    auth: createAuthCapability(provider),
     // model: createModelCapability(provider), // TODO: 实现模型切换能力
   };
 }
@@ -1028,6 +1071,7 @@ function createWindowAdapter(
         chat: capabilities.chat,
         thinking: capabilities.thinking,
         search: capabilities.search,
+        auth: capabilities.auth,
         _isInjected: true,
       };
     },

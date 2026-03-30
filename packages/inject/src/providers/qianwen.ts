@@ -2,7 +2,7 @@
  * 通义千问 (Qianwen) Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
 import { simulateRealClick } from '../core/dom-utils.js';
 import { IncrementalHelper } from '../core/incremental-utils.js';
 
@@ -37,6 +37,20 @@ const thinkingAction: ToggleAction = {
   },
 };
 
+// Auth 登录信息配置
+const authAction: AuthAction = {
+  loggedInSelectors: [
+    '[data-radix-popper-content-wrapper] .bg-primary.rounded-full img',
+    '[data-radix-popper-content-wrapper] .flex.justify-center .items-center div'
+  ],
+  usernameSelectors: [
+    '[data-radix-popper-content-wrapper] .flex.justify-center .items-center div',
+  ],
+  avatarSelectors: [
+    '[data-radix-popper-content-wrapper] .bg-primary.rounded-full img',
+  ],
+};
+
 export const qianwenProvider: ProviderConfig = {
   id: 'qianwen',
   name: '通义千问',
@@ -69,6 +83,8 @@ export const qianwenProvider: ProviderConfig = {
     },
     // 思考模式（深度思考）- 使用抽象接口
     thinking: thinkingAction,
+    // 登录信息检测
+    auth: authAction,
   },
   // 会话 ID 提取配置
   // 通义千问 URL 格式：https://www.qianwen.com/chat/{conversationId}

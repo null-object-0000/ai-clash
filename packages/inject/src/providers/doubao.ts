@@ -2,7 +2,7 @@
  * 豆包 (Doubao) Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
 import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
@@ -64,6 +64,20 @@ const thinkingAction: ToggleAction = {
   },
 };
 
+// Auth 登录信息配置
+const authAction: AuthAction = {
+  loggedInSelectors: [
+    '#flow_chat_sidebar [data-testid="chat_header_avatar_button"]',
+    '#flow_chat_sidebar [data-slot="dropdown-menu-trigger"] .text-dbx-text-primary',
+  ],
+  usernameSelectors: [
+    '#flow_chat_sidebar [data-slot="dropdown-menu-trigger"] .text-dbx-text-primary',
+  ],
+  avatarSelectors: [
+    '#flow_chat_sidebar [data-testid="chat_header_avatar_button"]',
+  ],
+};
+
 export const doubaoProvider: ProviderConfig = {
   id: 'doubao',
   name: '豆包',
@@ -92,6 +106,8 @@ export const doubaoProvider: ProviderConfig = {
     },
     // 思考模式 - 使用抽象接口
     thinking: thinkingAction,
+    // 登录信息检测
+    auth: authAction,
     // 注意：豆包没有手动开关的联网搜索功能，搜索由系统自动判断是否需要联网
   },
   // 会话 ID 提取配置

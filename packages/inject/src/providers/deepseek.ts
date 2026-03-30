@@ -2,7 +2,7 @@
  * DeepSeek Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
 import { findAnyElement, hasClass, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
@@ -60,6 +60,20 @@ const searchAction: ToggleAction = {
   },
 };
 
+// Auth 登录信息配置
+const authAction: AuthAction = {
+  loggedInSelectors: [
+    '#root div div div:nth-of-type(2) div div div:has(> img) + div',
+    '#root div div div:nth-of-type(2) div div div:nth-of-type(4) img',
+  ],
+  usernameSelectors: [
+    '#root div div div:nth-of-type(2) div div div:has(> img) + div',
+  ],
+  avatarSelectors: [
+    '#root div div div:nth-of-type(2) div div div:nth-of-type(4) img',
+  ],
+};
+
 export const deepseekProvider: ProviderConfig = {
   id: 'deepseek',
   name: 'DeepSeek',
@@ -90,6 +104,8 @@ export const deepseekProvider: ProviderConfig = {
     thinking: thinkingAction,
     // 智能搜索 - 使用抽象接口
     search: searchAction,
+    // 登录信息检测
+    auth: authAction,
   },
   // 会话 ID 提取配置
   conversation: {

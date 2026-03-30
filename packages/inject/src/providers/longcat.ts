@@ -2,8 +2,8 @@
  * LongCat (天工) Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction } from '../core/types.js';
-import { findAnyElement, hasClass, simulateRealClick, classContains } from '../core/dom-utils.js';
+import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
+import { findAnyElement, simulateRealClick, classContains } from '../core/dom-utils.js';
 
 // 思考模式实现
 const thinkingAction: ToggleAction = {
@@ -57,6 +57,20 @@ const searchAction: ToggleAction = {
   },
 };
 
+// Auth 登录信息配置
+const authAction: AuthAction = {
+  loggedInSelectors: [
+    '.slider-footer-content .userAvatar + span',
+    '.slider-footer-content .userAvatar img',
+  ],
+  usernameSelectors: [
+    '.slider-footer-content .userAvatar + span',
+  ],
+  avatarSelectors: [
+    '.slider-footer-content .userAvatar img',
+  ],
+};
+
 export const longcatProvider: ProviderConfig = {
   id: 'longcat',
   name: 'LongCat (天工)',
@@ -94,6 +108,8 @@ export const longcatProvider: ProviderConfig = {
     thinking: thinkingAction,
     // 智能搜索 - 使用抽象接口
     search: searchAction,
+    // 登录信息检测
+    auth: authAction,
   },
 };
 

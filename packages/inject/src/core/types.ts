@@ -94,6 +94,7 @@ export interface Capabilities {
   thinking?: ThinkingCapability;
   search?: SearchCapability;
   model?: ModelCapability;
+  auth?: AuthCapability;
 }
 
 /**
@@ -151,6 +152,59 @@ export interface ModelCapability {
   getCurrent(): Promise<{ found: boolean; model?: ModelInfo }>;
   getAvailable(): Promise<{ found: boolean; models: ModelInfo[] }>;
   select(modelIdOrName: string): Promise<{ success: boolean; reason?: string }>;
+}
+
+/**
+ * 思考模式切换能力
+ */
+export interface ThinkingCapability {
+  getState(): Promise<{ found: boolean; enabled: boolean }>;
+  enable(): Promise<{ success: boolean; changed: boolean; reason?: string }>;
+  disable(): Promise<{ success: boolean; changed: boolean; reason?: string }>;
+}
+
+/**
+ * 搜索模式切换能力
+ */
+export interface SearchCapability {
+  getState(): Promise<{ found: boolean; enabled: boolean }>;
+  enable(): Promise<{ success: boolean; changed: boolean; reason?: string }>;
+  disable(): Promise<{ success: boolean; changed: boolean; reason?: string }>;
+}
+
+/**
+ * 登录信息
+ */
+export interface AuthInfo {
+  loggedIn: boolean;
+  username?: string;
+  avatarUrl?: string;
+}
+
+/**
+ * Auth 能力接口 - 获取登录状态和账号信息
+ */
+export interface AuthCapability {
+  getInfo(): Promise<AuthInfo>;
+}
+
+/**
+ * Provider 配置中的 Auth 动作配置
+ */
+export interface AuthAction {
+  /**
+   * 登录状态检测选择器 - 当这些元素存在时表示已登录
+   * 通常是用户头像、用户名显示区域等
+   */
+  loggedInSelectors: string[];
+  /**
+   * 用户名文本提取选择器
+   */
+  usernameSelectors?: string[];
+  /**
+   * 头像图片 URL 提取选择器
+   */
+  avatarSelectors?: string[];
 }
 
 /**
@@ -258,6 +312,7 @@ export interface ProviderActions {
   thinking?: ToggleAction;
   search?: ToggleAction;
   model?: ModelAction;
+  auth?: AuthAction;
 }
 
 /**
