@@ -366,23 +366,8 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
   }
 }
 
-// ============================================================================
-// 注册所有通道的 hook.js 到 MAIN world（最早时机，在页面任何 JS 之前执行）
-// ============================================================================
-const hookScripts = PROVIDERS.map(p => {
-  const derived = deriveProviderConfig(p);
-  return {
-    id: derived.hookScriptId,
-    matches: [p.matchPattern],
-    js: [derived.hookFile],
-    runAt: 'document_start',
-    world: 'MAIN',
-  };
-});
-
-chrome.scripting.registerContentScripts(hookScripts).catch(() => {
-  chrome.scripting.updateContentScripts(hookScripts).catch(() => {});
-});
+// 注意：inject 包的 SSE 拦截逻辑在 content script 中直接执行
+// 不再需要单独的 hook.js 文件注入
 
 // 点击图标打开侧边栏
 chrome.action.onClicked.addListener((tab) => {
@@ -390,35 +375,8 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 
-// 监听派发任务 & 兜底注入 hook
+// 监听派发任务
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-
-    // ---- 兜底注入 hook（通用，根据 payload.provider 查配置） ----
-    if (request.type === MSG_TYPES.INJECT_HOOK && sender.tab?.id) {
-        const provider = getProvider(request.payload?.provider);
-        if (!provider) { sendResponse({ ok: false, err: 'unknown provider' }); return true; }
-
-        const tabId = sender.tab.id;
-        const globalVar = provider.hookGlobalVar;
-        chrome.scripting.executeScript({
-            target: { tabId },
-            world: 'MAIN',
-            func: (varName) => !!(window)[varName],
-            args: [globalVar],
-        }).then((results) => {
-            if (results?.[0]?.result) {
-                sendResponse({ ok: true });
-            } else {
-                chrome.scripting.executeScript({
-                    target: { tabId },
-                    world: 'MAIN',
-                    files: [provider.hookFile],
-                }).then(() => { sendResponse({ ok: true }); })
-                  .catch((err) => { sendResponse({ ok: false, err: String(err) }); });
-            }
-        }).catch((err) => { sendResponse({ ok: false, err: String(err) }); });
-        return true;
-    }
 
     // ---- 在 MAIN world 注入 debug 代理（绕过 CSP）----
     if (request.type === MSG_TYPES.INJECT_DEBUG_GLOBAL && sender.tab?.id) {

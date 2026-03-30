@@ -4,18 +4,8 @@
  * 所有配置数据集中于此，UI 和 manifest 都从此处自动生成
  *
  * 命名规范（自动推导，无需手动配置）：
- * - hookFile: src/content/{id}/hook.js
- * - hookScriptId: aiclash-{id}-hook
- * - hookGlobalVar: __ab{PascalCaseId}HookV
  * - contentScriptFile: src/content/{id}/index.js
  */
-
-/**
- * 转换为帕斯卡命名法（首字母大写）
- */
-function toPascalCase(str) {
-  return str.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase());
-}
 
 export const PROVIDERS = [
   {
@@ -180,11 +170,7 @@ export const PROVIDERS = [
  * 派生配置 - 按命名规范自动生成，无需手动填写
  */
 export function deriveProviderConfig(provider) {
-  const pascalId = provider.id.replace(/(^|-)([a-z])/g, (_, __, c) => c.toUpperCase());
   return {
-    hookFile: `src/content/${provider.id}/hook.js`,
-    hookScriptId: `aiclash-${provider.id}-hook`,
-    hookGlobalVar: `__ab${pascalId}HookV`,
     contentScriptFile: `src/content/${provider.id}/index.js`,
   };
 }
