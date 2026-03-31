@@ -142,7 +142,18 @@ export function bootstrapProvider(providerId) {
         }
       }
 
-      // 4. 发送消息并监听流式响应
+      // 4. 填充消息到输入框
+      const fillResult = await caps.chat('fill', prompt);
+      if (!fillResult?.success) {
+        logger.error(`[AI Clash ${PROVIDER}] 填充消息失败:`, fillResult?.reason);
+        safeSend({
+          type: MSG_TYPES.ERROR,
+          payload: { provider: PROVIDER, message: '填充消息失败: ' + (fillResult?.reason || 'unknown') }
+        });
+        return;
+      }
+
+      // 5. 发送消息并监听流式响应
       safeSend({
         type: MSG_TYPES.CHUNK_RECEIVED,
         payload: { provider: PROVIDER, text: '正在发送消息...', stage: 'connecting', isStatus: true }
@@ -192,54 +203,6 @@ export function bootstrapProvider(providerId) {
       });
     }
   }
-
-  // ============================================================================
-  // DEBUG: 暴露能力到页面主世界
-  // ============================================================================
-  /**
-   * 将能力对象暴露到页面主世界的 window.__AI_CLASH
-   */
-  function exposeDebugGlobal(provider, capabilities) {
-    window.addEventListener('__aiclash_call', async (event) => {
-      const { callId, path, args } = event.detail;
-      try {
-        const [capName, method] = path.split('.');
-        const cap = capabilities[capName];
-        const result = cap && typeof cap[method] === 'function'
-          ? await cap[method](...(args || []))
-          : undefined;
-        window.dispatchEvent(new CustomEvent('__aiclash_result', {
-          detail: { callId, result },
-        }));
-      } catch (err) {
-        window.dispatchEvent(new CustomEvent('__aiclash_result', {
-          detail: { callId, error: String(err) },
-        }));
-      }
-    });
-
-    const methods = {};
-    for (const [name, cap] of Object.entries(capabilities)) {
-      methods[name] = Object.keys(cap).filter(k => typeof cap[k] === 'function');
-    }
-
-    if (isContextValid()) {
-      safeSend({
-        type: MSG_TYPES.INJECT_DEBUG_GLOBAL,
-        payload: { provider, methods },
-      });
-    }
-  }
-
-  exposeDebugGlobal(PROVIDER, {
-    async send(prompt, settings) {
-      await executeTask(prompt, settings);
-    },
-    async call(capability, method, ...args) {
-      if (!injector) await initInjector();
-      return injector?.call(capability, method, ...args);
-    }
-  });
 
   // ============================================================================
   // 同步 debug 状态到 MAIN world

@@ -311,7 +311,7 @@ export const useStore = create<AppStore>()((set, get) => {
         return;
       }
       try {
-        const result = await get().goToProvider(id, false);
+        const result = await get().goToProvider(id, true);
         if (result?.success) {
           set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
         } else {

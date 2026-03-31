@@ -6,3 +6,4 @@ release
 .cursor
 test-results
 playwright-report
+.vscode
