@@ -104,5 +104,121 @@ function exposeAPI() {
   };
 }
 
+// ============================================================================
+// RPC 监听：来自 content script (ISOLATED 世界) 的调用
+// ============================================================================
+
+// content script 通过 postMessage 调用我们 (MAIN 世界)
+// 我们执行后把结果和 SSE chunks 发回去
+window.addEventListener('message', async (event) => {
+  if (!event.data || !event.data.type) return;
+
+  // ping 探测 - 只要脚本加载了就回复 pong，不管 injector 是否初始化完成
+  if (event.data.type === '__aiclash_ping') {
+    window.postMessage({
+      type: '__aiclash_pong',
+      seq: event.data.seq,
+    }, '*');
+    return;
+  }
+
+  // RPC 调用 - 如果 injector 还没初始化好，等待它
+  if (event.data.type === '__aiclash_call') {
+    // 等待 injector 初始化完成
+    const waitInjector = (): Promise<typeof injector> => {
+      if (injector && isInitialized) {
+        return Promise.resolve(injector);
+      }
+      return new Promise((resolve) => {
+        const interval = setInterval(() => {
+          if (injector && isInitialized) {
+            clearInterval(interval);
+            resolve(injector);
+          }
+        }, 100);
+        // 超时 5 秒
+        setTimeout(() => {
+          clearInterval(interval);
+          resolve(null);
+        }, 5000);
+      });
+    };
+
+    const waitingInjector = await waitInjector();
+    if (!waitingInjector) {
+      console.error('[AI Clash Inject] Timeout waiting for injector initialization');
+      return;
+    }
+
+    const { seq, capability, method, args } = event.data;
+
+    // 处理 chat.send 的特殊回调转发
+    // content script 只传 [prompt, options]，我们在这边重建回调
+    if (capability === 'chat' && method === 'send') {
+      const [prompt, options] = args;
+
+      // 包装回调，把所有回调转发回 content script（ISOLATED 世界）
+      const wrappedCallbacks = {
+        onSseChunk: (text: string, isThink: boolean, stage: 'thinking' | 'responding', conversationId?: string) => {
+          console.log(`[AI Clash Inject] MAIN world onSseChunk: ${text.slice(0, 50)}${text.length > 50 ? '...' : ''}, isThink: ${isThink}`);
+          window.postMessage({
+            type: '__aiclash_sse_chunk',
+            text,
+            isThink,
+            stage,
+            conversationId,
+          }, '*');
+        },
+        onDomChunk: (text: string, isThink: boolean, stage: 'thinking' | 'responding', conversationId?: string) => {
+          // 当使用 MAIN 世界 standalone 注入时，SSE 拦截已经优先工作
+          // DOM 轮询作为兜底但不需要重复发送消息到 content script
+          console.log(`[AI Clash Inject] MAIN world onDomChunk skipped (SSE already active): ${text.slice(0, 50)}${text.length > 50 ? '...' : ''}, isThink: ${isThink}`);
+        },
+        onComplete: (fullText: string, conversationId?: string) => {
+          console.log(`[AI Clash Inject] MAIN world onComplete: total length ${fullText.length}`);
+          window.postMessage({
+            type: '__aiclash_complete',
+            fullText,
+            conversationId,
+          }, '*');
+        },
+        onConversationId: (conversationId: string) => {
+          // 不需要转发，content script 只需要控制台打日志
+          console.log(`[AI Clash Inject] Conversation ID: ${conversationId}`);
+        },
+        onError: (error: string, conversationId?: string) => {
+          console.error(`[AI Clash Inject] MAIN world onError: ${error}`);
+          window.postMessage({
+            type: '__aiclash_error',
+            error,
+            conversationId,
+          }, '*');
+        },
+      };
+
+      // 实际调用
+      console.log('[AI Clash Inject] MAIN world receive RPC call: chat.send');
+      waitingInjector.call(capability, method, prompt, options, wrappedCallbacks);
+      return;
+    }
+
+    // 通用调用
+    try {
+      const result = waitingInjector.call(capability, method, ...args);
+      window.postMessage({
+        type: '__aiclash_result',
+        seq,
+        result,
+      }, '*');
+    } catch (error) {
+      window.postMessage({
+        type: '__aiclash_result',
+        seq,
+        error: String(error),
+      }, '*');
+    }
+  }
+});
+
 // 立即暴露 API
 exposeAPI();

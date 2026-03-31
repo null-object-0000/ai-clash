@@ -11,7 +11,6 @@
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger from '../../shared/logger.js';
 import { isContextValid, safeSend } from '../shared/utils.js';
-import { createInjector } from '@ai-clash/inject';
 
 /**
  * 启动 provider
@@ -28,38 +27,138 @@ export function bootstrapProvider(providerId) {
   // 标记 content script 已就绪，供 background 检查
   window.__aiclash_content_script_ready = true;
 
-  // 创建注入器实例（使用 extension 适配器）
-  let injector = null;
+  // 能力引用
   let capabilities = null;
 
   /**
    * 初始化注入器
+   * 优先使用 MAIN 世界注入的 standalone（因为它能正确拦截 fetch）
+   * fallback 到本地 extension 注入器
    */
   async function initInjector() {
-    if (injector) return capabilities;
-
-    try {
-      injector = createInjector({
-        provider: providerId,
-        adapter: 'extension',
-      });
-
-      await injector.inject();
-
-      // 获取能力引用
-      capabilities = {
-        chat: injector.call.bind(injector, 'chat'),
-        thinking: injector.call.bind(injector, 'thinking'),
-        search: injector.call.bind(injector, 'search'),
-        auth: injector.call.bind(injector, 'auth'),
-      };
-
-      logger.log(`[AI Clash ${PROVIDER}] 注入器初始化成功`);
+    // 已经初始化过了，直接返回缓存的 capabilities
+    if (capabilities) {
       return capabilities;
-    } catch (err) {
-      logger.error(`[AI Clash ${PROVIDER}] 注入器初始化失败:`, err);
-      return null;
     }
+
+    // 如果 MAIN 世界还没有，尝试自动注入 standalone.js（开发模式）
+    // 这和你手动注入效果完全一样
+    if (!document.querySelector('script[src*="standalone.js"]')) {
+      logger.log(`[AI Clash ${PROVIDER}] 自动注入 standalone.js 到 MAIN 世界`);
+      await new Promise((resolve) => {
+        const script = document.createElement('script');
+        script.src = 'http://localhost:5173/standalone.js';
+        script.async = true;
+        document.documentElement.appendChild(script);
+        script.onload = () => {
+          logger.log(`[AI Clash ${PROVIDER}] ✓ standalone.js 加载完成，注入 MAIN 世界成功`);
+          resolve();
+        };
+        script.onerror = () => {
+          logger.warn(`[AI Clash ${PROVIDER}] standalone.js 加载失败，请检查 bun dev 是否运行在 http://localhost:5173`);
+          resolve();
+        };
+      });
+    }
+
+    // standalone 已经注入 MAIN 世界，现在我们来设置监听
+    // standalone 会把 SSE 消息通过 postMessage 发过来
+    window.addEventListener('message', (event) => {
+      if (!event.data || !event.data.type) return;
+
+      // SSE chunk 从 MAIN 世界发来 → 转发给 background
+      if (event.data.type === '__aiclash_sse_chunk') {
+        const { text, isThink, stage, conversationId } = event.data;
+        logger.log(`[AI Clash ${PROVIDER}] 收到 MAIN 世界 SSE chunk:`, text.slice(0, 50) + (text.length > 50 ? '...' : ''), 'isThink:', isThink);
+        safeSend({
+          type: MSG_TYPES.CHUNK_RECEIVED,
+          payload: { provider: PROVIDER, text, stage, isThink }
+        });
+        return;
+      }
+
+      // 任务完成 → 通知 background
+      if (event.data.type === '__aiclash_complete') {
+        logger.log(`[AI Clash ${PROVIDER}] 收到 MAIN 世界完成信号`);
+        safeSend({
+          type: MSG_TYPES.TASK_COMPLETED,
+          payload: { provider: PROVIDER }
+        });
+        return;
+      }
+
+      // 错误 → 通知 background
+      if (event.data.type === '__aiclash_error') {
+        const { error } = event.data;
+        logger.error(`[AI Clash ${PROVIDER}] 收到 MAIN 世界错误:`, error);
+        safeSend({
+          type: MSG_TYPES.ERROR,
+          payload: { provider: PROVIDER, message: error }
+        });
+        return;
+      }
+    });
+
+    // 创建代理 capabilities，符合原来的调用约定: caps.chat('send', ...args)
+    const rpcCapabilities = {
+      chat: (method, ...args) => {
+        logger.log(`[AI Clash ${PROVIDER}] RPC 调用 MAIN 世界 __AI_CLASH.chat.${method}`);
+
+        // 通过 postMessage RPC 调用 MAIN 世界的方法
+        // standalone 注入 MAIN 世界后会监听这个调用
+        const seq = Math.random().toString(36).slice(2);
+
+        // chat.send: (method='send', prompt, options, callbacks)
+        // callbacks 包含函数不能 postMessage，所以只传前两个参数，callbacks 在 standalone 重建
+        const cleanArgs = method === 'send' ? args.slice(0, 2) : args;
+
+        // 发送调用请求到 MAIN 世界
+        window.postMessage({
+          type: '__aiclash_call',
+          seq,
+          capability: 'chat',
+          method: method,
+          args: cleanArgs
+        }, '*');
+
+        // SSE chunks, complete, error 已经通过上面的 postMessage 监听处理了
+      }
+    };
+
+    // 检查 standalone 是否真的注入成功
+    // 我们通过 postMessage ping 一下看有没有响应
+    let hasMainWorld = false;
+    try {
+      await new Promise((resolve) => {
+        const pingSeq = 'ping_' + Math.random();
+        const timeout = setTimeout(() => {
+          resolve(false);
+        }, 500);
+        const onPong = (event) => {
+          if (event.data?.type === '__aiclash_pong' && event.data.seq === pingSeq) {
+            window.removeEventListener('message', onPong);
+            clearTimeout(timeout);
+            hasMainWorld = true;
+            resolve(true);
+          }
+        };
+        window.addEventListener('message', onPong);
+        window.postMessage({
+          type: '__aiclash_ping',
+          seq: pingSeq
+        }, '*');
+      });
+    } catch (_) {}
+
+    if (hasMainWorld) {
+      logger.log(`[AI Clash ${PROVIDER}] ✓ 使用 MAIN 世界 standalone 注入，RPC 通信就绪`);
+      capabilities = rpcCapabilities;
+      return capabilities;
+    }
+
+    // MAIN 世界 standalone 注入失败，无法继续
+    logger.error(`[AI Clash ${PROVIDER}] MAIN 世界 standalone 注入失败，ping 探测无响应`);
+    return null;
   }
 
   // ============================================================================
