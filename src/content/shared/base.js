@@ -112,61 +112,27 @@ export function bootstrapProvider(providerId) {
     });
 
     try {
-      // 1. 开启新对话（如果需要）
-      if (settings?.isNewConversation !== false) {
-        const newChatResult = await caps.chat('newChat');
-        if (newChatResult?.success) {
-          logger.log(`[AI Clash ${PROVIDER}] 已开启新对话`);
-        }
-      }
-
-      // 2. 同步深度思考开关
-      if (caps.thinking && settings?.isDeepThinkingEnabled !== undefined) {
-        const current = await caps.thinking('getState');
-        const wantEnabled = settings.isDeepThinkingEnabled;
-
-        if (current?.found && current.enabled !== wantEnabled) {
-          const result = await caps.thinking(wantEnabled ? 'enable' : 'disable');
-          logger.log(`[AI Clash ${PROVIDER}] 深度思考切换结果:`, result);
-        }
-      }
-
-      // 3. 同步智能搜索开关（如果支持）
-      if (caps.search && settings?.isWebSearchEnabled !== undefined) {
-        const current = await caps.search('getState');
-        const wantEnabled = settings.isWebSearchEnabled;
-
-        if (current?.found && current.enabled !== wantEnabled) {
-          const result = await caps.search(wantEnabled ? 'enable' : 'disable');
-          logger.log(`[AI Clash ${PROVIDER}] 智能搜索切换结果:`, result);
-        }
-      }
-
-      // 4. 填充消息到输入框
-      const fillResult = await caps.chat('fill', prompt);
-      if (!fillResult?.success) {
-        logger.error(`[AI Clash ${PROVIDER}] 填充消息失败:`, fillResult?.reason);
-        safeSend({
-          type: MSG_TYPES.ERROR,
-          payload: { provider: PROVIDER, message: '填充消息失败: ' + (fillResult?.reason || 'unknown') }
-        });
-        return;
-      }
-
-      // 5. 发送消息并监听流式响应
+      // 一站式发送消息并监听流式响应
+      // 所有前置步骤（新对话、同步思考/搜索开关、填充消息）都在内部完成
       safeSend({
         type: MSG_TYPES.CHUNK_RECEIVED,
         payload: { provider: PROVIDER, text: '正在发送消息...', stage: 'connecting', isStatus: true }
       });
 
-      await caps.chat('send', {
-        onSseChunk: (text, isThink, stage) => {
+      const options = {
+        newChat: settings?.isNewConversation !== false,
+        thinking: settings?.isDeepThinkingEnabled,
+        search: settings?.isWebSearchEnabled,
+      };
+
+      await caps.chat('send', prompt, options, {
+        onSseChunk: (text, isThink, stage, conversationId) => {
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
             payload: { provider: PROVIDER, text, stage, isThink }
           });
         },
-        onDomChunk: (text, isThink, stage) => {
+        onDomChunk: (text, isThink, stage, conversationId) => {
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
             payload: { provider: PROVIDER, text, stage, isThink }
@@ -174,8 +140,13 @@ export function bootstrapProvider(providerId) {
         },
         onConversationId: (conversationId) => {
           logger.log(`[AI Clash ${PROVIDER}] 会话 ID:`, conversationId);
+          // 发送完成，已获取会话 ID，进入等待回复阶段
+          safeSend({
+            type: MSG_TYPES.CHUNK_RECEIVED,
+            payload: { provider: PROVIDER, text: '发送完成，等待 AI 回复...', stage: 'waiting', isStatus: true }
+          });
         },
-        onComplete: (fullText) => {
+        onComplete: (fullText, conversationId) => {
           logger.log(`[AI Clash ${PROVIDER}] 任务完成`);
           safeSend({
             type: MSG_TYPES.TASK_COMPLETED,

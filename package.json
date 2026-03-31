@@ -8,13 +8,13 @@
         "packages/inject"
     ],
     "scripts": {
-        "dev": "tsc --noEmit && vite build --watch",
-        "typecheck": "tsc --noEmit",
-        "build": "tsc --noEmit && vite build",
-        "build:test": "tsc --noEmit && vite build && bun run test",
+        "dev": "bun run build:inject && tsc --noEmit && vite build --watch",
+        "typecheck": "tsc --noEmit && (cd packages/inject && bun run typecheck)",
+        "build:inject": "bun --filter @ai-clash/inject build",
+        "build": "bun run build:inject && tsc --noEmit && vite build",
+        "build:test": "bun run build:inject && tsc --noEmit && vite build && bun run test",
         "test": "playwright test",
-        "test:ui": "playwright test --ui",
-        "build:inject": "bun --filter @ai-clash/inject build"
+        "test:ui": "playwright test --ui"
     },
     "dependencies": {
         "@ant-design/icons": "^6.1.1",
