@@ -9,14 +9,14 @@ import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
 const thinkingAction: ToggleAction = {
   async getState() {
     // 通过 .items-center 文本判断："思考" = 已开启，"快速" = 未开启
-    const el = document.querySelector('[data-testid="deep-thinking-action-button"] .items-center');
+    const el = document.querySelector('[data-testid="mode-select-action-button"] .items-center');
     if (!el) return { found: false, enabled: false };
     const text = el.textContent?.trim() || '';
     return { found: true, enabled: text.includes('思考') && !text.includes('快速') };
   },
 
   async enable() {
-    const selectors = ['[data-testid="deep-thinking-action-button"]'];
+    const selectors = ['[data-testid="mode-select-action-button"]'];
     const el = findAnyElement(selectors);
     if (!el) return false;
 
@@ -40,7 +40,7 @@ const thinkingAction: ToggleAction = {
   },
 
   async disable() {
-    const selectors = ['[data-testid="deep-thinking-action-button"]'];
+    const selectors = ['[data-testid="mode-select-action-button"]'];
     const el = findAnyElement(selectors);
     if (!el) return false;
 
