@@ -5,6 +5,7 @@ import type {
 
 export type SidepanelSettings = {
   isDeepThinkingEnabled?: boolean;
+  isWebSearchEnabled?: boolean;
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
 };
@@ -14,6 +15,7 @@ export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; 
 export interface AppState {
   // ─── Settings (persisted) ───
   isDeepThinkingEnabled: boolean;
+  isWebSearchEnabled: boolean;
   isDebugEnabled: boolean;
   isSummaryEnabled: boolean;
   summaryProviderId: string;
@@ -68,6 +70,7 @@ export interface AppState {
 export interface AppActions {
   // ─── Settings ───
   toggleDeepThinking: () => void;
+  toggleWebSearch: () => void;
   toggleDebug: () => void;
   toggleSummary: () => void;
   setSummaryProviderId: (v: string) => void;

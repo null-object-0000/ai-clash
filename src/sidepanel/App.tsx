@@ -1,6 +1,7 @@
 import {
   BulbOutlined,
   CommentOutlined,
+  GlobalOutlined,
   MergeCellsOutlined,
   PlusOutlined,
   SettingOutlined,
@@ -126,6 +127,23 @@ const useStyles = createStyles(({ token, css }) => ({
   chatSend: css`
     flex-shrink: 0;
     padding: ${token.padding}px;
+
+    .full-text {
+      display: inline;
+    }
+    .short-text {
+      display: none;
+    }
+
+    // 宽度小于 500px 时自动切换为简写
+    @media (max-width: 500px) {
+      .full-text {
+        display: none;
+      }
+      .short-text {
+        display: inline;
+      }
+    }
   `,
 }));
 
@@ -252,6 +270,7 @@ const App = () => {
   const enabledMap = useStore(s => s.enabledMap);
   const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
   const isDeepThinkingEnabled = useStore(s => s.isDeepThinkingEnabled);
+  const isWebSearchEnabled = useStore(s => s.isWebSearchEnabled);
   const summaryStatus = useStore(s => s.summaryStatus);
   const summaryResponse = useStore(s => s.summaryResponse);
   const summaryThinkResponse = useStore(s => s.summaryThinkResponse);
@@ -263,7 +282,7 @@ const App = () => {
 
   const {
     setInputStr, submit, createNewChat,
-    toggleDeepThinking, toggleSummary,
+    toggleDeepThinking, toggleWebSearch, toggleSummary,
   } = useStore.getState();
 
   // ==================== Init ====================
@@ -449,22 +468,39 @@ const App = () => {
               return (
                 <Flex justify="space-between" align="center">
                   <Flex gap="small" align="center">
-                    <Sender.Switch
-                      icon={<BulbOutlined />}
-                      value={isDeepThinkingEnabled}
-                      onChange={toggleDeepThinking}
-                    >
-                      深度思考
-                    </Sender.Switch>
-                    <Tooltip title={summaryBlockReason || undefined}>
+                    <Tooltip title="深度思考">
+                      <Sender.Switch
+                        icon={<BulbOutlined />}
+                        value={isDeepThinkingEnabled}
+                        onChange={toggleDeepThinking}
+                        style={{ fontSize: '13px' }}
+                      >
+                        <span className="full-text">深度思考</span>
+                        <span className="short-text">思考</span>
+                      </Sender.Switch>
+                    </Tooltip>
+                    <Tooltip title="联网搜索">
+                      <Sender.Switch
+                        icon={<GlobalOutlined />}
+                        value={isWebSearchEnabled}
+                        onChange={toggleWebSearch}
+                        style={{ fontSize: '13px' }}
+                      >
+                        <span className="full-text">联网搜索</span>
+                        <span className="short-text">联网</span>
+                      </Sender.Switch>
+                    </Tooltip>
+                    <Tooltip title={summaryBlockReason || '归纳总结'}>
                       <span>
                         <Sender.Switch
                           icon={<MergeCellsOutlined />}
                           value={enabledCount >= 2 && isSummaryEnabled}
                           disabled={enabledCount < 2}
                           onChange={toggleSummary}
+                          style={{ fontSize: '13px' }}
                         >
-                          归纳总结
+                          <span className="full-text">归纳总结</span>
+                          <span className="short-text">总结</span>
                         </Sender.Switch>
                       </span>
                     </Tooltip>

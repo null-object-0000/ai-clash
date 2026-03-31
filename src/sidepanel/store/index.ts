@@ -36,6 +36,7 @@ export const useStore = create<AppStore>()((set, get) => {
     chrome.storage?.local.set({
       [SETTINGS_KEY]: {
         isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+        isWebSearchEnabled: s.isWebSearchEnabled,
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
       },
@@ -215,6 +216,7 @@ export const useStore = create<AppStore>()((set, get) => {
   return {
     // ─── Initial State ───
     isDeepThinkingEnabled: true,
+    isWebSearchEnabled: false,
     isDebugEnabled: false,
     isSummaryEnabled: false,
     summaryProviderId: '',
@@ -272,6 +274,12 @@ export const useStore = create<AppStore>()((set, get) => {
           ...(!next ? { thinkResponses: createDefaultRecord('') } : {}),
         };
       });
+      saveSettings();
+      get().schedulePersist();
+    },
+
+    toggleWebSearch: () => {
+      set(prev => ({ isWebSearchEnabled: !prev.isWebSearchEnabled }));
       saveSettings();
       get().schedulePersist();
     },
@@ -443,7 +451,12 @@ export const useStore = create<AppStore>()((set, get) => {
           payload: {
             provider: id, prompt,
             mode: s.modeMap[id] === 'web' && id === 'yuanbao' ? 'web' : s.modeMap[id],
-            settings: { isDeepThinkingEnabled: s.isDeepThinkingEnabled, conversationHistory, isNewConversation },
+            settings: {
+              isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+              isWebSearchEnabled: s.isWebSearchEnabled,
+              conversationHistory,
+              isNewConversation,
+            },
           },
         });
       }
@@ -775,6 +788,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
           set({
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
+            isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
             isSummaryEnabled: saved.isSummaryEnabled ?? false,
             isDebugEnabled: debugVal,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
