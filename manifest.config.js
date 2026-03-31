@@ -7,13 +7,23 @@ import { PROVIDERS, deriveProviderConfig } from './src/background/providers.js'
 // ============================================================================
 
 // 生成 content_scripts 配置
-const contentScripts = PROVIDERS.map(provider => {
+// 注意：base.js 必须放在每个 provider 的 index.js 之前加载，因为它被引用
+const contentScripts = PROVIDERS.flatMap(provider => {
   const derived = deriveProviderConfig(provider);
-  return ({
-    js: [derived.contentScriptFile],
-    matches: [provider.matchPattern],
-    run_at: 'document_start',
-  });
+  return [
+    // 先加载 base.js 作为共享模块
+    {
+      js: ['src/content/shared/base.js'],
+      matches: [provider.matchPattern],
+      run_at: 'document_start',
+    },
+    // 再加载 provider 的 index.js
+    {
+      js: [derived.contentScriptFile],
+      matches: [provider.matchPattern],
+      run_at: 'document_start',
+    },
+  ];
 });
 
 // 生成 host_permissions 配置
@@ -27,11 +37,12 @@ const hostPermissions = [
 ];
 
 // 生成 web_accessible_resources 配置
+// 注意：不再需要 hook.js，只需要 content script 和 base.js
 const webAccessibleResources = PROVIDERS.map(provider => {
   const derived = deriveProviderConfig(provider);
   return ({
     resources: [
-      derived.hookFile,
+      'src/content/shared/base.js',
       derived.contentScriptFile,
     ],
     matches: [provider.matchPattern],
