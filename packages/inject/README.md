@@ -67,21 +67,18 @@ javascript:(async function(){if(!window.AIClashInject){const s=document.createEl
 
 ```javascript
 // 填充输入框
-await window.__AI_CLASH.chat.fill('你好 AI')
+await window.__AI_CLASH.chat.fill('我想去洗车，汽车店距离我家50米，你说我应该开车去还是走过去？')
 
 // 发送消息并监听流式输出
 await window.__AI_CLASH.chat.send({
   onConversationId: (conversationId) => {
-    console.log('获取到会话 ID:', conversationId);
-  },
-  onDomChunk: (text, isThink, stage, conversationId) => {
-    console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
+    console.log('[AI Clash Inject] 获取到会话 ID:', conversationId);
   },
   onSseChunk: (text, isThink, stage, conversationId) => {
-    console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
+    console.log('[AI Clash Inject] 收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
   onComplete: (fullText, conversationId) => {
-    console.log('完成，完整回复:', fullText, '会话 ID:', conversationId);
+    console.log('[AI Clash Inject] 完成，完整回复:', fullText, '会话 ID:', conversationId);
   }
 })
 
@@ -98,22 +95,19 @@ await window.__AI_CLASH.thinking.disable()
 await window.__AI_CLASH.thinking.getState()
 
 // 一站式发送并监听流式输出
-await window.__AI_CLASH.chat.send('你好 AI', {
+await window.__AI_CLASH.chat.send('我想去洗车，汽车店距离我家50米，你说我应该开车去还是走过去？', {
   thinking: true,
   search: true,
   newChat: true
 }, {
   onConversationId: (conversationId) => {
-    console.log('获取到会话 ID:', conversationId);
-  },
-  onDomChunk: (text, isThink, stage, conversationId) => {
-    console.log('收到 DOM chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
+    console.log('[AI Clash Inject] 获取到会话 ID:', conversationId);
   },
   onSseChunk: (text, isThink, stage, conversationId) => {
-    console.log('收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
+    console.log('[AI Clash Inject] 收到 SSE chunk:', text, '思考模式:', isThink, '阶段:', stage, '会话 ID:', conversationId);
   },
   onComplete: (fullText, conversationId) => {
-    console.log('完成，完整回复:', fullText, '会话 ID:', conversationId);
+    console.log('[AI Clash Inject] 完成，完整回复:', fullText, '会话 ID:', conversationId);
   }
 })
 ```
@@ -122,12 +116,12 @@ await window.__AI_CLASH.chat.send('你好 AI', {
 
 功能测试状态：
 
-| 名称 | 普通模式 | 深度思考 | 联网搜索 | 思考+搜索 | 获取会话 ID | SSE 拦截 | DOM 轮询 |
-| ----- | -------- | -------- | -------- | ---------- | ----------- | -------- | -------- |
-| DeepSeek | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| 豆包 | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ✅ |
-| 通义千问 | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ | ➖ |
-| 腾讯元宝 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ |
+| 名称 | 普通模式 | 深度思考 | 联网搜索 | 思考+搜索 | 获取会话 ID | SSE 拦截 |
+| ----- | -------- | -------- | -------- | ---------- | ----------- | -------- |
+| DeepSeek | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| 豆包 | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ |
+| 通义千问 | ✅ | ✅ | ⚠️ | ✅ | ✅ | ✅ |
+| 腾讯元宝 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 图例：
 
@@ -159,11 +153,11 @@ await injector.inject();
 
 // 发送消息并监听流式输出
 await injector.call('chat', 'send', {
-  onDomChunk: (text, isThink, stage, conversationId) => {
-    console.log('DOM chunk:', text, isThink, stage, conversationId);
+  onSseChunk: (text, isThink, stage, conversationId) => {
+    console.log('[AI Clash Inject] SSE chunk:', text, isThink, stage, conversationId);
   },
   onComplete: (fullText, conversationId) => {
-    console.log('complete:', fullText, conversationId);
+    console.log('[AI Clash Inject] complete:', fullText, conversationId);
   }
 });
 ```
@@ -188,8 +182,7 @@ await page.evaluate(async () => {
   const injector = window.__AI_CLASH;
   await injector.chat.fill('Hello');
   await injector.chat.send({
-    onDomChunk: (text, isThink) => console.log('DOM chunk:', text, isThink),
-    onComplete: (fullText) => console.log('complete:', fullText)
+    onComplete: (fullText) => console.log('[AI Clash Inject] complete:', fullText)
   });
 });
 ```

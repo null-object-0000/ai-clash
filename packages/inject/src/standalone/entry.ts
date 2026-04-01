@@ -169,11 +169,6 @@ window.addEventListener('message', async (event) => {
             conversationId,
           }, '*');
         },
-        onDomChunk: (text: string, isThink: boolean, stage: 'thinking' | 'responding', conversationId?: string) => {
-          // 当使用 MAIN 世界 standalone 注入时，SSE 拦截已经优先工作
-          // DOM 轮询作为兜底但不需要重复发送消息到 content script
-          console.log(`[AI Clash Inject] MAIN world onDomChunk skipped (SSE already active): ${text.slice(0, 50)}${text.length > 50 ? '...' : ''}, isThink: ${isThink}`);
-        },
         onComplete: (fullText: string, conversationId?: string) => {
           console.log(`[AI Clash Inject] MAIN world onComplete: total length ${fullText.length}`);
           window.postMessage({

@@ -231,12 +231,6 @@ export function bootstrapProvider(providerId) {
             payload: { provider: PROVIDER, text, stage, isThink }
           });
         },
-        onDomChunk: (text, isThink, stage, conversationId) => {
-          safeSend({
-            type: MSG_TYPES.CHUNK_RECEIVED,
-            payload: { provider: PROVIDER, text, stage, isThink }
-          });
-        },
         onConversationId: (conversationId) => {
           logger.log(`[AI Clash ${PROVIDER}] 会话 ID:`, conversationId);
           // 发送完成，已获取会话 ID，进入等待回复阶段

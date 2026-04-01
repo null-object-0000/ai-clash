@@ -176,16 +176,16 @@ const rawGetReader = ReadableStream.prototype.getReader;
 const rawDecode = TextDecoder.prototype.decode;
 
 function setupSSEInterceptor() {
-  // 只在当前 provider 域名下注入一次
+  // 只在当前 provider 域名下注入一次（修改原型只需要一次）
   if (!currentProvider?.sse) return;
   const domain = currentProvider.domain;
   if (!domain || !location.hostname.includes(domain)) return;
-  if ((window as any).__aiclashSSEHooked) return;
-  (window as any).__aiclashSSEHooked = true;
-
-  // ====== fetch 拦截 ======
-  const origFetch = window.fetch;
-  window.fetch = function (...args) {
+  const alreadyHooked = (window as any).__aiclashSSEHooked;
+  if (!alreadyHooked) {
+    (window as any).__aiclashSSEHooked = true;
+    // ====== fetch 拦截 ======
+    const origFetch = window.fetch;
+    window.fetch = function (...args) {
     let url = '';
     try {
       const arg0 = args[0];
@@ -371,6 +371,7 @@ function setupSSEInterceptor() {
     return reader;
   };
 }
+}
 
 // ============================================================================
 // 工具函数
@@ -493,64 +494,8 @@ async function waitForConversationId(
 
   return undefined;
 }
-
 /**
- * DOM 监听状态
- */
-interface MonitorState {
-  lastText: string;
-  lastThinkText: string;
-  isComplete: boolean;
-  timer?: ReturnType<typeof setTimeout>;
-}
-
-/**
- * 获取元素文本
- */
-function getElementText(el: Element | null): string {
-  if (!el) return '';
-  return (el as HTMLElement).innerText || el.textContent || '';
-}
-
-/**
- * 查找最新的回复块
- */
-function findLatestResponseBlock(provider: ProviderConfig): { text: string; thinkText: string } | null {
-  // 先找思考块
-  let thinkText = '';
-  const thinkingSelectors = provider.response?.thinkingSelectors || [];
-  for (const selector of thinkingSelectors) {
-    const blocks = document.querySelectorAll(selector);
-    if (blocks.length > 0) {
-      thinkText = getElementText(blocks[blocks.length - 1]);
-      break;
-    }
-  }
-
-  // 再找回复块
-  let text = '';
-  const responseSelectors = provider.response?.responseSelectors || [];
-  for (const selector of responseSelectors) {
-    const blocks = document.querySelectorAll(selector);
-    if (blocks.length > 0) {
-      text = getElementText(blocks[blocks.length - 1]);
-      break;
-    }
-  }
-
-  // 如果还是没找到，尝试通用选择器
-  if (!text && !thinkText) {
-    const allBlocks = document.querySelectorAll('[role="article"] [class*="message"]:last-child [class*="content"]');
-    if (allBlocks.length > 0) {
-      text = getElementText(allBlocks[allBlocks.length - 1]);
-    }
-  }
-
-  return { text, thinkText };
-}
-
-/**
- * 监听 AI 回复（DOM 轮询 + SSE 拦截）
+ * 监听 AI 回复（仅 SSE 拦截）
  *
  * @param callbacks - 流式回调
  * @param provider - 提供者配置
@@ -566,112 +511,14 @@ function monitorResponse(
   };
   currentCallbacks = callbacks;
   // 注意：不覆盖 sseConversationId，由 _send 方法在调用 setupSSEInterceptor 前设置
-
-  // 同时启动 DOM 轮询监听（作为兜底）
-  monitorResponseDom(callbacks, provider);
 }
+
+// ============================================================================
 
 /**
- * 监听 AI 回复 - DOM 轮询版本
+ * DOM 监听状态
  */
-function monitorResponseDom(
-  callbacks: SendCallbacks,
-  provider: ProviderConfig
-): void {
-  const state: MonitorState = {
-    lastText: '',
-    lastThinkText: '',
-    isComplete: false,
-    timer: undefined,
-  };
-
-  let conversationId: string | undefined;
-  let consecutiveEmptyCount = 0;
-  const MAX_EMPTY_CHECKS = 10;
-
-  const check = () => {
-    if (state.isComplete) return;
-
-    // 尝试获取会话 ID
-    if (!conversationId) {
-      conversationId = getConversationId(provider);
-    }
-
-    const current = findLatestResponseBlock(provider);
-    if (!current) {
-      state.timer = setTimeout(check, 300);
-      return;
-    }
-
-    const { text, thinkText } = current;
-
-    // 检查思考内容变化
-    if (thinkText && thinkText !== state.lastThinkText) {
-      const delta = thinkText.slice(state.lastThinkText.length);
-      if (delta && callbacks.onDomChunk) {
-        callbacks.onDomChunk(delta, true, 'thinking', conversationId);
-      }
-      state.lastThinkText = thinkText;
-      consecutiveEmptyCount = 0;
-    }
-
-    // 检查回复内容变化
-    if (text && text !== state.lastText) {
-      const delta = text.slice(state.lastText.length);
-      if (delta && callbacks.onDomChunk) {
-        callbacks.onDomChunk(delta, false, 'responding', conversationId);
-      }
-      state.lastText = text;
-      consecutiveEmptyCount = 0;
-    }
-
-    // 如果没有新内容，增加计数器
-    if (!deltaChanged(state, current)) {
-      consecutiveEmptyCount++;
-      // 如果 SSE 已经完成，不重复触发 onComplete
-      if (consecutiveEmptyCount >= MAX_EMPTY_CHECKS && text && !sseState.completeCalled) {
-        state.isComplete = true;
-        cleanup();
-
-        const fullText = buildFullText(state.lastThinkText, state.lastText);
-        callbacks.onComplete?.(fullText, conversationId);
-        return;
-      }
-    }
-
-    state.timer = setTimeout(check, 200);
-  };
-
-  const cleanup = () => {
-    if (state.timer) {
-      clearTimeout(state.timer);
-      state.timer = undefined;
-    }
-  };
-
-  const deltaChanged = (s: MonitorState, curr: { text: string; thinkText: string }) => {
-    return curr.text !== s.lastText || curr.thinkText !== s.lastThinkText;
-  };
-
-  const buildFullText = (think: string, resp: string) => {
-    if (!think && !resp) return '';
-    if (!think) return resp;
-    if (!resp) return `<think>${think}</think>`;
-    return `<think>${think}</think>\n\n${resp}`;
-  };
-
-  check();
-}
-
-// ============================================================================
-// DOM 操作工具（使用 dom-utils 模块）
-// ============================================================================
-
 // 注意：findElement, findAnyElement, waitForElement, waitForAnyElement,
-// simulateRealClick 等函数已从 dom-utils.js 导入
-// 本地保留 getElementText, elementTextContains 供内部 DOM 轮询使用
-
-// ============================================================================
 // 能力实现工厂
 // ============================================================================
 
@@ -786,10 +633,13 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       const inputEl = await waitForAnyElement(chat.input.box, 2000);
       const sendBtn = findAnyElement(chat.send.button);
 
-      // 如果有回调，先设置 SSE 拦截器（在点击按钮前）
-      if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
+      // 如果有回调，先设置 SSE 拦截器和回调（在点击按钮前）
+      // 必须提前设置，否则 SSE 数据到达时回调还是 null 会丢失
+      if (callbacks) {
         // 设置当前 provider 供 SSE 拦截器使用
         currentProvider = provider;
+        // 设置 SSE 拦截器的回调
+        monitorResponse(callbacks, provider);
         // 设置 SSE 拦截器（只在对应域名下注入一次）
         setupSSEInterceptor();
       }
@@ -821,12 +671,9 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       // 触发会话 ID 回调
       callbacks?.onConversationId?.(conversationId);
 
-      // 点击发送后才启动回调监听（DOM + SSE）
-      if (callbacks?.onDomChunk || callbacks?.onSseChunk || callbacks?.onComplete || callbacks?.onError) {
-        // 设置 SSE 拦截器的会话 ID
+      // 设置 SSE 拦截器的会话 ID
+      if (callbacks) {
         sseConversationId = conversationId;
-        // 设置 SSE 拦截器的回调，同时启动 DOM 轮询
-        monitorResponse(callbacks, provider);
       }
 
       return {

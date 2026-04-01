@@ -332,13 +332,6 @@ export interface ChatActions {
  * 发送消息时的回调配置
  */
 export interface SendCallbacks {
-  onDomChunk?: (
-    text: string,
-    isThink: boolean,
-    stage: 'thinking' | 'responding',
-    conversationId?: string
-  ) => void;
-
   onSseChunk?: (
     text: string,
     isThink: boolean,
