@@ -3,19 +3,20 @@
  */
 
 import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
-import { findAnyElement, simulateRealClick, classContains } from '../core/dom-utils.js';
+import { findAnyElement, hasClass, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
 const thinkingAction: ToggleAction = {
   async getState() {
-    const selectors = ['[data-testid*="thinking"], .thinking-mode'];
+    const selectors = ['.chat-input-footer .v-checked-button span >> 深度思考'];
     const el = findAnyElement(selectors);
-    if (!el) return { found: false, enabled: false };
-    return { found: true, enabled: classContains(el, 'active') };
+    const parent = el?.parentElement;
+    if (!parent || !el) return { found: false, enabled: false };
+    return { found: true, enabled: hasClass(parent, 'active') };
   },
 
   async enable() {
-    const selectors = ['[data-testid*="thinking"], .thinking-mode'];
+    const selectors = ['.chat-input-footer .v-checked-button span >> 深度思考'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -23,7 +24,7 @@ const thinkingAction: ToggleAction = {
   },
 
   async disable() {
-    const selectors = ['[data-testid*="thinking"], .thinking-mode'];
+    const selectors = ['.chat-input-footer .v-checked-button span >> 深度思考'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -31,17 +32,19 @@ const thinkingAction: ToggleAction = {
   },
 };
 
-// 智能搜索实现
+// 联网搜索实现
 const searchAction: ToggleAction = {
   async getState() {
-    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const selectors = ['.chat-input-footer .v-checked-button span >> 联网搜索'];
     const el = findAnyElement(selectors);
     if (!el) return { found: false, enabled: false };
-    return { found: true, enabled: classContains(el, 'active') };
+    const parent = el.parentElement;
+    if (!parent) return { found: false, enabled: false };
+    return { found: true, enabled: hasClass(parent, 'active') };
   },
 
   async enable() {
-    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const selectors = ['.chat-input-footer .v-checked-button span >> 联网搜索'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -49,7 +52,7 @@ const searchAction: ToggleAction = {
   },
 
   async disable() {
-    const selectors = ['[data-testid*="search"], .search-toggle'];
+    const selectors = ['.chat-input-footer .v-checked-button span >> 联网搜索'];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
