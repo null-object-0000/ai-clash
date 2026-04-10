@@ -54,10 +54,10 @@
   "devDependencies": {
     "concurrently": "^9.2.1",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1"
+    "vite": "^7.3.2"
   },
   "peerDependencies": {
-    "@types/chrome": "^0.1.38"
+    "@types/chrome": "^0.1.40"
   },
   "peerDependenciesMeta": {
     "@types/chrome": {
