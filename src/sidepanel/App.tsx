@@ -160,7 +160,7 @@ function renderThinkAndMarkdown(thinkContent: string, content: string, isStreami
   return (
     <>
       <Think title={thinkDone ? '深度思考完成' : '深度思考中...'} loading={!thinkDone}>
-        {thinkContent}
+        <XMarkdown content={thinkContent} />
       </Think>
       {content && <XMarkdown content={content} />}
     </>
