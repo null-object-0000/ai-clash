@@ -10,19 +10,19 @@ import { IncrementalHelper } from '../core/incremental-utils.js';
 const thinkingAction: ToggleAction = {
   async getState() {
     // 查找关闭按钮，找到就说明已开启深度思考
-    const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');
-    const container = document.querySelector('[data-log-params*="deepThink"]');
+    const closeBtn = document.querySelector('[aria-label="深度思考"][aria-pressed="true"]');
+    const container = document.querySelector('[aria-label="深度思考"]');
     if (!container) return { found: false, enabled: false };
     return { found: true, enabled: !!closeBtn };
   },
 
   async enable() {
     // 先检查是否已开启（有关闭按钮说明已开启）
-    const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');
+    const closeBtn = document.querySelector('[aria-label="深度思考"][aria-pressed="true"]');
     if (closeBtn) return true; // 已开启，无需操作
 
     // 未开启时点击容器开启深度思考
-    const container = document.querySelector('[data-log-params*="deepThink"]');
+    const container = document.querySelector('[aria-label="深度思考"]');
     if (!container) return false;
     simulateRealClick(container);
     return true;
@@ -30,7 +30,7 @@ const thinkingAction: ToggleAction = {
 
   async disable() {
     // 点击关闭按钮来关闭深度思考
-    const closeBtn = document.querySelector('[data-log-params*="deepThink"] [data-icon-type="qwpcicon-close2"]');
+    const closeBtn = document.querySelector('[aria-label="深度思考"][aria-pressed="true"]');
     if (!closeBtn) return false; // 未开启，无需关闭
     simulateRealClick(closeBtn);
     return true;
