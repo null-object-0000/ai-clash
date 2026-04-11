@@ -34,6 +34,8 @@ import { getProviderIcon } from './utils/providerIcons';
 // Styles
 // ════════════════════════════════════════════════════════════════════
 
+import '@ant-design/x-markdown/themes/light.css';
+
 const useStyles = createStyles(({ token, css }) => ({
   copilotChat: css`
     position: relative;
@@ -43,6 +45,19 @@ const useStyles = createStyles(({ token, css }) => ({
     overflow: hidden;
     background: ${token.colorBgContainer};
     color: ${token.colorText};
+
+    .x-markdown,
+    .x-markdown-light {
+      ul,
+      ol,
+      p,
+      li {
+        margin: 0;
+      }
+
+      h1, h2, h3, h4, h5, h6 {
+        margin-top: 16px;
+    }
   `,
   floatingToolbar: css`
     position: absolute;
@@ -152,7 +167,7 @@ const useStyles = createStyles(({ token, css }) => ({
 // ════════════════════════════════════════════════════════════════════
 
 function renderMarkdown(content: string) {
-  return <XMarkdown content={content} />;
+  return <XMarkdown className="x-markdown-light" content={content} />;
 }
 
 function renderThinkAndMarkdown(thinkContent: string, content: string, isStreaming: boolean) {
@@ -160,9 +175,9 @@ function renderThinkAndMarkdown(thinkContent: string, content: string, isStreami
   return (
     <>
       <Think title={thinkDone ? '深度思考完成' : '深度思考中...'} loading={!thinkDone}>
-        <XMarkdown content={thinkContent} />
+        <XMarkdown className="x-markdown-light" content={thinkContent} />
       </Think>
-      {content && <XMarkdown content={content} />}
+      {content && <XMarkdown className="x-markdown-light" content={content} />}
     </>
   );
 }
