@@ -41,13 +41,12 @@ export function bootstrapProvider(providerId) {
       return capabilities;
     }
 
-    // 如果 MAIN 世界还没有，尝试自动注入 standalone.js（开发模式）
-    // 这和你手动注入效果完全一样
+    // 如果 MAIN 世界还没有，尝试自动注入 standalone.js
     if (!document.querySelector('script[src*="standalone.js"]')) {
       logger.log(`[AI Clash ${PROVIDER}] 自动注入 standalone.js 到 MAIN 世界`);
       await new Promise((resolve) => {
         const script = document.createElement('script');
-        script.src = 'http://localhost:5173/standalone.js';
+        script.src = chrome.runtime.getURL('packages/inject/dist/standalone.js');
         script.async = true;
         document.documentElement.appendChild(script);
         script.onload = () => {
@@ -55,7 +54,7 @@ export function bootstrapProvider(providerId) {
           resolve();
         };
         script.onerror = () => {
-          logger.warn(`[AI Clash ${PROVIDER}] standalone.js 加载失败，请检查 bun dev 是否运行在 http://localhost:5173`);
+          logger.warn(`[AI Clash ${PROVIDER}] standalone.js 加载失败`);
           resolve();
         };
       });

@@ -37,17 +37,23 @@ const hostPermissions = [
 ];
 
 // 生成 web_accessible_resources 配置
-// 注意：不再需要 hook.js，只需要 content script 和 base.js
-const webAccessibleResources = PROVIDERS.map(provider => {
-  const derived = deriveProviderConfig(provider);
-  return ({
-    resources: [
-      'src/content/shared/base.js',
-      derived.contentScriptFile,
-    ],
-    matches: [provider.matchPattern],
-  });
-});
+const webAccessibleResources = [
+  ...PROVIDERS.map(provider => {
+    const derived = deriveProviderConfig(provider);
+    return ({
+      resources: [
+        'src/content/shared/base.js',
+        derived.contentScriptFile,
+      ],
+      matches: [provider.matchPattern],
+    });
+  }),
+  // standalone.js 对所有 AI 网站可访问
+  {
+    resources: ['packages/inject/dist/standalone.js'],
+    matches: PROVIDERS.map(p => p.matchPattern),
+  },
+];
 
 export default defineManifest({
   manifest_version: 3,
