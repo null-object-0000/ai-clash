@@ -25,16 +25,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 开发命令
 
+项目使用 bun 作为包管理器：
+
 ```bash
 cd packages/inject
 bun install                      # 安装依赖
-bun run dev                      # 开发模式：监听文件变化 + 启动 http 服务器 (端口 5173)
-bun run dev:build-only           # 仅监听构建，不启动服务
-bun run build                    # 生产构建：库 + standalone 全部构建
-bun run build:esm                # 仅构建库
-bun run build:standalone         # 仅构建 standalone
+bun run dev                      # 开发模式：监听构建 + HTTP 服务器 (端口 5173)
+bun run dev:build-only           # 仅监听构建，不启动服务器
+bun run build                    # 生产构建：库 (esm/umd) + standalone (iife)
+bun run build:esm                # 仅构建库 (esm + umd)
+bun run build:standalone         # 仅构建 standalone (iife)
 bun run typecheck                # TypeScript 类型检查
 ```
+
+### 运行单个测试
+
+当前项目暂无自动化测试，主要通过手动注入调试。未来可使用 Playwright 进行集成测试。
 
 ## 项目结构
 
@@ -82,12 +88,11 @@ packages/inject/
 | `AdapterType` | 适配器类型（window/extension/ws/broadcast）|
 | `InjectorOptions` | 注入器配置 |
 | `Injector` | 注入器接口（inject/eject/call）|
-| `ProviderConfig` | AI 提供者配置（id/domain/actions/response/sse）|
+| `ProviderConfig` | AI 提供者配置（id/domain/actions/sse）|
 | `ProviderActions` | 能力集合（chat/thinking/search/model）|
 | `ChatActions` | 对话动作（newChat/input/send）|
 | `ToggleAction` | 开关动作（getState/enable/disable）- 用于 thinking/search |
 | `SSEConfig` | SSE 流式响应解析配置（urlPattern/parseLine）|
-| `ResponseConfig` | DOM 响应提取配置（responseSelectors/thinkingSelectors）|
 | `SendCallbacks` | 发送消息回调（onDomChunk/onSseChunk/onConversationId/onComplete/onError）|
 
 ### 能力抽象
@@ -112,17 +117,12 @@ packages/inject/
    - `getAvailable()` - 获取可用模型列表
    - `select(id)` - 切换模型
 
-### 双重监听机制
+### 监听机制
 
-支持两种方式获取 AI 响应：
+**SSE 拦截** - 通过拦截 fetch 获取原始 SSE 流，延迟更低更准确
 
-1. **SSE 拦截** (优先) - 通过拦截 fetch 获取原始 SSE 流，延迟更低更准确
-   - 需要配置 `sse.urlPattern` - URL 匹配模式
-   - 需要实现 `sse.parseLine(line)` - 解析每一行，返回 `{text, isThink, done}`
-
-2. **DOM 轮询** (兜底) - 定时从 DOM 提取响应内容
-   - 需要配置 `response.responseSelectors` - 响应元素选择器
-   - 需要配置 `response.thinkingSelectors` - 思考内容选择器
+- 需要配置 `sse.urlPattern` - URL 匹配模式
+- 需要实现 `sse.parseLine(line)` - 解析每一行，返回 `{text, isThink, done}`
 
 ## 新增 AI 提供者规范
 
@@ -181,11 +181,6 @@ export const yourProvider: ProviderConfig = {
       return { text: 'chunk', isThink: false, done: false };
     },
     detectionKeywords: ['data: ', 'id:'],
-  },
-  // DOM 兜底提取配置
-  response: {
-    responseSelectors: ['.response-content'],
-    thinkingSelectors: ['.thinking-block'],
   },
 };
 ```
