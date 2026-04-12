@@ -141,14 +141,6 @@ export const yuanbaoProvider: ProviderConfig = {
       captureGroup: 1,
     },
   },
-  response: {
-    responseSelectors: [
-      '.hyc-component-reasoner__text .hyc-content-md'
-    ],
-    thinkingSelectors: [
-      '.hyc-component-reasoner__think-content .hyc-content-md'
-    ],
-  },
   // SSE 流式拦截配置
   // 腾讯元宝新版 SSE 格式：
   // - event: speech_type + data: {"type":"think","content":"...","status":1} 思考内容增量

@@ -269,14 +269,6 @@ export interface SSEConfig {
 }
 
 /**
- * 响应内容提取配置（DOM 轮询模式）
- */
-export interface ResponseConfig {
-  responseSelectors: string[];
-  thinkingSelectors: string[];
-}
-
-/**
  * AI 提供者配置
  */
 export interface ProviderConfig {
@@ -285,7 +277,6 @@ export interface ProviderConfig {
   domain: string;
   actions: ProviderActions;
   conversation?: ConversationConfig;
-  response?: ResponseConfig;
   sse?: SSEConfig;
 }
 

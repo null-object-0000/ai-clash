@@ -84,10 +84,8 @@ export const longcatProvider: ProviderConfig = {
       // 开启新对话
       newChat: {
         button: [
-          '.new-chat-btn',
-          '[data-testid*="new"]',
-          '[aria-label*="新对话"], [aria-label*="新建对话"]',
-          'button:has-text("新对话"), button:has-text("新建对话")',
+          '.slider-header .new-content',
+          '.slider-header .chat-icon-box'
         ],
       },
       // 输入消息

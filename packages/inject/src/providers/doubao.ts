@@ -9,27 +9,25 @@ import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
 const thinkingAction: ToggleAction = {
   async getState() {
     // 通过 .items-center 文本判断："思考" = 已开启，"快速" = 未开启
-    const el = document.querySelector('[data-testid="mode-select-action-button"] .items-center');
+    const el = document.querySelector('#input-engine-container .max-w-full button[data-slot="dropdown-menu-trigger"] div.items-center');
     if (!el) return { found: false, enabled: false };
     const text = el.textContent?.trim() || '';
     return { found: true, enabled: text.includes('思考') && !text.includes('快速') };
   },
 
   async enable() {
-    const selectors = ['[data-testid="mode-select-action-button"]'];
+    const selectors = ['#input-engine-container .max-w-full button[data-slot="dropdown-menu-trigger"] div.items-center'];
     const el = findAnyElement(selectors);
     if (!el) return false;
 
     // 点击触发器按钮展开菜单
-    const triggerBtn = el.querySelector('[data-slot="dropdown-menu-trigger"]') || el.querySelector('button');
-    if (!triggerBtn) return false;
-    simulateRealClick(triggerBtn);
+    simulateRealClick(el);
 
     // 等待菜单展开
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // 查找包含"思考"文本的菜单项并点击
-    const menuItems = Array.from(document.querySelectorAll('[role="menuitem"], [data-slot="dropdown-menu-item"]'));
+    const menuItems = Array.from(document.querySelectorAll('[data-slot="dropdown-menu-content"] [role="menuitem"], [data-slot="dropdown-menu-item"]'));
     const targetItem = menuItems.find(item => item.textContent?.includes('思考'));
     if (targetItem) {
       simulateRealClick(targetItem);
@@ -40,20 +38,18 @@ const thinkingAction: ToggleAction = {
   },
 
   async disable() {
-    const selectors = ['[data-testid="mode-select-action-button"]'];
+    const selectors = ['#input-engine-container .max-w-full button[data-slot="dropdown-menu-trigger"] div.items-center'];
     const el = findAnyElement(selectors);
     if (!el) return false;
 
     // 点击触发器按钮展开菜单
-    const triggerBtn = el.querySelector('[data-slot="dropdown-menu-trigger"]') || el.querySelector('button');
-    if (!triggerBtn) return false;
-    simulateRealClick(triggerBtn);
+    simulateRealClick(el);
 
     // 等待菜单展开
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // 查找包含"快速"文本的菜单项并点击（关闭思考模式）
-    const menuItems = Array.from(document.querySelectorAll('[role="menuitem"], [data-slot="dropdown-menu-item"]'));
+    const menuItems = Array.from(document.querySelectorAll('[data-slot="dropdown-menu-content"] [role="menuitem"], [data-slot="dropdown-menu-item"]'));
     const targetItem = menuItems.find(item => item.textContent?.includes('快速'));
     if (targetItem) {
       simulateRealClick(targetItem);
@@ -67,14 +63,14 @@ const thinkingAction: ToggleAction = {
 // Auth 登录信息配置
 const authAction: AuthAction = {
   loggedInSelectors: [
-    '#flow_chat_sidebar [data-testid="chat_header_avatar_button"]',
-    '#flow_chat_sidebar [data-slot="dropdown-menu-trigger"] .text-dbx-text-primary',
+    '#flow_chat_sidebar .-mx-12 .w-full button img',
+    '#flow_chat_sidebar .-mx-12 .w-full button .text-dbx-text-primary',
   ],
   usernameSelectors: [
-    '#flow_chat_sidebar [data-slot="dropdown-menu-trigger"] .text-dbx-text-primary',
+    '#flow_chat_sidebar .-mx-12 .w-full button .text-dbx-text-primary',
   ],
   avatarSelectors: [
-    '#flow_chat_sidebar [data-testid="chat_header_avatar_button"]',
+    '#flow_chat_sidebar .-mx-12 .w-full button img',
   ],
 };
 
@@ -88,19 +84,19 @@ export const doubaoProvider: ProviderConfig = {
       // 开启新对话
       newChat: {
         button: [
-          '[data-testid="create_conversation_button"]',
+          '#flow_chat_sidebar >> 新对话',
         ],
       },
       // 输入消息
       input: {
         box: [
-          '[data-testid="chat_input_input"]'
+          '#input-engine-container .w-full textarea'
         ],
       },
       // 发送消息
       send: {
         button: [
-          '[data-testid="chat_input_send_button"]',
+          '#flow-end-msg-send',
         ],
       },
     },
@@ -119,15 +115,6 @@ export const doubaoProvider: ProviderConfig = {
       // 排除临时 ID（local_ 开头）
       excludePattern: '^local_',
     },
-  },
-  // 响应内容提取（DOM 轮询模式）
-  response: {
-    responseSelectors: [
-      '[data-testid="receive_message"] [data-testid="message_text_content"]',
-    ],
-    thinkingSelectors: [
-      // 豆包的思考内容没有独立的 DOM 选择器，通过 SSE 流式拦截区分
-    ],
   },
   // SSE 流式拦截配置
   sse: (() => {

@@ -116,15 +116,6 @@ export const deepseekProvider: ProviderConfig = {
       captureGroup: 1,
     },
   },
-  // 响应内容提取（DOM 轮询模式）
-  response: {
-    responseSelectors: [
-      '.ds-message .ds-markdown'
-    ],
-    thinkingSelectors: [
-      '.ds-think-content .ds-markdown'
-    ],
-  },
   // SSE 流式拦截配置
   // 使用闭包维护当前 fragment 类型状态，因为增量追加需要保持当前类型
   sse: (() => {
