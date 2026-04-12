@@ -158,10 +158,11 @@ export function bootstrapProvider(providerId) {
           return new Promise((resolve, reject) => {
             pendingResolves.set(seq, resolve);
             const timeout = setTimeout(() => {
+              logger.error(`[AI Clash ${PROVIDER}] ✗ 等待会话 ID 超时 (20s)，可能是页面响应慢或 SSE 拦截失败`);
               pendingCallbacks.delete(seq);
               pendingResolves.delete(seq);
               reject(new Error('等待会话 ID 超时'));
-            }, 10000);
+            }, 20000);
           });
         } else {
           // 其他方法直接发送
@@ -183,13 +184,15 @@ export function bootstrapProvider(providerId) {
       await new Promise((resolve) => {
         const pingSeq = 'ping_' + Math.random();
         const timeout = setTimeout(() => {
+          logger.warn(`[AI Clash ${PROVIDER}] ping 探测超时 (2s)，standalone.js 可能未完全加载`);
           resolve(false);
-        }, 500);
+        }, 2000);
         const onPong = (event) => {
           if (event.data?.type === '__aiclash_pong' && event.data.seq === pingSeq) {
             window.removeEventListener('message', onPong);
             clearTimeout(timeout);
             hasMainWorld = true;
+            logger.log(`[AI Clash ${PROVIDER}] ✓ ping 探测成功，standalone.js 已就绪`);
             resolve(true);
           }
         };
@@ -289,7 +292,7 @@ export function bootstrapProvider(providerId) {
           });
         },
         onConversationId: (conversationId) => {
-          logger.log(`[AI Clash ${PROVIDER}] 会话 ID:`, conversationId);
+          logger.log(`[AI Clash ${PROVIDER}] ✓ 获取到会话 ID:`, conversationId);
           // 发送完成，已获取会话 ID，进入等待回复阶段
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
@@ -297,14 +300,14 @@ export function bootstrapProvider(providerId) {
           });
         },
         onComplete: (fullText, conversationId) => {
-          logger.log(`[AI Clash ${PROVIDER}] 任务完成`);
+          logger.log(`[AI Clash ${PROVIDER}] ✓ 任务完成`);
           safeSend({
             type: MSG_TYPES.TASK_COMPLETED,
             payload: { provider: PROVIDER }
           });
         },
         onError: (error, conversationId) => {
-          logger.error(`[AI Clash ${PROVIDER}] 错误:`, error);
+          logger.error(`[AI Clash ${PROVIDER}] ✗ 错误:`, error);
           safeSend({
             type: MSG_TYPES.ERROR,
             payload: { provider: PROVIDER, message: error }

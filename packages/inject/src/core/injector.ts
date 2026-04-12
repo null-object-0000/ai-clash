@@ -647,16 +647,21 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       // 点击发送按钮
       if (sendBtn) {
         simulateRealClick(sendBtn);
+        console.log(`[AI Clash Inject] ${provider.id}: 已点击发送按钮`);
       } else if (inputEl) {
         simulateEnter(inputEl);
+        console.log(`[AI Clash Inject] ${provider.id}: 已模拟回车发送`);
       } else {
         return { success: false, reason: 'no-button-no-input' };
       }
 
       // 等待会话 ID 出现（发送后 URL 会变化）
-      const conversationId = await waitForConversationId(provider, 3000);
+      // 千问等 SPA 应用第一次请求可能需要较长时间，给 8 秒超时
+      console.log(`[AI Clash Inject] ${provider.id}: 开始等待会话 ID...`);
+      const conversationId = await waitForConversationId(provider, 8000);
 
       if (!conversationId) {
+        console.warn(`[AI Clash Inject] ${provider.id}: 等待会话 ID 超时 (8s)，当前 URL:`, window.location.href);
         // 没有获取到会话 ID，视为失败
         if (callbacks?.onError) {
           callbacks.onError('未能获取会话 ID', undefined);
@@ -667,6 +672,8 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
           method: sendBtn ? 'button' : 'enter',
         };
       }
+
+      console.log(`[AI Clash Inject] ${provider.id}: ✓ 获取到会话 ID:`, conversationId);
 
       // 触发会话 ID 回调
       callbacks?.onConversationId?.(conversationId);
