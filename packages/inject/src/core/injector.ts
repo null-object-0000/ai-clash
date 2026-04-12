@@ -186,191 +186,191 @@ function setupSSEInterceptor() {
     // ====== fetch 拦截 ======
     const origFetch = window.fetch;
     window.fetch = function (...args) {
-    let url = '';
-    try {
-      const arg0 = args[0];
-      url = typeof arg0 === 'string' ? arg0 : (arg0 && (arg0 as Request).url) || '';
-    } catch (_) { }
+      let url = '';
+      try {
+        const arg0 = args[0];
+        url = typeof arg0 === 'string' ? arg0 : (arg0 && (arg0 as Request).url) || '';
+      } catch (_) { }
 
-    if (!isCompletionUrl(url)) {
-      return origFetch.apply(this, args);
-    }
-
-    resetSSEState();
-    fetchIntercepted = true;
-
-    return origFetch.apply(this, args).then((response) => {
-      if (!response.body) {
-        fetchIntercepted = false;
-        return response;
+      if (!isCompletionUrl(url)) {
+        return origFetch.apply(this, args);
       }
 
-      const dec = new TextDecoder('utf-8');
-      let buf = '';
-      const sourceReader = rawGetReader.call(response.body) as any;
+      resetSSEState();
+      fetchIntercepted = true;
 
-      const readable = new ReadableStream({
-        pull: (controller) => {
-          return (sourceReader.read() as any).then((result: any) => {
-            if (result.done) {
-              try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_: any) { }
+      return origFetch.apply(this, args).then((response) => {
+        if (!response.body) {
+          fetchIntercepted = false;
+          return response;
+        }
+
+        const dec = new TextDecoder('utf-8');
+        let buf = '';
+        const sourceReader = rawGetReader.call(response.body) as any;
+
+        const readable = new ReadableStream({
+          pull: (controller) => {
+            return (sourceReader.read() as any).then((result: any) => {
+              if (result.done) {
+                try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_: any) { }
+                emitSSEEnd();
+                fetchIntercepted = false;
+                controller.close();
+                return;
+              }
+              controller.enqueue(result.value);
+              try {
+                const chunk = rawDecode.call(dec, result.value, { stream: true });
+                buf += chunk;
+                const lines = buf.split('\n');
+                buf = lines.pop() || '';
+                for (let i = 0; i < lines.length; i++) {
+                  const t = lines[i].trim();
+                  if (t) parseSSELine(t);
+                }
+              } catch (_: any) { }
+            }).catch((err: any) => {
               emitSSEEnd();
               fetchIntercepted = false;
-              controller.close();
-              return;
-            }
-            controller.enqueue(result.value);
-            try {
-              const chunk = rawDecode.call(dec, result.value, { stream: true });
-              buf += chunk;
-              const lines = buf.split('\n');
-              buf = lines.pop() || '';
-              for (let i = 0; i < lines.length; i++) {
-                const t = lines[i].trim();
-                if (t) parseSSELine(t);
-              }
-            } catch (_: any) { }
-          }).catch((err: any) => {
-            emitSSEEnd();
+              try { controller.error(err); } catch (_) { }
+            });
+          },
+          cancel: () => {
             fetchIntercepted = false;
-            try { controller.error(err); } catch (_) { }
-          });
-        },
-        cancel: () => {
-          fetchIntercepted = false;
-          sourceReader.cancel();
-        },
+            sourceReader.cancel();
+          },
+        });
+
+        return new Response(readable, {
+          status: response.status,
+          statusText: response.statusText,
+          headers: response.headers,
+        });
+      }).catch((err) => {
+        fetchIntercepted = false;
+        throw err;
+      });
+    };
+
+    // ====== XHR 拦截 ======
+    const origXhrOpen = XMLHttpRequest.prototype.open;
+    const origXhrSend = XMLHttpRequest.prototype.send;
+    const rtDesc = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
+
+    XMLHttpRequest.prototype.open = function (method: string, url: any) {
+      (this as any)._ab = { url: typeof url === 'string' ? url : '', pos: 0, ended: false };
+      return origXhrOpen.apply(this, arguments as any);
+    };
+
+    XMLHttpRequest.prototype.send = function () {
+      const ab = (this as any)._ab;
+      if (!ab || !isCompletionUrl(ab.url)) {
+        return origXhrSend.apply(this, arguments as any);
+      }
+
+      resetSSEState();
+      const xhr = this;
+
+      const processNew = (fullText: string) => {
+        if (typeof fullText !== 'string' || fullText.length <= ab.pos) return;
+        const newData = fullText.substring(ab.pos);
+        ab.pos = fullText.length;
+        const lines = newData.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+          const t = lines[i].trim();
+          if (t) parseSSELine(t);
+        }
+      };
+
+      const poller = setInterval(() => {
+        try {
+          const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
+          if (txt) processNew(txt);
+        } catch (_) { }
+        if (xhr.readyState === 4) clearInterval(poller);
+      }, 50);
+
+      xhr.addEventListener('loadend', () => {
+        clearInterval(poller);
+        try {
+          const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
+          if (txt) processNew(txt);
+        } catch (_) { }
+        if (!ab.ended) {
+          ab.ended = true;
+          emitSSEEnd();
+        }
       });
 
-      return new Response(readable, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: response.headers,
-      });
-    }).catch((err) => {
-      fetchIntercepted = false;
-      throw err;
-    });
-  };
-
-  // ====== XHR 拦截 ======
-  const origXhrOpen = XMLHttpRequest.prototype.open;
-  const origXhrSend = XMLHttpRequest.prototype.send;
-  const rtDesc = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
-
-  XMLHttpRequest.prototype.open = function (method: string, url: any) {
-    (this as any)._ab = { url: typeof url === 'string' ? url : '', pos: 0, ended: false };
-    return origXhrOpen.apply(this, arguments as any);
-  };
-
-  XMLHttpRequest.prototype.send = function () {
-    const ab = (this as any)._ab;
-    if (!ab || !isCompletionUrl(ab.url)) {
       return origXhrSend.apply(this, arguments as any);
-    }
+    };
 
-    resetSSEState();
-    const xhr = this;
+    // ====== TextDecoder 拦截 ======
+    const origDecode = TextDecoder.prototype.decode;
+    const decoderStates = new WeakMap();
 
-    const processNew = (fullText: string) => {
-      if (typeof fullText !== 'string' || fullText.length <= ab.pos) return;
-      const newData = fullText.substring(ab.pos);
-      ab.pos = fullText.length;
-      const lines = newData.split('\n');
+    TextDecoder.prototype.decode = function (input, options) {
+      const result = origDecode.apply(this, arguments as any);
+      if (!result || result.length < 5) return result;
+      if (fetchIntercepted) return result;
+
+      let st = decoderStates.get(this);
+      if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; decoderStates.set(this, st); }
+      if (st.rejected) return result;
+
+      if (!st.tracked) {
+        if (shouldTrackSSE(result)) {
+          st.tracked = true;
+          resetSSEState();
+        } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
+      }
+
+      st.buf += result;
+      const lines = st.buf.split('\n');
+      st.buf = lines.pop() || '';
       for (let i = 0; i < lines.length; i++) {
         const t = lines[i].trim();
         if (t) parseSSELine(t);
       }
+      return result;
     };
 
-    const poller = setInterval(() => {
-      try {
-        const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
-        if (txt) processNew(txt);
-      } catch (_) { }
-      if (xhr.readyState === 4) clearInterval(poller);
-    }, 50);
+    // ====== ReadableStream 拦截 ======
+    const origGetReader = ReadableStream.prototype.getReader;
+    ReadableStream.prototype.getReader = function () {
+      const reader = origGetReader.apply(this, arguments as any) as any;
+      const origRead = reader.read.bind(reader);
+      const st: any = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
 
-    xhr.addEventListener('loadend', () => {
-      clearInterval(poller);
-      try {
-        const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
-        if (txt) processNew(txt);
-      } catch (_) { }
-      if (!ab.ended) {
-        ab.ended = true;
-        emitSSEEnd();
-      }
-    });
+      reader.read = function () {
+        return (origRead as any)().then((result: any) => {
+          if (st.rejected || fetchIntercepted) return result;
+          if (result.done) {
+            if (st.tracked) { if (st.buf.trim()) parseSSELine(st.buf.trim()); emitSSEEnd(); }
+            return result;
+          }
+          if (!result.value) return result;
+          let text;
+          try { text = typeof result.value === 'string' ? result.value : rawDecode.call(st.dec, result.value, { stream: true }); }
+          catch (_) { st.rejected = true; return result; }
 
-    return origXhrSend.apply(this, arguments as any);
-  };
+          if (!st.tracked) {
+            if (shouldTrackSSE(text)) {
+              st.tracked = true; resetSSEState();
+            } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
+          }
 
-  // ====== TextDecoder 拦截 ======
-  const origDecode = TextDecoder.prototype.decode;
-  const decoderStates = new WeakMap();
-
-  TextDecoder.prototype.decode = function (input, options) {
-    const result = origDecode.apply(this, arguments as any);
-    if (!result || result.length < 5) return result;
-    if (fetchIntercepted) return result;
-
-    let st = decoderStates.get(this);
-    if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; decoderStates.set(this, st); }
-    if (st.rejected) return result;
-
-    if (!st.tracked) {
-      if (shouldTrackSSE(result)) {
-        st.tracked = true;
-        resetSSEState();
-      } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
-    }
-
-    st.buf += result;
-    const lines = st.buf.split('\n');
-    st.buf = lines.pop() || '';
-    for (let i = 0; i < lines.length; i++) {
-      const t = lines[i].trim();
-      if (t) parseSSELine(t);
-    }
-    return result;
-  };
-
-  // ====== ReadableStream 拦截 ======
-  const origGetReader = ReadableStream.prototype.getReader;
-  ReadableStream.prototype.getReader = function () {
-    const reader = origGetReader.apply(this, arguments as any) as any;
-    const origRead = reader.read.bind(reader);
-    const st: any = { tracked: false, rejected: false, buf: '', dec: new TextDecoder('utf-8'), n: 0 };
-
-    reader.read = function () {
-      return (origRead as any)().then((result: any) => {
-        if (st.rejected || fetchIntercepted) return result;
-        if (result.done) {
-          if (st.tracked) { if (st.buf.trim()) parseSSELine(st.buf.trim()); emitSSEEnd(); }
+          st.buf += text;
+          const lines = st.buf.split('\n');
+          st.buf = lines.pop() || '';
+          for (let i = 0; i < lines.length; i++) { const t = lines[i].trim(); if (t) parseSSELine(t); }
           return result;
-        }
-        if (!result.value) return result;
-        let text;
-        try { text = typeof result.value === 'string' ? result.value : rawDecode.call(st.dec, result.value, { stream: true }); }
-        catch (_) { st.rejected = true; return result; }
-
-        if (!st.tracked) {
-          if (shouldTrackSSE(text)) {
-            st.tracked = true; resetSSEState();
-          } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
-        }
-
-        st.buf += text;
-        const lines = st.buf.split('\n');
-        st.buf = lines.pop() || '';
-        for (let i = 0; i < lines.length; i++) { const t = lines[i].trim(); if (t) parseSSELine(t); }
-        return result;
-      });
+        });
+      };
+      return reader;
     };
-    return reader;
-  };
-}
+  }
 }
 
 // ============================================================================
@@ -530,7 +530,7 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
 
   return {
     async newChat() {
-      const target = findAnyElement(chat.newChat.button);
+      const target = await waitForAnyElement(chat.newChat.button, 3000);
       if (!target) {
         return { success: false, reason: 'button-not-found' };
       }
@@ -630,8 +630,11 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
      * @internal
      */
     async _send(callbacks?: SendCallbacks) {
-      const inputEl = await waitForAnyElement(chat.input.box, 2000);
+      console.log(`[AI Clash Inject] ${provider.id}: _send 开始执行，等待输入框...`);
+      const inputEl = await waitForAnyElement(chat.input.box, 8000);
+      console.log(`[AI Clash Inject] ${provider.id}: 输入框${inputEl ? '找到' : '未找到'}`);
       const sendBtn = findAnyElement(chat.send.button);
+      console.log(`[AI Clash Inject] ${provider.id}: 发送按钮${sendBtn ? '找到' : '未找到'}`);
 
       // 如果有回调，先设置 SSE 拦截器和回调（在点击按钮前）
       // 必须提前设置，否则 SSE 数据到达时回调还是 null 会丢失
@@ -648,10 +651,22 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       if (sendBtn) {
         simulateRealClick(sendBtn);
         console.log(`[AI Clash Inject] ${provider.id}: 已点击发送按钮`);
+        // 清空输入框（千问等不会自动清空的网站需要手动清空）
+        await wait(300);
+        if (inputEl) {
+          if (inputEl.tagName === 'TEXTAREA' || inputEl.tagName === 'INPUT') {
+            (inputEl as HTMLInputElement).value = '';
+          } else {
+            inputEl.textContent = '';
+          }
+          inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+          console.log(`[AI Clash Inject] ${provider.id}: 已清空输入框`);
+        }
       } else if (inputEl) {
         simulateEnter(inputEl);
         console.log(`[AI Clash Inject] ${provider.id}: 已模拟回车发送`);
       } else {
+        console.error(`[AI Clash Inject] ${provider.id}: 无法发送消息 - 没有输入框或发送按钮`);
         return { success: false, reason: 'no-button-no-input' };
       }
 

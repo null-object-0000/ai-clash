@@ -413,8 +413,8 @@ const App = () => {
   const handleUserSubmit = async (val: string) => {
     if (!val.trim()) return;
     setInputStr(val);
+    setInputValue(''); // 立即清空输入框，提升用户体验
     await submit();
-    setInputValue('');
     listRef.current?.scrollTo({ top: 'bottom' });
   };
 

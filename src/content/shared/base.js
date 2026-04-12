@@ -88,9 +88,11 @@ export function bootstrapProvider(providerId) {
           callbacks.onConversationId(conversationId);
         }
         // resolve Promise，让串行流程继续执行下一个 provider
-        const resolveFn = pendingResolves.get(seq);
-        if (resolveFn) {
-          resolveFn({ success: true, conversationId });
+        const entry = pendingResolves.get(seq);
+        if (entry?.resolve) {
+          // 先清除定时器，避免超时错误
+          if (entry.timeoutId) clearTimeout(entry.timeoutId);
+          entry.resolve({ success: true, conversationId });
         }
         // 清理 pending 数据，但保留 callbacks 用于后续的 complete/error
         pendingResolves.delete(seq);
@@ -156,13 +158,13 @@ export function bootstrapProvider(providerId) {
           // 等待消息成功发送（获取到会话 ID）后返回
           // 返回一个 Promise，等待 __aiclash_conversation_id 消息
           return new Promise((resolve, reject) => {
-            pendingResolves.set(seq, resolve);
-            const timeout = setTimeout(() => {
+            const timeoutId = setTimeout(() => {
               logger.error(`[AI Clash ${PROVIDER}] ✗ 等待会话 ID 超时 (20s)，可能是页面响应慢或 SSE 拦截失败`);
               pendingCallbacks.delete(seq);
               pendingResolves.delete(seq);
               reject(new Error('等待会话 ID 超时'));
             }, 20000);
+            pendingResolves.set(seq, { resolve, timeoutId });
           });
         } else {
           // 其他方法直接发送
