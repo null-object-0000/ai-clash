@@ -8,8 +8,8 @@ const PROVIDER_ICON_MAP: Record<string, { Color?: IconComponent; Mono?: IconComp
   deepseek: DeepSeek,
   doubao: Doubao,
   qianwen: Qwen,
-  longcat: LongCat,
   yuanbao: Yuanbao,
+  longcat: LongCat,
 };
 
 export function getProviderIconSet(providerId: ProviderId) {

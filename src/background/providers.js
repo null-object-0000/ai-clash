@@ -123,6 +123,13 @@ export const PROVIDERS = [
     }
   },
   {
+    id: 'yuanbao',
+    name: '元宝',
+    matchPattern: 'https://yuanbao.tencent.com/*',
+    startUrl: 'https://yuanbao.tencent.com/chat/',
+    // 元宝不支持 API 模式，无需 apiConfig
+  },
+  {
     id: 'longcat',
     name: 'LongCat',
     matchPattern: 'https://longcat.chat/*',
@@ -156,13 +163,6 @@ export const PROVIDERS = [
         },
       ],
     }
-  },
-  {
-    id: 'yuanbao',
-    name: '元宝',
-    matchPattern: 'https://yuanbao.tencent.com/*',
-    startUrl: 'https://yuanbao.tencent.com/chat/',
-    // 元宝不支持 API 模式，无需 apiConfig
   },
 ];
 

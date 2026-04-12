@@ -15,8 +15,8 @@ const iconMap: Record<string, { Color: React.ComponentType<{ size?: number }> }>
   deepseek: DeepSeek,
   doubao: Doubao,
   qianwen: Qwen,
-  longcat: LongCat,
   yuanbao: Yuanbao,
+  longcat: LongCat,
 };
 
 const useStyles = createStyles(({ token, css }) => ({

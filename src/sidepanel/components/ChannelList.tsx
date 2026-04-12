@@ -12,8 +12,8 @@ const iconMap: Record<string, IconWithColor> = {
   deepseek: DeepSeek,
   doubao: Doubao,
   qianwen: Qwen,
-  longcat: LongCat,
   yuanbao: Yuanbao,
+  longcat: LongCat,
 };
 
 const useStyles = createStyles(({ token, css }) => ({
