@@ -45,7 +45,23 @@ export function createMessageListener(
       const prov = provider as ProviderId;
       if (!prov) return;
       if (p.isStatus) {
-        set((prev: AppStore) => ({ operationStatus: { ...prev.operationStatus, [prov]: p.text } }));
+        // clearError: true 表示清除之前的错误状态（重试成功场景）
+        if (p.clearError) {
+          // 清除错误状态和已累积的文本
+          set((prev: AppStore) => ({
+            operationStatus: { ...prev.operationStatus, [prov]: '' },
+            stageMap: { ...prev.stageMap, [prov]: 'connecting' },
+            responses: { ...prev.responses, [prov]: '' },
+            thinkResponses: { ...prev.thinkResponses, [prov]: '' },
+          }));
+          // 清除 buffers 中的文本，下次 tickStreamDisplay 会清空 UI 显示
+          buffers.fullText[prov] = '';
+          buffers.displayedLen[prov] = 0;
+          buffers.thinkText[prov] = '';
+          buffers.thinkDisplayedLen[prov] = 0;
+        } else {
+          set((prev: AppStore) => ({ operationStatus: { ...prev.operationStatus, [prov]: p.text } }));
+        }
         if (p.stage) buffers.visitedStages[prov].add(p.stage);
         get().schedulePersist();
         return;

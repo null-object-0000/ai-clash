@@ -410,10 +410,10 @@ const App = () => {
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
 
   // ==================== Event ====================
-  const handleUserSubmit = (val: string) => {
+  const handleUserSubmit = async (val: string) => {
     if (!val.trim()) return;
     setInputStr(val);
-    submit();
+    await submit();
     setInputValue('');
     listRef.current?.scrollTo({ top: 'bottom' });
   };

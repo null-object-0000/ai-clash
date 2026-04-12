@@ -169,22 +169,29 @@ window.addEventListener('message', async (event) => {
             conversationId,
           }, '*');
         },
+        onConversationId: (conversationId: string) => {
+          // 转发会话 ID 回 content script，让它知道消息已成功发送
+          console.log(`[AI Clash Inject] Conversation ID: ${conversationId}`);
+          window.postMessage({
+            type: '__aiclash_conversation_id',
+            seq,
+            conversationId,
+          }, '*');
+        },
         onComplete: (fullText: string, conversationId?: string) => {
           console.log(`[AI Clash Inject] MAIN world onComplete: total length ${fullText.length}`);
           window.postMessage({
             type: '__aiclash_complete',
+            seq,
             fullText,
             conversationId,
           }, '*');
-        },
-        onConversationId: (conversationId: string) => {
-          // 不需要转发，content script 只需要控制台打日志
-          console.log(`[AI Clash Inject] Conversation ID: ${conversationId}`);
         },
         onError: (error: string, conversationId?: string) => {
           console.error(`[AI Clash Inject] MAIN world onError: ${error}`);
           window.postMessage({
             type: '__aiclash_error',
+            seq,
             error,
             conversationId,
           }, '*');

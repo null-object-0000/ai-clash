@@ -314,20 +314,9 @@ export const useStore = create<AppStore>()((set, get) => {
         set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: false } }));
         return;
       }
-      if (s.modeMap[id] === 'api') {
-        set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
-        return;
-      }
-      try {
-        const result = await get().goToProvider(id, true);
-        if (result?.success) {
-          set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
-        } else {
-          window.alert(`开启${id}失败：${result?.error || '无法创建页面'}`);
-        }
-      } catch (err) {
-        window.alert(`开启${id}失败：${String(err)}`);
-      }
+      // 懒加载模式：开启通道时不立即打开 tab，只标记为启用
+      // 等发送消息时才打开 tab
+      set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
     },
 
     setProviderMode: (id, mode) => {
@@ -378,7 +367,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
     setInputStr: (v) => set({ inputStr: v }),
 
-    submit: () => {
+    submit: async () => {
       const s = get();
       const prompt = s.inputStr.trim();
       if (!prompt) return;
@@ -445,19 +434,25 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
+      // 串行执行：每个提供者提交成功后再执行下一个
       for (const id of enabledIds) {
-        chrome.runtime?.sendMessage({
-          type: MSG_TYPES.DISPATCH_TASK,
-          payload: {
-            provider: id, prompt,
-            mode: s.modeMap[id] === 'web' && id === 'yuanbao' ? 'web' : s.modeMap[id],
-            settings: {
-              isDeepThinkingEnabled: s.isDeepThinkingEnabled,
-              isWebSearchEnabled: s.isWebSearchEnabled,
-              conversationHistory,
-              isNewConversation,
+        await new Promise<void>((resolve) => {
+          chrome.runtime?.sendMessage({
+            type: MSG_TYPES.DISPATCH_TASK,
+            payload: {
+              provider: id, prompt,
+              mode: s.modeMap[id] === 'web' && id === 'yuanbao' ? 'web' : s.modeMap[id],
+              settings: {
+                isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+                isWebSearchEnabled: s.isWebSearchEnabled,
+                conversationHistory,
+                isNewConversation,
+              },
             },
-          },
+          }, (response) => {
+            logger.log(`[${id}] 任务提交完成:`, response);
+            resolve();
+          });
         });
       }
     },
