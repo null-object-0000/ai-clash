@@ -566,6 +566,11 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
         if (!response?.ok) {
             throw new Error('content script 返回错误');
         }
+        // 消息发送成功，更新为 sending 阶段
+        chrome.runtime.sendMessage({
+            type: MSG_TYPES.TASK_STATUS_UPDATE,
+            payload: { provider: provider.id, stage: 'sending', text: `消息已发送，等待${provider.name}响应...` }
+        }).catch(() => {});
         logger.log(`[AI Clash] ${provider.id} 消息发送成功，等待执行...`);
     } catch {
         // 发送失败，说明 content script 已失效（常见于扩展重新加载后旧 Tab 的孤儿上下文）
@@ -606,6 +611,11 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
             if (!response?.ok) {
                 throw new Error('content script 返回错误');
             }
+            // 消息发送成功（重载后），更新为 sending 阶段
+            chrome.runtime.sendMessage({
+                type: MSG_TYPES.TASK_STATUS_UPDATE,
+                payload: { provider: provider.id, stage: 'sending', text: `消息已发送（重载后），等待${provider.name}响应...` }
+            }).catch(() => {});
             logger.log(`[AI Clash] ${provider.id} 消息发送成功（重载后），等待执行...`);
         } catch (err) {
             logger.error(`[AI Clash] Failed to send message to ${provider.id} after reload:`, err);
@@ -748,7 +758,26 @@ async function waitForTabComplete(tabId, timeout = 30000) {
 async function routeToTab(provider, prompt, settings) {
     const msg = { type: MSG_TYPES.EXECUTE_PROMPT, payload: { prompt, settings } };
 
+    // 0. 任务开始，先显示等待启动状态（logo 会在此时展示）
+    chrome.runtime.sendMessage({
+        type: MSG_TYPES.TASK_STATUS_UPDATE,
+        payload: {
+            provider: provider.id,
+            stage: 'waiting',
+            text: `等待启动${provider.name}...`
+        }
+    }).catch(() => {});
+
     // 1. 先打开或激活 tab（总是激活，确保 standalone 注入和通信正常）
+    chrome.runtime.sendMessage({
+        type: MSG_TYPES.TASK_STATUS_UPDATE,
+        payload: {
+            provider: provider.id,
+            stage: 'opening',
+            text: `正在启动${provider.name}...`
+        }
+    }).catch(() => {});
+
     const tabResult = await openAndActivateTab(provider);
     if (!tabResult.success || !tabResult.tabId) {
         sendProviderError(provider.id, `无法打开${provider.name}页面`);
@@ -776,7 +805,17 @@ async function routeToTab(provider, prompt, settings) {
         throw new Error(readyResult.error || 'content script 未就绪');
     }
 
-    // 5. 发送消息执行任务
+    // 5. 连接通道成功，准备发送消息
+    chrome.runtime.sendMessage({
+        type: MSG_TYPES.TASK_STATUS_UPDATE,
+        payload: {
+            provider: provider.id,
+            stage: 'connecting',
+            text: `${provider.name} 已就绪，正在发送消息...`
+        }
+    }).catch(() => {});
+
+    // 6. 发送消息执行任务
     await injectContentScriptAndSendMessage(tabId, provider, msg);
 }
 

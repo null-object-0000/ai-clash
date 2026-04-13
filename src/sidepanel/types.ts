@@ -2,7 +2,7 @@ export const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat', 'yuanba
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 export type ProviderMode = 'web' | 'api';
 export type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
-export type StageType = 'idle' | 'opening' | 'loading' | 'connecting' | 'thinking' | 'responding' | 'summarizing' | 'completed';
+export type StageType = 'idle' | 'waiting' | 'opening' | 'loading' | 'connecting' | 'sending' | 'thinking' | 'responding' | 'summarizing' | 'completed';
 export type ThemeColor = 'blue' | 'amber' | 'emerald' | 'violet' | 'teal';
 
 export interface ApiConfig {

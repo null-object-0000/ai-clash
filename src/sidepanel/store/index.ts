@@ -236,7 +236,7 @@ export const useStore = create<AppStore>()((set, get) => {
     isMultiTurnSession: false,
 
     statusMap: createDefaultRecord<ProviderStatus>('idle'),
-    stageMap: createDefaultRecord<StageType>('connecting'),
+    stageMap: createDefaultRecord<StageType>('waiting'),
     responses: createDefaultRecord(''),
     thinkResponses: createDefaultRecord(''),
     operationStatus: createDefaultRecord(''),
@@ -598,7 +598,7 @@ export const useStore = create<AppStore>()((set, get) => {
       resetBuffers();
       set({
         statusMap: createDefaultRecord('idle'),
-        stageMap: createDefaultRecord('connecting'),
+        stageMap: createDefaultRecord('waiting'),
         responses: createDefaultRecord(''),
         thinkResponses: createDefaultRecord(''),
         operationStatus: createDefaultRecord(''),

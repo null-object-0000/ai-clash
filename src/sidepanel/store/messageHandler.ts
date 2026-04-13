@@ -7,7 +7,7 @@ type StoreGet = () => AppStore;
 type StoreSet = (partial: Partial<AppStore> | ((prev: AppStore) => Partial<AppStore>)) => void;
 
 const STAGE_INDEX: Record<string, number> = {
-  opening: 0, loading: 1, connecting: 2, thinking: 3, responding: 4,
+  waiting: -1, opening: 0, loading: 1, connecting: 2, sending: 3, thinking: 4, responding: 5,
 };
 
 function trackStageTransition(prov: ProviderId, newStage: string, get: StoreGet) {

@@ -55,6 +55,10 @@ const useStyles = createStyles(({ token, css }) => ({
         margin: 0;
       }
 
+      hr {
+        margin: 16px 0;
+      }
+
       h1, h2, h3, h4, h5, h6 {
         margin-top: 16px;
     }
@@ -207,7 +211,10 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus }: {
   opStatus?: string;
 }) {
   const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
-  const stageLabel = stage === 'thinking' ? '思考中...' : stage === 'connecting' ? '连接中...' : '输出中...';
+  const stageLabel = stage === 'thinking' ? '思考中...'
+    : stage === 'connecting' ? '连接中...'
+      : stage === 'sending' ? '发送中...'
+        : '输出中...';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
       {Icon && <Icon size={16} />}
@@ -227,11 +234,13 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus }: {
 
 // ─── ThoughtChain helpers ───
 
-const STAGE_ORDER: StageType[] = ['opening', 'loading', 'connecting', 'thinking', 'responding'];
+const STAGE_ORDER: StageType[] = ['waiting', 'opening', 'loading', 'connecting', 'sending', 'thinking', 'responding'];
 const STAGE_LABELS: Record<string, string> = {
-  opening: '打开页面',
+  waiting: '等待启动',
+  opening: '启动浏览器',
   loading: '加载页面',
   connecting: '连接通道',
+  sending: '发送消息',
   thinking: '深度思考',
   responding: '生成回答',
 };
@@ -255,11 +264,23 @@ function buildThoughtChainItems(stage: StageType, opStatus?: string, visitedStag
 
 function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; opStatus?: string; providerId?: string }) {
   const visited = providerId ? buffers.visitedStages[providerId as ProviderId] : undefined;
+  const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
+
   return (
-    <ThoughtChain
-      items={buildThoughtChainItems(stage, opStatus, visited)}
-      style={{ padding: '4px 0' }}
-    />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {Icon && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon size={16} />
+          <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
+            {PROVIDER_NAME_MAP[providerId as ProviderId] || providerId}
+          </span>
+        </div>
+      )}
+      <ThoughtChain
+        items={buildThoughtChainItems(stage, opStatus, visited)}
+        style={{ padding: '4px 0' }}
+      />
+    </div>
   );
 }
 
