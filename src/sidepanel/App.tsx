@@ -1,15 +1,19 @@
 import {
   BulbOutlined,
+  CarOutlined,
   CommentOutlined,
   GlobalOutlined,
+  HeartOutlined,
   MergeCellsOutlined,
   PlusOutlined,
   SettingOutlined,
+  TrophyOutlined,
 } from '@ant-design/icons';
 import { DownOutlined, RightOutlined } from '@ant-design/icons';
-import type { BubbleListProps } from '@ant-design/x';
+import type { BubbleListProps, PromptsProps } from '@ant-design/x';
 import {
   Bubble,
+  Prompts,
   Sender,
   Think,
   ThoughtChain,
@@ -63,6 +67,41 @@ const useStyles = createStyles(({ token, css }) => ({
       h1, h2, h3, h4, h5, h6 {
         margin-top: 16px;
     }
+  `,
+  promptTitle: css`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${token.colorText};
+    padding: 16px;
+    opacity: 0.75;
+  `,
+  promptRow: css`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    margin-inline: ${token.margin}px;
+    transition: background 0.2s;
+    &:not(:last-child) {
+      border-bottom: 1px solid ${token.colorBorderSecondary};
+    }
+    &:hover {
+      background: ${token.colorBgTextHover};
+    }
+    cursor: pointer;
+  `,
+  promptIcon: css`
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `,
+  promptDesc: css`
+    flex: 1;
+    font-size: 13px;
+    color: ${token.colorText};
   `,
   floatingToolbar: css`
     position: absolute;
@@ -359,6 +398,28 @@ const App = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
+  // 预设提示词
+  const presetPrompts: PromptsProps['items'] = useMemo(() => [
+    {
+      key: 'world-cup',
+      icon: <TrophyOutlined style={{ color: '#FAAD14' }} />,
+      description: '2026 美加墨世界杯从热度和实力两个角度盘点，TOP 10 是哪些？',
+      disabled: false,
+    },
+    {
+      key: 'car-wash',
+      icon: <CarOutlined style={{ color: '#1890FF' }} />,
+      description: '我想去洗车，汽车店距离我家 50 米，你说我应该开车去还是走过去？',
+      disabled: false,
+    },
+    {
+      key: 'baby-name',
+      icon: <HeartOutlined style={{ color: '#FF4D4F' }} />,
+      description: '我姓王，我老婆姓牛，给我儿子起个名字，最好是两个字的。',
+      disabled: false,
+    },
+  ], []);
+
   // ==================== Store ====================
   const hasAsked = useStore(s => s.hasAsked);
   const isCurrentSessionFromHistory = useStore(s => s.isCurrentSessionFromHistory);
@@ -588,6 +649,28 @@ const App = () => {
               className={styles.chatWelcome}
             />
             <ChannelList />
+            {inputValue.trim() ? null : (
+              <>
+                <div className={styles.promptTitle}>💡 你可以问我：</div>
+                {presetPrompts.map((prompt, index, arr) => (
+                  <div
+                    key={prompt.key}
+                    className={styles.promptRow}
+                    style={{ borderBottom: index !== arr.length - 1 ? undefined : 'none' }}
+                    onClick={() => {
+                      setInputValue(prompt.description as string);
+                    }}
+                  >
+                    <div className={styles.promptIcon}>
+                      {prompt.icon}
+                    </div>
+                    <div className={styles.promptDesc}>
+                      {prompt.description}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>
