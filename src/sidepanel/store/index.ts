@@ -242,7 +242,7 @@ export const useStore = create<AppStore>()((set, get) => {
     operationStatus: createDefaultRecord(''),
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
-    openMap: createDefaultRecord(true),
+    collapseMap: createDefaultRecord(false), // false = 展开，true = 折叠
 
     summaryStatus: 'idle',
     summaryStage: 'responding',
@@ -378,7 +378,7 @@ export const useStore = create<AppStore>()((set, get) => {
       const isSingleChannel = enabledIds.length === 1;
       const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked && !s.isCurrentSessionFromHistory;
 
-      let newTurns = s.conversationTurns;
+      let newTurns = [...s.conversationTurns];
       let newSessionId = s.activeSessionId;
       let newIsMultiTurn = s.isMultiTurnSession;
 
@@ -397,8 +397,9 @@ export const useStore = create<AppStore>()((set, get) => {
         newIsMultiTurn = isSingleChannel;
       }
 
-      const newOpenMap = { ...s.openMap };
-      for (const id of PROVIDER_IDS) newOpenMap[id] = s.enabledMap[id];
+      // 重置折叠状态：所有启用的通道默认展开
+      const newCollapseMap = createDefaultRecord(false);
+      for (const id of PROVIDER_IDS) newCollapseMap[id] = !s.enabledMap[id];
 
       get().resetTaskState();
 
@@ -420,7 +421,7 @@ export const useStore = create<AppStore>()((set, get) => {
         isCurrentSessionFromHistory: false,
         isHistoryPanelOpen: false,
         activeProviderSettings: '',
-        openMap: newOpenMap,
+        collapseMap: newCollapseMap,
         rawUrlMap: newRawUrlMap,
         statusMap: newStatusMap,
         inputStr: '',
@@ -460,13 +461,13 @@ export const useStore = create<AppStore>()((set, get) => {
     createNewChat: () => {
       get().resetTaskState();
       const s = get();
-      const newOpenMap = { ...s.openMap };
-      for (const id of PROVIDER_IDS) newOpenMap[id] = s.enabledMap[id];
+      const newCollapseMap = createDefaultRecord(false);
+      for (const id of PROVIDER_IDS) newCollapseMap[id] = !s.enabledMap[id];
       set({
         currentQuestion: '', hasAsked: false, activeSessionId: '',
         isCurrentSessionFromHistory: false, isHistoryPanelOpen: false,
         activeProviderSettings: '', conversationTurns: [],
-        isMultiTurnSession: false, openMap: newOpenMap, inputStr: '',
+        isMultiTurnSession: false, collapseMap: newCollapseMap, inputStr: '',
       });
     },
 
@@ -482,7 +483,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
         set(prev => ({
           enabledMap: newEnabled,
-          openMap: { ...prev.openMap, [providerId]: true },
+          collapseMap: { ...prev.collapseMap, [providerId]: false },
           currentQuestion: lastTurn?.question || '',
           conversationTurns: turns.slice(0, -1).map(t => ({
             question: t.question, providerId, response: t.response, thinkResponse: t.thinkResponse,
@@ -514,7 +515,8 @@ export const useStore = create<AppStore>()((set, get) => {
         const newOp = createDefaultRecord('');
         const newRaw = createDefaultRecord('');
         const newStats = createDefaultRecord<ProviderStats | null>(null);
-        const newOpen = createDefaultRecord(false);
+        // 多通道历史：默认折叠所有通道
+        const newCollapse = createDefaultRecord(true);
 
         for (const id of PROVIDER_IDS) {
           const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', rawUrl: '', stats: null };
@@ -526,6 +528,7 @@ export const useStore = create<AppStore>()((set, get) => {
           newOp[id] = ps.operationStatus;
           newRaw[id] = ps.rawUrl;
           newStats[id] = ps.stats ?? null;
+          newCollapse[id] = true; // 多通道历史默认全部折叠
           buffers.fullText[id] = ps.response;
           buffers.thinkText[id] = ps.thinkResponse;
           buffers.displayedLen[id] = ps.response.length;
@@ -538,7 +541,7 @@ export const useStore = create<AppStore>()((set, get) => {
           isMultiTurnSession: false,
           enabledMap: newEnabled, statusMap: newStatus, stageMap: newStage,
           responses: newResp, thinkResponses: newThink, operationStatus: newOp,
-          rawUrlMap: newRaw, statsMap: newStats, openMap: newOpen,
+          rawUrlMap: newRaw, statsMap: newStats, collapseMap: newCollapse,
         });
       }
 
@@ -566,6 +569,20 @@ export const useStore = create<AppStore>()((set, get) => {
     setShowNoChannelTip: (v) => set({ showNoChannelTip: v }),
     setIsSummarySettingsOpen: (v) => set({ isSummarySettingsOpen: v }),
     toggleShowApiKey: (id) => set(prev => ({ showApiKey: { ...prev.showApiKey, [id]: !prev.showApiKey[id] } })),
+
+    // ─── Collapse Actions ───
+
+    toggleCollapse: (providerId) => {
+      set(prev => ({ collapseMap: { ...prev.collapseMap, [providerId]: !prev.collapseMap[providerId] } }));
+    },
+
+    collapseAll: () => {
+      set({ collapseMap: createDefaultRecord(true) });
+    },
+
+    expandAll: () => {
+      set({ collapseMap: createDefaultRecord(false) });
+    },
 
     // ─── History Actions ───
 

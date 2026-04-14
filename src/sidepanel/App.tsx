@@ -6,6 +6,7 @@ import {
   PlusOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
+import { DownOutlined, RightOutlined } from '@ant-design/icons';
 import type { BubbleListProps } from '@ant-design/x';
 import {
   Bubble,
@@ -164,6 +165,56 @@ const useStyles = createStyles(({ token, css }) => ({
       }
     }
   `,
+  providerHeader: css`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    margin: -8px -12px 8px -12px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: background 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+
+    &:hover {
+      background: ${token.colorBgTextHover};
+    }
+
+    .provider-header-icon {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease;
+    }
+
+    .provider-header-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .provider-header-status {
+      font-size: 11px;
+      color: ${token.colorTextTertiary};
+      white-space: nowrap;
+    }
+  `,
+  bubbleContentHidden: css`
+    > .ant-bubble-body {
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+    }
+    .ant-bubble-content {
+      display: none !important;
+    }
+  `,
+  providerContent: css`
+    padding-top: 4px;
+  `,
 }));
 
 // ════════════════════════════════════════════════════════════════════
@@ -202,13 +253,16 @@ function formatStats(stats: import('./types').ProviderStats) {
   return `首字 ${(stats.ttff / 1000).toFixed(1)}s · 总耗时 ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString('zh-CN')}字 · ${stats.charsPerSec}字/s`;
 }
 
-function ProviderHeader({ providerId, label, stats, status, stage, opStatus }: {
+function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isCollapsed, onClick, styles }: {
   providerId?: string;
   label: string;
   stats?: import('./types').ProviderStats | null;
   status?: string;
   stage?: string;
   opStatus?: string;
+  isCollapsed: boolean;
+  onClick: () => void;
+  styles: ReturnType<typeof useStyles>['styles'];
 }) {
   const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
   const stageLabel = stage === 'thinking' ? '思考中...'
@@ -216,18 +270,23 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus }: {
       : stage === 'sending' ? '发送中...'
         : '输出中...';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-      {Icon && <Icon size={16} />}
-      <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>{label}</span>
-      {opStatus && (
-        <span style={{ fontSize: 11, color: '#9ca3af', animation: 'pulse 1s infinite' }}>{opStatus}</span>
-      )}
-      {!opStatus && status === 'running' && (
-        <span style={{ fontSize: 11, color: '#9ca3af', animation: 'pulse 1s infinite' }}>{stageLabel}</span>
-      )}
-      {!opStatus && status === 'completed' && stats && (
-        <span style={{ fontSize: 11, color: '#9ca3af' }}>{formatStats(stats)}</span>
-      )}
+    <div className={styles.providerHeader} onClick={onClick}>
+      <span className="provider-header-icon" style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.2s ease' }}>
+        <RightOutlined size={12} style={{ opacity: 0.6 }} />
+      </span>
+      <div className="provider-header-content">
+        {Icon && <Icon size={14} />}
+        <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>{label}</span>
+        {opStatus && (
+          <span className="provider-header-status" style={{ animation: 'pulse 1s infinite' }}>{opStatus}</span>
+        )}
+        {!opStatus && status === 'running' && (
+          <span className="provider-header-status" style={{ animation: 'pulse 1s infinite' }}>{stageLabel}</span>
+        )}
+        {!opStatus && status === 'completed' && stats && (
+          <span className="provider-header-status">{formatStats(stats)}</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -315,6 +374,8 @@ const App = () => {
   const operationStatus = useStore(s => s.operationStatus);
   const summaryOperationStatus = useStore(s => s.summaryOperationStatus);
   const stageMap = useStore(s => s.stageMap);
+  const collapseMap = useStore(s => s.collapseMap);
+  const { toggleCollapse } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -337,19 +398,29 @@ const App = () => {
         role: 'user',
         content: turn.question,
       });
+      const isCollapsed = collapseMap[turn.providerId];
       items.push({
         key: `ai-${turn.providerId}-${idx}`,
         role: 'assistant',
         content: turn.response || '等待中...',
-        ...(turn.thinkResponse ? {
+        ...(isCollapsed ? {
+          className: styles.bubbleContentHidden,
+          contentRender: () => null,
+          style: { paddingTop: 0, paddingBottom: 0 },
+        } : (turn.thinkResponse ? {
           contentRender: makeContentRender(turn.thinkResponse, false),
-        } : {}),
-        header: <ProviderHeader
-          providerId={turn.providerId}
-          label={PROVIDER_NAME_MAP[turn.providerId] || turn.providerId}
-          stats={turn.stats}
-          status="completed"
-        />,
+        } : {})),
+        header: (
+          <ProviderHeader
+            providerId={turn.providerId}
+            label={PROVIDER_NAME_MAP[turn.providerId] || turn.providerId}
+            stats={turn.stats}
+            status="completed"
+            isCollapsed={isCollapsed}
+            onClick={() => toggleCollapse(turn.providerId)}
+            styles={styles}
+          />
+        ),
       });
     });
 
@@ -366,25 +437,42 @@ const App = () => {
         const think = thinkResponses[id];
         const resp = responses[id];
         const hasContent = !!(think || resp);
+        const isCollapsed = collapseMap[id];
+
+        // 构建 contentRender：折叠时返回 null，否则根据是否有 think 来决定渲染方式
+        let contentRenderFn = undefined;
+        if (isCollapsed) {
+          contentRenderFn = () => null;
+        } else if (think) {
+          contentRenderFn = makeContentRender(think, isRunning);
+        }
+
         items.push({
           key: `ai-current-${id}`,
           role: 'assistant',
           content: resp || '',
+          ...(contentRenderFn ? { contentRender: contentRenderFn } : {}),
+          ...(isCollapsed ? {
+            className: styles.bubbleContentHidden,
+            style: { paddingTop: 0, paddingBottom: 0 },
+          } : {}),
           loading: isRunning && !hasContent,
           streaming: isRunning && hasContent,
-          ...(think ? {
-            contentRender: makeContentRender(think, isRunning),
-          } : {}),
           status: statusMap[id] === 'error' ? 'error' : undefined,
-          header: <ProviderHeader
-            providerId={id}
-            label={PROVIDER_NAME_MAP[id]}
-            stats={statsMap[id]}
-            status={statusMap[id]}
-            stage={stageMap[id]}
-            opStatus={operationStatus[id]}
-          />,
-          ...(isRunning && !hasContent ? {
+          header: (
+            <ProviderHeader
+              providerId={id}
+              label={PROVIDER_NAME_MAP[id]}
+              stats={statsMap[id]}
+              status={statusMap[id]}
+              stage={stageMap[id]}
+              opStatus={operationStatus[id]}
+              isCollapsed={isCollapsed}
+              onClick={() => toggleCollapse(id)}
+              styles={styles}
+            />
+          ),
+          ...(isRunning && !hasContent && !isCollapsed ? {
             loadingRender: () => (
               <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} providerId={id} />
             ),
@@ -405,12 +493,17 @@ const App = () => {
             contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running'),
           } : {}),
           status: summaryStatus === 'error' ? 'error' : undefined,
-          header: <ProviderHeader
-            label="归纳总结"
-            stats={summaryStats}
-            status={summaryStatus}
-            opStatus={summaryOperationStatus}
-          />,
+          header: (
+            <ProviderHeader
+              label="归纳总结"
+              stats={summaryStats}
+              status={summaryStatus}
+              opStatus={summaryOperationStatus}
+              isCollapsed={false}
+              onClick={() => {}}
+              styles={styles}
+            />
+          ),
           ...(summaryStatus === 'running' && !hasSummaryContent ? {
             loadingRender: () => (
               <StageThoughtChain stage={summaryStage as StageType} opStatus={summaryOperationStatus} />
@@ -422,7 +515,7 @@ const App = () => {
 
     return items;
   }, [
-    conversationTurns, currentQuestion, enabledMap, statusMap, stageMap,
+    conversationTurns, currentQuestion, enabledMap, statusMap, stageMap, collapseMap,
     responses, thinkResponses, isSummaryEnabled, summaryStatus,
     summaryResponse, summaryThinkResponse, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,

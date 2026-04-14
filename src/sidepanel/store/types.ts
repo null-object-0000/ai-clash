@@ -44,7 +44,7 @@ export interface AppState {
   operationStatus: Record<ProviderId, string>;
   rawUrlMap: Record<ProviderId, string>;
   statsMap: Record<ProviderId, ProviderStats | null>;
-  openMap: Record<ProviderId, boolean>;
+  collapseMap: Record<ProviderId, boolean>; // false = 展开，true = 折叠
 
   // ─── Summary ───
   summaryStatus: 'idle' | 'running' | 'completed' | 'error';
@@ -96,6 +96,11 @@ export interface AppActions {
   setShowNoChannelTip: (v: boolean) => void;
   setIsSummarySettingsOpen: (v: boolean) => void;
   toggleShowApiKey: (id: string) => void;
+
+  // ─── Collapse ───
+  toggleCollapse: (providerId: ProviderId) => void;
+  collapseAll: () => void;
+  expandAll: () => void;
 
   // ─── History ───
   deleteHistoryItem: (id: string) => void;

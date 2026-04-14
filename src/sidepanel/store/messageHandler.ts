@@ -127,11 +127,16 @@ export function createMessageListener(
       syncProviderRawUrls([prov]);
       get().schedulePersist();
 
+      // 多通道模式下，通道输出完成后自动折叠该通道
       setTimeout(() => {
         const s = get();
+        const enabledCount = PROVIDER_IDS.filter(id => s.enabledMap[id]).length;
         const stillRunning = PROVIDER_IDS.some(id => s.statusMap[id] === 'running');
+        if (enabledCount >= 2) {
+          // 多通道模式：当前通道完成后立即折叠
+          set((prev: AppStore) => ({ collapseMap: { ...prev.collapseMap, [prov]: true } }));
+        }
         if (!stillRunning) {
-          setTimeout(() => set({ openMap: createDefaultRecord(false) }), 1500);
           if (s.isSummaryEnabled && s.hasAsked && !s.isCurrentSessionFromHistory) get().triggerSummary();
         }
       }, 50);
