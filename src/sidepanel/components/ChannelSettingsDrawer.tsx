@@ -1,5 +1,5 @@
 import { ExportOutlined } from '@ant-design/icons';
-import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao } from '@lobehub/icons';
+import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, XiaomiMiMo } from '@lobehub/icons';
 import { Alert, Button, Drawer, Input, Modal, Segmented, Select } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useState } from 'react';
@@ -17,6 +17,7 @@ const iconMap: Record<string, { Color: React.ComponentType<{ size?: number }> }>
   qianwen: Qwen,
   yuanbao: Yuanbao,
   longcat: LongCat,
+  xiaomi: { Color: XiaomiMiMo },
 };
 
 const useStyles = createStyles(({ token, css }) => ({
