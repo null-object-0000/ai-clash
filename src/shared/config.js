@@ -9,14 +9,16 @@ import { PROVIDERS, getProvider } from '../background/providers.js';
 /**
  * UI 用 Provider 元数据
  */
-export const PROVIDER_META = PROVIDERS.map(provider => ({
-  id: provider.id,
-  name: provider.name,
-  supportsApi: !!provider.apiConfig?.enabled,
-  requiresLogin: provider.requiresLogin ?? true, // 默认需要登录
-  apiKeyLink: provider.apiConfig?.apiKeyLink || undefined,
-  apiNote: provider.apiConfig?.apiNote || undefined,
-}));
+export const PROVIDER_META = PROVIDERS
+  .filter(provider => provider.enabled !== false)
+  .map(provider => ({
+    id: provider.id,
+    name: provider.name,
+    supportsApi: !!provider.apiConfig?.enabled,
+    requiresLogin: provider.requiresLogin ?? true, // 默认需要登录
+    apiKeyLink: provider.apiConfig?.apiKeyLink || undefined,
+    apiNote: provider.apiConfig?.apiNote || undefined,
+  }));
 
 /**
  * 获取模型选项列表 - 从 providers.js 动态生成
