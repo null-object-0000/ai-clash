@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
-import { PROVIDER_META, getModelOptions } from '../../shared/config.js';
+import { PROVIDER_META, getModelOptions, getNoLoginRequiredProviders } from '../../shared/config.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
@@ -11,7 +11,7 @@ import {
   type SingleChannelHistoryItem,
 } from '../types';
 import {
-  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY,
+  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, ENABLED_PROVIDERS_KEY,
   HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE,
   MAX_HISTORY_COUNT, CHARS_PER_FRAME,
   createSessionId, createDefaultRecord,
@@ -40,6 +40,15 @@ export const useStore = create<AppStore>()((set, get) => {
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
       },
+    });
+  };
+
+  const saveEnabledProviders = () => {
+    const s = get();
+    chrome.storage?.local.set({
+      [ENABLED_PROVIDERS_KEY]: Object.fromEntries(
+        PROVIDER_IDS.filter(id => s.enabledMap[id]).map(id => [id, true])
+      ),
     });
   };
 
@@ -313,11 +322,12 @@ export const useStore = create<AppStore>()((set, get) => {
       const s = get();
       if (s.enabledMap[id]) {
         set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: false } }));
-        return;
+      } else {
+        // 开启通道
+        set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
       }
-      // 懒加载模式：开启通道时不立即打开 tab，只标记为启用
-      // 等发送消息时才打开 tab
-      set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
+      // 保存启用的通道列表
+      saveEnabledProviders();
     },
 
     setProviderMode: (id, mode) => {
@@ -758,7 +768,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
     init: () => {
       chrome.storage?.local.get(
-        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
+        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
         async (result) => {
           const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
           const debugVal = saved.isDebugEnabled ?? false;
@@ -777,9 +787,24 @@ export const useStore = create<AppStore>()((set, get) => {
 
           const sc = (result?.[SUMMARY_CONFIG_KEY] || {}) as SummaryConfig;
 
-          const validResults = await Promise.all(PROVIDER_IDS.map(id => checkProviderTabValid(id)));
+          // 从存储中读取用户上次开启的通道，不再检查 tab 有效性
+          // 首次使用时，默认开启所有不需要登录的通道
+          const savedEnabled = (result?.[ENABLED_PROVIDERS_KEY] || {}) as Record<ProviderId, boolean>;
+          const hasSavedEnabled = Object.keys(savedEnabled).length > 0;
           const newEnabled = createDefaultRecord(false);
-          PROVIDER_IDS.forEach((id, i) => { newEnabled[id] = validResults[i]; });
+
+          if (hasSavedEnabled) {
+            // 有保存的配置，使用用户上次的选择
+            PROVIDER_IDS.forEach(id => {
+              newEnabled[id] = !!savedEnabled[id];
+            });
+          } else {
+            // 首次使用，默认开启所有不需要登录的通道
+            const noLoginRequired = getNoLoginRequiredProviders() as ProviderId[];
+            noLoginRequired.forEach(id => {
+              newEnabled[id] = true;
+            });
+          }
 
           const multiHistory = Array.isArray(result?.[HISTORY_STORAGE_KEY]) ? result[HISTORY_STORAGE_KEY] : [];
           const singleHistory = Array.isArray(result?.[HISTORY_STORAGE_KEY_SINGLE]) ? result[HISTORY_STORAGE_KEY_SINGLE] : [];

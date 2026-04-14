@@ -13,6 +13,7 @@ export const PROVIDERS = [
     name: 'DeepSeek',
     matchPattern: 'https://chat.deepseek.com/*',
     startUrl: 'https://chat.deepseek.com/',
+    requiresLogin: true, // 需要登录
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -39,6 +40,7 @@ export const PROVIDERS = [
     name: '豆包',
     matchPattern: 'https://www.doubao.com/*',
     startUrl: 'https://www.doubao.com/chat/',
+    requiresLogin: false, // 不需要登录即可对话
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -60,6 +62,7 @@ export const PROVIDERS = [
     name: '通义千问',
     matchPattern: 'https://www.qianwen.com/*',
     startUrl: 'https://www.qianwen.com/',
+    requiresLogin: false, // 不需要登录即可对话
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -127,6 +130,7 @@ export const PROVIDERS = [
     name: '元宝',
     matchPattern: 'https://yuanbao.tencent.com/*',
     startUrl: 'https://yuanbao.tencent.com/chat/',
+    requiresLogin: true, // 需要登录
     // 元宝不支持 API 模式，无需 apiConfig
   },
   {
@@ -134,6 +138,7 @@ export const PROVIDERS = [
     name: 'LongCat',
     matchPattern: 'https://longcat.chat/*',
     startUrl: 'https://longcat.chat/',
+    requiresLogin: true, // 需要登录
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -169,7 +174,7 @@ export const PROVIDERS = [
     name: 'AI 对撞机总结',
     matchPattern: 'https://ai-clash-service.snewbie.site/*',
     startUrl: 'https://ai-clash-service.snewbie.site/',
-    // 内置总结服务，仅需 API 模式，无需 content script
+    requiresLogin: false, // 内置服务，无需登录
     hasContentScript: false,
     // API 模式配置 - 内置总结服务
     apiConfig: {

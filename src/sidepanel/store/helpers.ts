@@ -7,6 +7,7 @@ import { PROVIDER_IDS, type ProviderId, type ProviderStats } from '../types';
 export const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 export const API_CONFIG_KEY = 'aiclash.api.config';
 export const SUMMARY_CONFIG_KEY = 'aiclash.summary.config';
+export const ENABLED_PROVIDERS_KEY = 'aiclash.enabled.providers'; // 记住用户开启的通道
 export const HISTORY_STORAGE_KEY = 'aiclash.chat.history';
 export const HISTORY_STORAGE_KEY_SINGLE = 'aiclash.chat.history.single';
 export const MAX_HISTORY_COUNT = 30;
