@@ -36,7 +36,6 @@ const hostPermissions = [
   'https://api.longcat.chat/*',
   'https://ark.cn-beijing.volces.com/*',
   'https://coding.dashscope.aliyuncs.com/*',
-  'https://ai-clash-service.snewbie.site/*',
 ];
 
 // 生成 web_accessible_resources 配置
@@ -66,7 +65,7 @@ webAccessibleResources.push(webAccessibleStandalone);
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'AI 对撞机',
+  name: 'AI对撞机 | 多模型同屏问答与自动总结',
   version: pkg.version,
   description: pkg.description,
   icons: {
