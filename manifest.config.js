@@ -7,9 +7,9 @@ import { PROVIDERS, deriveProviderConfig } from './src/background/providers.js'
 // ============================================================================
 
 // 生成 content_scripts 配置
-// 仅针对有 content script 的 provider（hasContentScript !== false）
+// 仅针对有 content script 的 provider（hasContentScript !== false 且 enabled !== false）
 const contentScripts = PROVIDERS
-  .filter(provider => provider.hasContentScript !== false)
+  .filter(provider => provider.hasContentScript !== false && provider.enabled !== false)
   .flatMap(provider => {
     const derived = deriveProviderConfig(provider);
     return [
@@ -40,9 +40,9 @@ const hostPermissions = [
 ];
 
 // 生成 web_accessible_resources 配置
-// 仅针对有 content script 的 provider
+// 仅针对有 content script 的 provider（hasContentScript !== false 且 enabled !== false）
 const webAccessibleResources = PROVIDERS
-  .filter(provider => provider.hasContentScript !== false)
+  .filter(provider => provider.hasContentScript !== false && provider.enabled !== false)
   .map(provider => {
     const derived = deriveProviderConfig(provider);
     return ({
@@ -54,11 +54,11 @@ const webAccessibleResources = PROVIDERS
     });
   });
 
-// standalone.js 对所有 AI 网站可访问（仅针对有 content script 的 provider）
+// standalone.js 对所有 AI 网站可访问（仅针对有 content script 且未禁用的 provider）
 const webAccessibleStandalone = {
   resources: ['packages/inject/dist/standalone.js'],
   matches: PROVIDERS
-    .filter(provider => provider.hasContentScript !== false)
+    .filter(provider => provider.hasContentScript !== false && provider.enabled !== false)
     .map(p => p.matchPattern),
 };
 

@@ -1,4 +1,11 @@
-export const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat', 'yuanbao', 'summarizer', 'xiaomi'] as const;
+// 从 providers.js 动态导入提供者配置，确保 UI 与 manifest 同步
+import { PROVIDERS } from '../background/providers.js';
+
+// 仅包含已启用的提供者 ID 列表
+export const PROVIDER_IDS = Object.freeze(
+  PROVIDERS.filter(p => p.enabled !== false).map(p => p.id)
+) as readonly string[];
+
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 export type ProviderMode = 'web' | 'api';
 export type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
@@ -99,22 +106,28 @@ export interface SingleChannelHistoryItem {
 
 export type ChatHistoryItem = MultiChannelHistoryItem | SingleChannelHistoryItem;
 
-export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = {
-  deepseek: 'blue',
-  doubao: 'amber',
-  qianwen: 'emerald',
-  longcat: 'violet',
-  yuanbao: 'teal',
-  summarizer: 'blue',
-  xiaomi: 'teal',
-};
+// 动态生成提供者主题映射
+export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEntries(
+  PROVIDERS
+    .filter(p => p.enabled !== false)
+    .map(p => {
+      // 根据 id 分配主题色
+      const themeMap: Record<string, ThemeColor> = {
+        deepseek: 'blue',
+        doubao: 'amber',
+        qianwen: 'emerald',
+        longcat: 'violet',
+        yuanbao: 'teal',
+        summarizer: 'blue',
+        xiaomi: 'teal',
+      };
+      return [p.id, themeMap[p.id] || 'blue'];
+    })
+) as Record<ProviderId, ThemeColor>;
 
-export const PROVIDER_NAME_MAP: Record<ProviderId, string> = {
-  deepseek: 'DeepSeek',
-  doubao: '豆包',
-  qianwen: '千问',
-  longcat: 'LongCat',
-  yuanbao: '元宝',
-  summarizer: 'AI 对撞机总结',
-  xiaomi: 'Xiaomi MIMO',
-};
+// 动态生成提供者名称映射
+export const PROVIDER_NAME_MAP: Record<ProviderId, string> = Object.fromEntries(
+  PROVIDERS
+    .filter(p => p.enabled !== false)
+    .map(p => [p.id, p.name])
+) as Record<ProviderId, string>;

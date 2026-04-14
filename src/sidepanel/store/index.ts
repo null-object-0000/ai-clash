@@ -673,8 +673,8 @@ export const useStore = create<AppStore>()((set, get) => {
         let fl = buffers.displayedLen[id] || 0;
         if (fl < ff.length) { fl = Math.min(fl + CHARS_PER_FRAME, ff.length); buffers.displayedLen[id] = fl; newResp[id] = ff.slice(0, fl); anyPending = true; }
       }
-      if (Object.keys(newResp).length) set(prev => ({ responses: { ...prev.responses, ...newResp } }));
-      if (Object.keys(newThink).length) set(prev => ({ thinkResponses: { ...prev.thinkResponses, ...newThink } }));
+      if (Object.keys(newResp).length) set(prev => ({ responses: { ...prev.responses, ...Object.fromEntries(Object.entries(newResp).filter(([, v]) => v !== undefined)) as Record<string, string> } }));
+      if (Object.keys(newThink).length) set(prev => ({ thinkResponses: { ...prev.thinkResponses, ...Object.fromEntries(Object.entries(newThink).filter(([, v]) => v !== undefined)) as Record<string, string> } }));
 
       const stf = buffers.summaryThink;
       let stl = buffers.summaryThinkDisplayedLen;

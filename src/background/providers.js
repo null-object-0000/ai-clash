@@ -161,6 +161,7 @@ export const PROVIDERS = [
     matchPattern: 'https://longcat.chat/*',
     startUrl: 'https://longcat.chat/',
     requiresLogin: true, // 需要登录
+    enabled: false, // 暂时禁用，回归测试中
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -197,6 +198,7 @@ export const PROVIDERS = [
     matchPattern: 'https://aistudio.xiaomimimo.com/*',
     startUrl: 'https://aistudio.xiaomimimo.com/#/c',
     requiresLogin: true, // 需要登录
+    enabled: false, // 暂时禁用，回归测试中
     // API 模式配置
     apiConfig: {
       enabled: true,
