@@ -292,10 +292,16 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
     throw new Error('归纳总结 API 配置无效，请在设置中选择有效通道');
   }
 
-  const userConfig = await loadApiConfig();
-  const apiKey = userConfig[providerId]?.apiKey;
-  if (!apiKey) {
-    throw new Error(`请先配置 ${provider.name} 的 API Key`);
+  // summarizer 是内置服务，不需要 API Key
+  const isBuiltInSummarizer = providerId === 'summarizer';
+  let apiKey = 'builtin-no-key-needed';
+
+  if (!isBuiltInSummarizer) {
+    const userConfig = await loadApiConfig();
+    apiKey = userConfig[providerId]?.apiKey;
+    if (!apiKey) {
+      throw new Error(`请先配置 ${provider.name} 的 API Key`);
+    }
   }
 
   const validResponses = responses.filter(r => r.text && r.text.trim());

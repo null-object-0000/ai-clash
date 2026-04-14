@@ -94,7 +94,10 @@ export default function ChannelList() {
   const testingApiKey = useStore(s => s.testingApiKey);
   const { toggleProvider, goToProvider, openProviderSettings, testApiKey } = useStore.getState();
 
-  const enabledCount = Object.values(enabledMap).filter(Boolean).length;
+  const enabledCount = Object.values(enabledMap).filter(v => v).length;
+
+  // summarizer 是内置总结服务，不在常规通道列表中显示
+  const visibleProviders = PROVIDER_META.filter((p: any) => p.id !== 'summarizer');
 
   return (
     <div className={styles.wrapper}>
@@ -102,7 +105,7 @@ export default function ChannelList() {
         <span className={styles.headerTitle}>通道列表</span>
         <Tag>{enabledCount} 个已启用</Tag>
       </div>
-      {PROVIDER_META.map((provider: any) => {
+      {visibleProviders.map((provider: any) => {
         const pid = provider.id as ProviderId;
         const Icon = iconMap[provider.id];
         const enabled = enabledMap[pid];

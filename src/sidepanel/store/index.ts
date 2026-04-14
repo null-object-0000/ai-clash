@@ -727,6 +727,8 @@ export const useStore = create<AppStore>()((set, get) => {
       const s = get();
       const pid = s.summaryProviderId as ProviderId;
       if (!pid || !(PROVIDER_IDS as readonly string[]).includes(pid)) return false;
+      // summarizer 是内置总结服务，不需要 API Key
+      if (pid === 'summarizer') return true;
       return supportsApi(pid) && !!s.apiKeyMap[pid]?.trim();
     },
     summaryBlockReason: () => {
@@ -738,7 +740,12 @@ export const useStore = create<AppStore>()((set, get) => {
     getSummaryProviderOptions: () => {
       const s = get();
       return PROVIDER_META
-        .filter((p: any) => p.supportsApi && s.apiKeyMap[p.id as ProviderId]?.trim())
+        .filter((p: any) => {
+          // summarizer 是内置总结服务，始终显示
+          if (p.id === 'summarizer') return true;
+          // 其他通道需要支持 API 且有 API Key 才显示
+          return p.supportsApi && s.apiKeyMap[p.id as ProviderId]?.trim();
+        })
         .map((p: any) => ({ value: p.id, label: p.name }));
     },
     getSummaryModelOptions: () => {

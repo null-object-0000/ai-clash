@@ -7,24 +7,26 @@ import { PROVIDERS, deriveProviderConfig } from './src/background/providers.js'
 // ============================================================================
 
 // 生成 content_scripts 配置
-// 注意：base.js 必须放在每个 provider 的 index.js 之前加载，因为它被引用
-const contentScripts = PROVIDERS.flatMap(provider => {
-  const derived = deriveProviderConfig(provider);
-  return [
-    // 先加载 base.js 作为共享模块
-    {
-      js: ['src/content/shared/base.js'],
-      matches: [provider.matchPattern],
-      run_at: 'document_start',
-    },
-    // 再加载 provider 的 index.js
-    {
-      js: [derived.contentScriptFile],
-      matches: [provider.matchPattern],
-      run_at: 'document_start',
-    },
-  ];
-});
+// 仅针对有 content script 的 provider（hasContentScript !== false）
+const contentScripts = PROVIDERS
+  .filter(provider => provider.hasContentScript !== false)
+  .flatMap(provider => {
+    const derived = deriveProviderConfig(provider);
+    return [
+      // 先加载 base.js 作为共享模块
+      {
+        js: ['src/content/shared/base.js'],
+        matches: [provider.matchPattern],
+        run_at: 'document_start',
+      },
+      // 再加载 provider 的 index.js
+      {
+        js: [derived.contentScriptFile],
+        matches: [provider.matchPattern],
+        run_at: 'document_start',
+      },
+    ];
+  });
 
 // 生成 host_permissions 配置
 const hostPermissions = [
@@ -34,11 +36,14 @@ const hostPermissions = [
   'https://api.longcat.chat/*',
   'https://ark.cn-beijing.volces.com/*',
   'https://coding.dashscope.aliyuncs.com/*',
+  'https://ai-clash-service.snewbie.site/*',
 ];
 
 // 生成 web_accessible_resources 配置
-const webAccessibleResources = [
-  ...PROVIDERS.map(provider => {
+// 仅针对有 content script 的 provider
+const webAccessibleResources = PROVIDERS
+  .filter(provider => provider.hasContentScript !== false)
+  .map(provider => {
     const derived = deriveProviderConfig(provider);
     return ({
       resources: [
@@ -47,13 +52,17 @@ const webAccessibleResources = [
       ],
       matches: [provider.matchPattern],
     });
-  }),
-  // standalone.js 对所有 AI 网站可访问
-  {
-    resources: ['packages/inject/dist/standalone.js'],
-    matches: PROVIDERS.map(p => p.matchPattern),
-  },
-];
+  });
+
+// standalone.js 对所有 AI 网站可访问（仅针对有 content script 的 provider）
+const webAccessibleStandalone = {
+  resources: ['packages/inject/dist/standalone.js'],
+  matches: PROVIDERS
+    .filter(provider => provider.hasContentScript !== false)
+    .map(p => p.matchPattern),
+};
+
+webAccessibleResources.push(webAccessibleStandalone);
 
 export default defineManifest({
   manifest_version: 3,

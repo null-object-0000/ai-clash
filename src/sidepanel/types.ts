@@ -1,4 +1,4 @@
-export const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat', 'yuanbao'] as const;
+export const PROVIDER_IDS = ['deepseek', 'doubao', 'qianwen', 'longcat', 'yuanbao', 'summarizer'] as const;
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 export type ProviderMode = 'web' | 'api';
 export type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
@@ -105,6 +105,7 @@ export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = {
   qianwen: 'emerald',
   longcat: 'violet',
   yuanbao: 'teal',
+  summarizer: 'blue',
 };
 
 export const PROVIDER_NAME_MAP: Record<ProviderId, string> = {
@@ -113,4 +114,5 @@ export const PROVIDER_NAME_MAP: Record<ProviderId, string> = {
   qianwen: '千问',
   longcat: 'LongCat',
   yuanbao: '元宝',
+  summarizer: 'AI 对撞机总结',
 };

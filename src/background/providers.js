@@ -144,7 +144,7 @@ export const PROVIDERS = [
         {
           id: 'LongCat-Flash-Lite',
           desc: '高效轻量 MoE',
-          maxTokens: 262144,
+          maxTokens: 327680,
         },
         {
           id: 'LongCat-Flash-Chat',
@@ -160,6 +160,28 @@ export const PROVIDERS = [
           id: 'LongCat-Flash-Thinking-2601',
           desc: '升级版深度思考',
           maxTokens: 262144,
+        },
+      ],
+    }
+  },
+  {
+    id: 'summarizer',
+    name: 'AI 对撞机总结',
+    matchPattern: 'https://ai-clash-service.snewbie.site/*',
+    startUrl: 'https://ai-clash-service.snewbie.site/',
+    // 内置总结服务，仅需 API 模式，无需 content script
+    hasContentScript: false,
+    // API 模式配置 - 内置总结服务
+    apiConfig: {
+      enabled: true,
+      baseURL: 'https://ai-clash-service.snewbie.site/v1',
+      defaultModel: 'summarizer-v1',
+      apiKeyLink: '',
+      models: [
+        {
+          id: 'summarizer-v1',
+          desc: '内置总结服务',
+          maxTokens: 327680,
         },
       ],
     }

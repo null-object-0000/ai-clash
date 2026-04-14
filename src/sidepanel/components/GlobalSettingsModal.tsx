@@ -1,6 +1,7 @@
 import React from 'react';
 import { Flex, Modal, Select, Switch } from 'antd';
 import { useStore } from '../store';
+import { getDefaultModel } from '../../shared/config.js';
 
 interface Props {
   open: boolean;
@@ -18,6 +19,13 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose }) => {
 
   const summaryProviderOptions = useStore.getState().getSummaryProviderOptions();
   const summaryModelOptions = useStore.getState().getSummaryModelOptions();
+
+  const handleProviderChange = (value: string) => {
+    // 切换通道时自动设置默认模型
+    const defaultModel = getDefaultModel(value as any);
+    setSummaryProviderId(value);
+    setSummaryModel(defaultModel);
+  };
 
   return (
     <Modal
@@ -38,7 +46,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose }) => {
             <Select
               value={summaryProviderId || undefined}
               options={summaryProviderOptions}
-              onChange={setSummaryProviderId}
+              onChange={handleProviderChange}
               placeholder="选择总结通道"
               style={{ width: '100%' }}
               notFoundContent="请先在通道设置中配置 API Key"
