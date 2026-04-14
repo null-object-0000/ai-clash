@@ -227,9 +227,9 @@ export const useStore = create<AppStore>()((set, get) => {
     isDeepThinkingEnabled: true,
     isWebSearchEnabled: false,
     isDebugEnabled: false,
-    isSummaryEnabled: false,
-    summaryProviderId: '',
-    summaryModel: '',
+    isSummaryEnabled: true,
+    summaryProviderId: 'summarizer',
+    summaryModel: 'summarizer-v1',
 
     enabledMap: createDefaultRecord(false),
     modeMap: createDefaultRecord<ProviderMode>('web'),
@@ -735,11 +735,13 @@ export const useStore = create<AppStore>()((set, get) => {
     getEnabledProviderIds: () => PROVIDER_IDS.filter(id => get().enabledMap[id]),
     isSummaryConfigValid: () => {
       const s = get();
-      const pid = s.summaryProviderId as ProviderId;
-      if (!pid || !(PROVIDER_IDS as readonly string[]).includes(pid)) return false;
-      // summarizer 是内置总结服务，不需要 API Key
+      const pid = s.summaryProviderId as string;
+      if (!pid) return false;
+      // summarizer 是内置总结服务，不需要 API Key，始终有效
       if (pid === 'summarizer') return true;
-      return supportsApi(pid) && !!s.apiKeyMap[pid]?.trim();
+      // 其他通道需要在 PROVIDER_IDS 中且支持 API 且有 API Key
+      if (!(PROVIDER_IDS as readonly string[]).includes(pid)) return false;
+      return supportsApi(pid as ProviderId) && !!s.apiKeyMap[pid as ProviderId]?.trim();
     },
     summaryBlockReason: () => {
       const s = get();
@@ -852,10 +854,10 @@ export const useStore = create<AppStore>()((set, get) => {
           set({
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
-            isSummaryEnabled: saved.isSummaryEnabled ?? false,
+            isSummaryEnabled: saved.isSummaryEnabled ?? true,
             isDebugEnabled: debugVal,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
-            summaryProviderId: sc.providerId || '', summaryModel: sc.model || '',
+            summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',
             enabledMap: newEnabled,
             historyList: allHistory,
           });

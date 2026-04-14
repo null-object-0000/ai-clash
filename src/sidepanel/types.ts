@@ -1,9 +1,9 @@
 // 从 providers.js 动态导入提供者配置，确保 UI 与 manifest 同步
 import { PROVIDERS } from '../background/providers.js';
 
-// 仅包含已启用的提供者 ID 列表
+// 仅包含已启用的提供者 ID 列表（排除 summarizer，因为它是内置总结服务，不是回答通道）
 export const PROVIDER_IDS = Object.freeze(
-  PROVIDERS.filter(p => p.enabled !== false).map(p => p.id)
+  PROVIDERS.filter(p => p.enabled !== false && p.id !== 'summarizer').map(p => p.id)
 ) as readonly string[];
 
 export type ProviderId = (typeof PROVIDER_IDS)[number];
@@ -109,7 +109,7 @@ export type ChatHistoryItem = MultiChannelHistoryItem | SingleChannelHistoryItem
 // 动态生成提供者主题映射
 export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEntries(
   PROVIDERS
-    .filter(p => p.enabled !== false)
+    .filter(p => p.enabled !== false && p.id !== 'summarizer')
     .map(p => {
       // 根据 id 分配主题色
       const themeMap: Record<string, ThemeColor> = {
@@ -118,7 +118,6 @@ export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEnt
         qianwen: 'emerald',
         longcat: 'violet',
         yuanbao: 'teal',
-        summarizer: 'blue',
         xiaomi: 'teal',
       };
       return [p.id, themeMap[p.id] || 'blue'];
@@ -128,6 +127,6 @@ export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEnt
 // 动态生成提供者名称映射
 export const PROVIDER_NAME_MAP: Record<ProviderId, string> = Object.fromEntries(
   PROVIDERS
-    .filter(p => p.enabled !== false)
+    .filter(p => p.enabled !== false && p.id !== 'summarizer')
     .map(p => [p.id, p.name])
 ) as Record<ProviderId, string>;
