@@ -11,8 +11,9 @@
 > ✅ 完全免费 | 隐私安全 | 不用来回切网站
 
 <p align="center">
-  <img src="demo/demo_1.png" width="45%" alt="演示图 1">
-  <img src="demo/demo_2.png" width="45%" alt="演示图 2">
+  <img src="demo/demo_1.png" width="30%" alt="演示图 1">
+  <img src="demo/demo_2.png" width="30%" alt="演示图 2">
+  <img src="demo/demo_3.png" width="30%" alt="演示图 3">
 </p>
 
 ## ✨ 为什么你一定要用这个工具？
