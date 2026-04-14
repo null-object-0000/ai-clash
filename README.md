@@ -4,7 +4,7 @@
   <img src="public/logo.png" width="120" alt="AI 对撞机 Logo">
 </p>
 
-> 💥 一个问题问 5 个 AI，答案互相对撞，直接拿最优解！
+> 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
 > 🔥 已支持：DeepSeek | 豆包 | 通义千问 | LongCat | 腾讯元宝
 >
