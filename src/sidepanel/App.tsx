@@ -236,10 +236,21 @@ const useStyles = createStyles(({ token, css }) => ({
       gap: 6px;
     }
 
+    .provider-header-name {
+      white-space: nowrap;
+    }
+
     .provider-header-status {
       font-size: 11px;
       color: ${token.colorTextTertiary};
       white-space: nowrap;
+    }
+
+    // 宽度小于 500px 时隐藏通道名称，只显示 icon
+    @media (max-width: 500px) {
+      .provider-header-name {
+        display: none;
+      }
     }
   `,
   bubbleContentHidden: css`
@@ -320,7 +331,7 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
       </span>
       <div className="provider-header-content">
         {Icon && <Icon size={14} />}
-        <span style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>{label}</span>
+        <span className="provider-header-name" style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>{label}</span>
         {opStatus && (
           <span className="provider-header-status" style={{ animation: 'pulse 1s infinite' }}>{opStatus}</span>
         )}
@@ -374,7 +385,7 @@ function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; 
       {Icon && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon size={16} />
-          <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
+          <span className="provider-header-name" style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
             {PROVIDER_NAME_MAP[providerId as ProviderId] || providerId}
           </span>
         </div>
