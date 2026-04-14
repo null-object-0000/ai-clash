@@ -225,11 +225,16 @@ function renderMarkdown(content: string) {
   return <XMarkdown className="x-markdown-light" content={content} />;
 }
 
-function renderThinkAndMarkdown(thinkContent: string, content: string, isStreaming: boolean) {
+function renderThinkAndMarkdown(thinkContent: string, content: string, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
   const thinkDone = !isStreaming || !!content;
   return (
     <>
-      <Think title={thinkDone ? '深度思考完成' : '深度思考中...'} loading={!thinkDone}>
+      <Think
+        title={thinkDone ? '深度思考完成' : '深度思考中...'}
+        loading={!thinkDone}
+        expanded={expanded}
+        onExpand={onToggle}
+      >
         <XMarkdown className="x-markdown-light" content={thinkContent} />
       </Think>
       {content && <XMarkdown className="x-markdown-light" content={content} />}
@@ -237,8 +242,8 @@ function renderThinkAndMarkdown(thinkContent: string, content: string, isStreami
   );
 }
 
-function makeContentRender(thinkContent: string, isStreaming: boolean) {
-  return (content: string) => renderThinkAndMarkdown(thinkContent, content, isStreaming);
+function makeContentRender(thinkContent: string, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+  return (content: string) => renderThinkAndMarkdown(thinkContent, content, isStreaming, expanded, onToggle);
 }
 
 const role: BubbleListProps['role'] = {
@@ -375,7 +380,8 @@ const App = () => {
   const summaryOperationStatus = useStore(s => s.summaryOperationStatus);
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
-  const { toggleCollapse } = useStore();
+  const thinkExpandedMap = useStore(s => s.thinkExpandedMap);
+  const { toggleCollapse, setThinkExpanded } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -399,6 +405,7 @@ const App = () => {
         content: turn.question,
       });
       const isCollapsed = collapseMap[turn.providerId];
+      const thinkExpanded = thinkExpandedMap[turn.providerId];
       items.push({
         key: `ai-${turn.providerId}-${idx}`,
         role: 'assistant',
@@ -408,7 +415,9 @@ const App = () => {
           contentRender: () => null,
           style: { paddingTop: 0, paddingBottom: 0 },
         } : (turn.thinkResponse ? {
-          contentRender: makeContentRender(turn.thinkResponse, false),
+          contentRender: makeContentRender(turn.thinkResponse, false, thinkExpanded, (expanded) => {
+            setThinkExpanded(turn.providerId, expanded);
+          }),
         } : {})),
         header: (
           <ProviderHeader
@@ -438,13 +447,16 @@ const App = () => {
         const resp = responses[id];
         const hasContent = !!(think || resp);
         const isCollapsed = collapseMap[id];
+        const thinkExpanded = thinkExpandedMap[id];
 
         // 构建 contentRender：折叠时返回 null，否则根据是否有 think 来决定渲染方式
         let contentRenderFn = undefined;
         if (isCollapsed) {
           contentRenderFn = () => null;
         } else if (think) {
-          contentRenderFn = makeContentRender(think, isRunning);
+          contentRenderFn = makeContentRender(think, isRunning, thinkExpanded, (expanded) => {
+            setThinkExpanded(id, expanded);
+          });
         }
 
         items.push({
@@ -490,7 +502,7 @@ const App = () => {
           loading: summaryStatus === 'running' && !hasSummaryContent,
           streaming: summaryStatus === 'running' && hasSummaryContent,
           ...(summaryThinkResponse ? {
-            contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running'),
+            contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running', true),
           } : {}),
           status: summaryStatus === 'error' ? 'error' : undefined,
           header: (
@@ -515,7 +527,7 @@ const App = () => {
 
     return items;
   }, [
-    conversationTurns, currentQuestion, enabledMap, statusMap, stageMap, collapseMap,
+    conversationTurns, currentQuestion, enabledMap, statusMap, stageMap, collapseMap, thinkExpandedMap,
     responses, thinkResponses, isSummaryEnabled, summaryStatus,
     summaryResponse, summaryThinkResponse, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,

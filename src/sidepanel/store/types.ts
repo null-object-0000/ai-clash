@@ -45,6 +45,7 @@ export interface AppState {
   rawUrlMap: Record<ProviderId, string>;
   statsMap: Record<ProviderId, ProviderStats | null>;
   collapseMap: Record<ProviderId, boolean>; // false = 展开，true = 折叠
+  thinkExpandedMap: Record<ProviderId, boolean>; // true = 展开思考，false = 折叠思考
 
   // ─── Summary ───
   summaryStatus: 'idle' | 'running' | 'completed' | 'error';
@@ -101,6 +102,7 @@ export interface AppActions {
   toggleCollapse: (providerId: ProviderId) => void;
   collapseAll: () => void;
   expandAll: () => void;
+  setThinkExpanded: (providerId: ProviderId, expanded: boolean) => void;
 
   // ─── History ───
   deleteHistoryItem: (id: string) => void;

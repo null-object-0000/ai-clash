@@ -243,6 +243,7 @@ export const useStore = create<AppStore>()((set, get) => {
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
     collapseMap: createDefaultRecord(false), // false = 展开，true = 折叠
+    thinkExpandedMap: createDefaultRecord(false), // true = 展开思考，false = 折叠思考
 
     summaryStatus: 'idle',
     summaryStage: 'responding',
@@ -397,9 +398,13 @@ export const useStore = create<AppStore>()((set, get) => {
         newIsMultiTurn = isSingleChannel;
       }
 
-      // 重置折叠状态：所有启用的通道默认展开
+      // 重置折叠状态：所有启用的通道默认展开，深度思考默认展开
       const newCollapseMap = createDefaultRecord(false);
-      for (const id of PROVIDER_IDS) newCollapseMap[id] = !s.enabledMap[id];
+      const newThinkExpandedMap = createDefaultRecord(true);
+      for (const id of PROVIDER_IDS) {
+        newCollapseMap[id] = !s.enabledMap[id];
+        newThinkExpandedMap[id] = true;
+      }
 
       get().resetTaskState();
 
@@ -422,6 +427,7 @@ export const useStore = create<AppStore>()((set, get) => {
         isHistoryPanelOpen: false,
         activeProviderSettings: '',
         collapseMap: newCollapseMap,
+        thinkExpandedMap: newThinkExpandedMap,
         rawUrlMap: newRawUrlMap,
         statusMap: newStatusMap,
         inputStr: '',
@@ -462,12 +468,17 @@ export const useStore = create<AppStore>()((set, get) => {
       get().resetTaskState();
       const s = get();
       const newCollapseMap = createDefaultRecord(false);
-      for (const id of PROVIDER_IDS) newCollapseMap[id] = !s.enabledMap[id];
+      const newThinkExpandedMap = createDefaultRecord(true);
+      for (const id of PROVIDER_IDS) {
+        newCollapseMap[id] = !s.enabledMap[id];
+        newThinkExpandedMap[id] = true;
+      }
       set({
         currentQuestion: '', hasAsked: false, activeSessionId: '',
         isCurrentSessionFromHistory: false, isHistoryPanelOpen: false,
         activeProviderSettings: '', conversationTurns: [],
-        isMultiTurnSession: false, collapseMap: newCollapseMap, inputStr: '',
+        isMultiTurnSession: false, collapseMap: newCollapseMap,
+        thinkExpandedMap: newThinkExpandedMap, inputStr: '',
       });
     },
 
@@ -484,6 +495,7 @@ export const useStore = create<AppStore>()((set, get) => {
         set(prev => ({
           enabledMap: newEnabled,
           collapseMap: { ...prev.collapseMap, [providerId]: false },
+          thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: true },
           currentQuestion: lastTurn?.question || '',
           conversationTurns: turns.slice(0, -1).map(t => ({
             question: t.question, providerId, response: t.response, thinkResponse: t.thinkResponse,
@@ -515,8 +527,9 @@ export const useStore = create<AppStore>()((set, get) => {
         const newOp = createDefaultRecord('');
         const newRaw = createDefaultRecord('');
         const newStats = createDefaultRecord<ProviderStats | null>(null);
-        // 多通道历史：默认折叠所有通道
+        // 多通道历史：默认折叠所有通道，折叠深度思考
         const newCollapse = createDefaultRecord(true);
+        const newThinkExpanded = createDefaultRecord(false);
 
         for (const id of PROVIDER_IDS) {
           const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', rawUrl: '', stats: null };
@@ -529,6 +542,7 @@ export const useStore = create<AppStore>()((set, get) => {
           newRaw[id] = ps.rawUrl;
           newStats[id] = ps.stats ?? null;
           newCollapse[id] = true; // 多通道历史默认全部折叠
+          newThinkExpanded[id] = false; // 深度思考默认折叠
           buffers.fullText[id] = ps.response;
           buffers.thinkText[id] = ps.thinkResponse;
           buffers.displayedLen[id] = ps.response.length;
@@ -542,6 +556,7 @@ export const useStore = create<AppStore>()((set, get) => {
           enabledMap: newEnabled, statusMap: newStatus, stageMap: newStage,
           responses: newResp, thinkResponses: newThink, operationStatus: newOp,
           rawUrlMap: newRaw, statsMap: newStats, collapseMap: newCollapse,
+          thinkExpandedMap: newThinkExpanded,
         });
       }
 
@@ -582,6 +597,10 @@ export const useStore = create<AppStore>()((set, get) => {
 
     expandAll: () => {
       set({ collapseMap: createDefaultRecord(false) });
+    },
+
+    setThinkExpanded: (providerId, expanded) => {
+      set(prev => ({ thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: expanded } }));
     },
 
     // ─── History Actions ───
