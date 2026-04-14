@@ -9,6 +9,28 @@
 
 export const PROVIDERS = [
   {
+    id: 'summarizer',
+    name: 'AI 对撞机总结',
+    matchPattern: 'https://ai-clash-service.snewbie.site/*',
+    startUrl: 'https://ai-clash-service.snewbie.site/',
+    requiresLogin: false, // 内置服务，无需登录
+    hasContentScript: false,
+    // API 模式配置 - 内置总结服务
+    apiConfig: {
+      enabled: true,
+      baseURL: 'https://ai-clash-service.snewbie.site/v1',
+      defaultModel: 'summarizer-v1',
+      apiKeyLink: '',
+      models: [
+        {
+          id: 'summarizer-v1',
+          desc: '内置总结服务',
+          maxTokens: 327680,
+        },
+      ],
+    }
+  },
+  {
     id: 'deepseek',
     name: 'DeepSeek',
     matchPattern: 'https://chat.deepseek.com/*',
@@ -170,23 +192,32 @@ export const PROVIDERS = [
     }
   },
   {
-    id: 'summarizer',
-    name: 'AI 对撞机总结',
-    matchPattern: 'https://ai-clash-service.snewbie.site/*',
-    startUrl: 'https://ai-clash-service.snewbie.site/',
-    requiresLogin: false, // 内置服务，无需登录
-    hasContentScript: false,
-    // API 模式配置 - 内置总结服务
+    id: 'xiaomi',
+    name: 'Xiaomi MIMO',
+    matchPattern: 'https://aistudio.xiaomimimo.com/*',
+    startUrl: 'https://aistudio.xiaomimimo.com/#/c',
+    requiresLogin: true, // 需要登录
+    // API 模式配置
     apiConfig: {
       enabled: true,
-      baseURL: 'https://ai-clash-service.snewbie.site/v1',
-      defaultModel: 'summarizer-v1',
-      apiKeyLink: '',
+      baseURL: 'https://api.xiaomimimo.com/v1',
+      defaultModel: 'mimo-v2-pro',
+      apiKeyLink: 'https://platform.xiaomimimo.com/#/console/api-keys',
       models: [
         {
-          id: 'summarizer-v1',
-          desc: '内置总结服务',
-          maxTokens: 327680,
+          id: 'mimo-v2-pro',
+          desc: '面向 Agent 时代的旗舰基座',
+          maxTokens: 262144,
+        },
+        {
+          id: 'mimo-v2-omni',
+          desc: '看得清，听得懂，能动手的全模态 Agent 基座',
+          maxTokens: 262144,
+        },
+        {
+          id: 'mimo-v2-flash',
+          desc: '高效推理、代码与 Agent 基座模型',
+          maxTokens: 262144,
         },
       ],
     }
