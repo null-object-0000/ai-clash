@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "AI 对撞机 | 多模型同屏问答与自动总结",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "告别来回切网页！在侧边栏一键向DeepSeek、豆包、通义千问、腾讯元宝等多个AI同步提问，并自动提炼最优答案。",
+    "description": "扩展描述"
+  }
+}

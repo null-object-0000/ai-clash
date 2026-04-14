@@ -65,9 +65,10 @@ webAccessibleResources.push(webAccessibleStandalone);
 
 export default defineManifest({
   manifest_version: 3,
-  name: 'AI对撞机 | 多模型同屏问答与自动总结',
+  name: '__MSG_extensionName__',
   version: pkg.version,
-  description: pkg.description,
+  description: '__MSG_extensionDescription__',
+  default_locale: 'zh_CN',
   icons: {
     48: 'public/logo.png',
   },
