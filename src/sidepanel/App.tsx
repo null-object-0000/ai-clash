@@ -871,6 +871,7 @@ const App = () => {
     operationStatus, summaryOperationStatus,
     triggerSummary, regenerateSummary, switchSummaryVersion,
     summaryVersions, summaryCurrentVersion,
+    sidebarWidth,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
