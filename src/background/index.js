@@ -283,10 +283,10 @@ const SUMMARY_SYSTEM_PROMPT = `# Role
  * 处理归纳总结请求：收集各通道回答，调用指定 API 进行汇总分析
  * @param {string} question - 用户原始问题
  * @param {Array<{providerId: string, name: string, text: string}>} responses - 各通道回答
- * @param {{providerId: string, model: string}} summaryConfig - 归纳总结配置
+ * @param {{providerId: string, model: string, customPrompt?: string}} summaryConfig - 归纳总结配置
  */
 async function handleSummaryRequest(question, responses, summaryConfig) {
-  const { providerId, model } = summaryConfig;
+  const { providerId, model, customPrompt } = summaryConfig;
   const provider = getProvider(providerId);
   if (!provider || !provider.apiConfig?.enabled) {
     throw new Error('归纳总结 API 配置无效，请在设置中选择有效通道');
@@ -326,6 +326,9 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
   const userContent = `【用户原始问题】\n${question}\n\n${responseParts}`;
 
+  // 使用自定义提示词，如果未设置则使用默认提示词
+  const systemPrompt = customPrompt ?? SUMMARY_SYSTEM_PROMPT;
+
   // 使用统一的保活机制
   beginRequest();
 
@@ -333,7 +336,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
     const stream = await client.chat.completions.create({
       model: effectiveModel,
       messages: [
-        { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
       stream: true,

@@ -1,20 +1,23 @@
 import React from 'react';
-import { Flex, Modal, Select, Switch } from 'antd';
+import { Button, Flex, Modal, Select, Switch } from 'antd';
 import { useStore } from '../store';
 import { getDefaultModel } from '../../shared/config.js';
 
 interface Props {
   open: boolean;
   onClose: () => void;
+  sidebarWidth?: number;
 }
 
-const GlobalSettingsModal: React.FC<Props> = ({ open, onClose }) => {
+const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 }) => {
   const isDebugEnabled = useStore(s => s.isDebugEnabled);
   const summaryProviderId = useStore(s => s.summaryProviderId);
   const summaryModel = useStore(s => s.summaryModel);
+  const summaryCustomPrompt = useStore(s => s.summaryCustomPrompt);
 
   const {
     toggleDebug, setSummaryProviderId, setSummaryModel,
+    setSummaryCustomPrompt, resetSummaryPrompt,
   } = useStore.getState();
 
   const summaryProviderOptions = useStore.getState().getSummaryProviderOptions();
@@ -27,14 +30,21 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose }) => {
     setSummaryModel(defaultModel);
   };
 
+  // 计算弹框宽度：侧边栏宽度超过 500px 时随动，最小 400px，最大 800px
+  const modalWidth = sidebarWidth > 500
+    ? Math.max(400, Math.min(sidebarWidth - 100, 800))
+    : 400;
+
   return (
     <Modal
       open={open}
       onCancel={onClose}
       title="全局设置"
       footer={null}
-      width={400}
+      width={modalWidth}
       centered
+      maskClosable={false}  // 禁用点击遮罩关闭
+      keyboard={false}  // 禁用 ESC 键关闭
     >
       <Flex vertical gap={20} style={{ paddingTop: 8 }}>
         <Flex vertical gap={10}>
@@ -61,6 +71,39 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose }) => {
             />
           </Flex>
         </Flex>
+
+        <Flex vertical gap={10}>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>自定义总结提示词</div>
+          <div style={{ fontSize: 12, color: '#999' }}>
+            定制归纳总结的风格和输出格式，AI 们的回答会自动附加在提示词之后。
+          </div>
+          <Flex vertical gap={8}>
+            <textarea
+              value={summaryCustomPrompt}
+              onChange={(e) => setSummaryCustomPrompt(e.target.value)}
+              placeholder="输入自定义总结提示词..."
+              rows={12}
+              style={{
+                width: 'calc(100% - 16px)',
+                padding: '8px 12px',
+                fontSize: 13,
+                border: '1px solid #d9d9d9',
+                borderRadius: '6px',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+              }}
+            />
+            <Flex justify="flex-end">
+              <Button
+                size="small"
+                onClick={resetSummaryPrompt}
+              >
+                恢复默认提示词
+              </Button>
+            </Flex>
+          </Flex>
+        </Flex>
+
         <Flex justify="space-between" align="center">
           <Flex vertical gap={2}>
             <span style={{ fontSize: 13, fontWeight: 500 }}>调试模式</span>

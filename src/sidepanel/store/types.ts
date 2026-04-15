@@ -54,6 +54,7 @@ export interface AppState {
   summaryThinkResponse: string;
   summaryOperationStatus: string;
   summaryStats: ProviderStats | null;
+  summaryCustomPrompt: string;  // 自定义总结提示词
 
   // ─── UI Panels ───
   isHistoryPanelOpen: boolean;
@@ -76,6 +77,8 @@ export interface AppActions {
   toggleSummary: () => void;
   setSummaryProviderId: (v: string) => void;
   setSummaryModel: (v: string) => void;
+  setSummaryCustomPrompt: (v: string) => void;
+  resetSummaryPrompt: () => void;
 
   // ─── Provider Config ───
   toggleProvider: (id: string) => Promise<void>;

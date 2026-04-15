@@ -405,9 +405,11 @@ function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; 
 const App = () => {
   const { styles } = useStyles();
   const listRef = useRef<BubbleListRef>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(400);
 
   // 预设提示词
   const presetPrompts: PromptsProps['items'] = useMemo(() => [
@@ -464,6 +466,20 @@ const App = () => {
   useEffect(() => {
     const cleanup = useStore.getState().init();
     return cleanup;
+  }, []);
+
+  // ==================== Resize Observer ====================
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setSidebarWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
   }, []);
 
   // ==================== Messages ====================
@@ -621,7 +637,7 @@ const App = () => {
   const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
 
   return (
-    <div className={styles.copilotChat}>
+    <div className={styles.copilotChat} ref={containerRef}>
       {/* ─── Floating Toolbar ─── */}
       <div className={styles.floatingToolbar}>
         <button
@@ -757,7 +773,7 @@ const App = () => {
       {/* ─── Modals & Drawers ─── */}
       <ChannelSettingsDrawer />
       <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
-      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} sidebarWidth={sidebarWidth} />
     </div>
   );
 };

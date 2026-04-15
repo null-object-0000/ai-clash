@@ -43,6 +43,7 @@ export interface SidepanelSettings {
 export interface SummaryConfig {
   providerId?: string;
   model?: string;
+  customPrompt?: string;  // 用户自定义提示词
 }
 
 
