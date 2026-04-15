@@ -100,15 +100,43 @@ export function createMessageListener(
 
     } else if (request.type === MSG_TYPES.TASK_COMPLETED) {
       if (provider === '_summary') {
-        set({ summaryStatus: 'completed', summaryOperationStatus: '' });
+        const s = get();
+
+        // 新生成的版本
+        const newVersion = {
+          response: buffers.summaryFull || '',
+          thinkResponse: buffers.summaryThink || '',
+          stats: null,
+          createdAt: Date.now(),
+        };
+
+        // 添加到版本数组
+        const updatedVersions = [...s.summaryVersions, newVersion];
+        const newVersionIndex = updatedVersions.length - 1;
+
+        set({
+          summaryStatus: 'completed',
+          summaryOperationStatus: '',
+          summaryVersions: updatedVersions,
+          summaryCurrentVersion: newVersionIndex,
+        });
+
         if (buffers.summaryTiming.startTime > 0 && buffers.summaryTiming.firstContentTime > 0) {
           const now = Date.now();
           const charCount = buffers.summaryFull?.length || 0;
           const ttff = buffers.summaryTiming.firstContentTime - buffers.summaryTiming.startTime;
           const totalTime = now - buffers.summaryTiming.startTime;
           const outputSecs = (now - buffers.summaryTiming.firstContentTime) / 1000;
-          set({ summaryStats: { ttff, totalTime, charCount, charsPerSec: outputSecs > 0.1 ? Math.round(charCount / outputSecs) : 0 } });
+          const stats = { ttff, totalTime, charCount, charsPerSec: outputSecs > 0.1 ? Math.round(charCount / outputSecs) : 0 };
+
+          set(prev => ({
+            summaryStats: stats,
+            summaryVersions: prev.summaryVersions.map((v, i) =>
+              i === newVersionIndex ? { ...v, stats } : v
+            ),
+          }));
         }
+
         get().schedulePersist();
         return;
       }

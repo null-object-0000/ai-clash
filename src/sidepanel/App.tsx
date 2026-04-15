@@ -5,13 +5,15 @@ import {
   CopyOutlined,
   GlobalOutlined,
   HeartOutlined,
+  LeftOutlined,
   MergeCellsOutlined,
   PlusOutlined,
   RedoOutlined,
+  RightOutlined,
   SettingOutlined,
   TrophyOutlined,
 } from '@ant-design/icons';
-import { DownOutlined, RightOutlined } from '@ant-design/icons';
+import { DownOutlined } from '@ant-design/icons';
 import type { BubbleListProps, PromptsProps } from '@ant-design/x';
 import {
   Actions,
@@ -349,6 +351,78 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
   );
 }
 
+// 版本切换器组件
+function VersionSwitcher({ totalVersions, currentVersion, onSwitch }: {
+  totalVersions: number;
+  currentVersion: number;
+  onSwitch: (index: number) => void;
+}) {
+  if (totalVersions <= 1) return null;
+
+  const canPrev = currentVersion > 0;
+  const canNext = currentVersion < totalVersions - 1;
+
+  return (
+    <Flex align="center" gap={2}>
+      <button
+        className="version-switcher-btn"
+        style={{
+          width: '22px',
+          height: '22px',
+          fontSize: '10px',
+          opacity: canPrev ? 1 : 0.4,
+          cursor: canPrev ? 'pointer' : 'not-allowed',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: '50%',
+          background: 'transparent',
+          color: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+        }}
+        disabled={!canPrev}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (canPrev) onSwitch(currentVersion - 1);
+        }}
+        title={canPrev ? '查看上一个版本' : '已经是第一个版本'}
+      >
+        <LeftOutlined style={{ fontSize: 8 }} />
+      </button>
+      <span style={{ fontSize: '10px', color: 'var(--ant-color-text-secondary)', minWidth: '50px', textAlign: 'center' }}>
+        {currentVersion + 1} / {totalVersions}
+      </span>
+      <button
+        className="version-switcher-btn"
+        style={{
+          width: '22px',
+          height: '22px',
+          fontSize: '10px',
+          opacity: canNext ? 1 : 0.4,
+          cursor: canNext ? 'pointer' : 'not-allowed',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: '50%',
+          background: 'transparent',
+          color: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+        }}
+        disabled={!canNext}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (canNext) onSwitch(currentVersion + 1);
+        }}
+        title={canNext ? '查看下一个版本' : '已经是最后一个版本'}
+      >
+        <RightOutlined style={{ fontSize: 8 }} />
+      </button>
+    </Flex>
+  );
+}
+
 // ─── ThoughtChain helpers ───
 
 const STAGE_ORDER: StageType[] = ['waiting', 'opening', 'loading', 'connecting', 'sending', 'thinking', 'responding'];
@@ -458,7 +532,9 @@ const App = () => {
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
   const thinkExpandedMap = useStore(s => s.thinkExpandedMap);
-  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary } = useStore();
+  const summaryVersions = useStore(s => s.summaryVersions);
+  const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -606,37 +682,12 @@ const App = () => {
         const summaryThinkExpanded = thinkExpandedMap['summary'];
         const isSummaryCompleted = summaryStatus === 'completed' || summaryStatus === 'error';
 
+        // 根据侧边栏宽度决定是否只显示图标
+        const showButtonText = sidebarWidth >= 500;
+
         // 复制按钮
         const copyButton = isSummaryCompleted && hasSummaryContent ? (
-          <button
-            className={styles.floatingBtnWithText}
-            style={{
-              borderRadius: '16px',
-              padding: '0 12px',
-              height: '32px',
-              fontSize: '13px',
-            }}
-            onClick={() => {
-              navigator.clipboard?.writeText(summaryResponse);
-              message.success('总结内容已复制到剪贴板');
-            }}
-          >
-            <CopyOutlined style={{ fontSize: 14 }} />
-            复制
-          </button>
-        ) : null;
-
-        // 重新生成的 Popconfirm 按钮
-        const regenerateButton = isSummaryCompleted && hasSummaryContent ? (
-          <Popconfirm
-            title="确认重新生成归纳总结吗？"
-            okText="确认"
-            cancelText="取消"
-            onConfirm={() => {
-              regenerateSummary();
-            }}
-            okButtonProps={{ danger: true }}
-          >
+          showButtonText ? (
             <button
               className={styles.floatingBtnWithText}
               style={{
@@ -645,18 +696,102 @@ const App = () => {
                 height: '32px',
                 fontSize: '13px',
               }}
+              onClick={() => {
+                navigator.clipboard?.writeText(summaryResponse);
+                message.success('总结内容已复制到剪贴板');
+              }}
             >
-              <RedoOutlined style={{ fontSize: 14 }} />
-              重新总结
+              <CopyOutlined style={{ fontSize: 14 }} />
+              复制总结
             </button>
-          </Popconfirm>
+          ) : (
+            <Tooltip title="复制总结" placement="top">
+              <button
+                className={styles.floatingBtn}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                }}
+                onClick={() => {
+                  navigator.clipboard?.writeText(summaryResponse);
+                  message.success('总结内容已复制到剪贴板');
+                }}
+              >
+                <CopyOutlined style={{ fontSize: 14 }} />
+              </button>
+            </Tooltip>
+          )
+        ) : null;
+
+        // 重新生成的 Popconfirm 按钮
+        const regenerateButton = isSummaryCompleted && hasSummaryContent ? (
+          showButtonText ? (
+            <Popconfirm
+              title="确认重新生成归纳总结吗？"
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => {
+                regenerateSummary();
+              }}
+              okButtonProps={{ danger: true }}
+            >
+              <button
+                className={styles.floatingBtnWithText}
+                style={{
+                  borderRadius: '16px',
+                  padding: '0 12px',
+                  height: '32px',
+                  fontSize: '13px',
+                }}
+              >
+                <RedoOutlined style={{ fontSize: 14 }} />
+                重新总结
+              </button>
+            </Popconfirm>
+          ) : (
+            <Popconfirm
+              title="确认重新生成归纳总结吗？"
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => {
+                regenerateSummary();
+              }}
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="重新总结" placement="top">
+                <button
+                  className={styles.floatingBtn}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                  }}
+                >
+                  <RedoOutlined style={{ fontSize: 14 }} />
+                </button>
+              </Tooltip>
+            </Popconfirm>
+          )
+        ) : null;
+
+        // 版本切换器
+        const versionSwitcher = summaryVersions.length > 1 ? (
+          <VersionSwitcher
+            totalVersions={summaryVersions.length}
+            currentVersion={summaryCurrentVersion}
+            onSwitch={switchSummaryVersion}
+          />
         ) : null;
 
         // 合并 footer 内容
         const summaryFooter = copyButton || regenerateButton ? (
-          <Flex gap={8} align="center">
-            {copyButton}
-            {regenerateButton}
+          <Flex gap={8} align="center" justify="space-between" style={{ width: '100%' }}>
+            <Flex gap={8} align="center">
+              {copyButton}
+              {regenerateButton}
+            </Flex>
+            {versionSwitcher}
           </Flex>
         ) : null;
 
@@ -734,7 +869,8 @@ const App = () => {
     responses, thinkResponses, isSummaryEnabled, summaryStatus,
     summaryResponse, summaryThinkResponse, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,
-    triggerSummary, regenerateSummary, styles,
+    triggerSummary, regenerateSummary, switchSummaryVersion,
+    summaryVersions, summaryCurrentVersion,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');

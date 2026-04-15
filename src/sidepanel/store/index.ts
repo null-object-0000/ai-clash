@@ -135,11 +135,15 @@ export const useStore = create<AppStore>()((set, get) => {
   const buildSummaryHistoryEntry = (): SummaryHistoryEntry | null => {
     const s = get();
     if (s.summaryStatus === 'idle') return null;
+
+    // 直接使用已有的版本数组，避免重复添加
+    // summaryVersions 已经由 messageHandler 在总结完成时正确维护
+    if (s.summaryVersions.length === 0) return null;
+
     return {
       status: s.summaryStatus,
-      response: buffers.summaryFull || '',
-      thinkResponse: buffers.summaryThink || '',
-      stats: s.summaryStats ?? null,
+      versions: s.summaryVersions,
+      currentVersionIndex: s.summaryCurrentVersion,
     };
   };
 
@@ -299,6 +303,8 @@ export const useStore = create<AppStore>()((set, get) => {
     summaryOperationStatus: '',
     summaryStats: null,
     summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT,  // 自定义总结提示词
+    summaryVersions: [],  // 历史版本数组
+    summaryCurrentVersion: 0,  // 当前查看的版本索引
 
     isHistoryPanelOpen: false,
     activeProviderSettings: '',
@@ -613,18 +619,44 @@ export const useStore = create<AppStore>()((set, get) => {
 
       const se = item.type === 'single' ? item.summary : item.summary;
       if (se) {
-        buffers.summaryFull = se.response;
-        buffers.summaryThink = se.thinkResponse;
-        buffers.summaryDisplayedLen = se.response.length;
-        buffers.summaryThinkDisplayedLen = se.thinkResponse.length;
-        buffers.summaryTriggered = true;
-        set({
-          summaryStatus: se.status,
-          summaryStage: 'responding',
-          summaryResponse: se.response,
-          summaryThinkResponse: se.thinkResponse,
-          summaryStats: se.stats ?? null,
-        });
+        // 新版本数据结构：包含 versions 数组和 currentVersionIndex
+        const versions = (se as any).versions || [];
+        const currentIdx = (se as any).currentVersionIndex ?? 0;
+
+        if (versions.length > 0) {
+          // 有历史版本：恢复到当前选中的版本
+          const currentVersion = versions[currentIdx] || versions[versions.length - 1];
+          buffers.summaryFull = currentVersion.response;
+          buffers.summaryThink = currentVersion.thinkResponse;
+          buffers.summaryDisplayedLen = currentVersion.response.length;
+          buffers.summaryThinkDisplayedLen = currentVersion.thinkResponse.length;
+          buffers.summaryTriggered = true;
+          set({
+            summaryStatus: se.status,
+            summaryStage: 'responding',
+            summaryResponse: currentVersion.response,
+            summaryThinkResponse: currentVersion.thinkResponse,
+            summaryStats: currentVersion.stats ?? null,
+            summaryVersions: versions,
+            summaryCurrentVersion: currentIdx,
+          });
+        } else {
+          // 旧版本数据结构：兼容处理
+          buffers.summaryFull = (se as any).response || '';
+          buffers.summaryThink = (se as any).thinkResponse || '';
+          buffers.summaryDisplayedLen = buffers.summaryFull.length;
+          buffers.summaryThinkDisplayedLen = buffers.summaryThink.length;
+          buffers.summaryTriggered = true;
+          set({
+            summaryStatus: se.status,
+            summaryStage: 'responding',
+            summaryResponse: (se as any).response || '',
+            summaryThinkResponse: (se as any).thinkResponse || '',
+            summaryStats: (se as any).stats ?? null,
+            summaryVersions: [],
+            summaryCurrentVersion: 0,
+          });
+        }
       }
     },
 
@@ -698,6 +730,8 @@ export const useStore = create<AppStore>()((set, get) => {
         summaryThinkResponse: '',
         summaryOperationStatus: '',
         summaryStats: null,
+        summaryVersions: [],
+        summaryCurrentVersion: 0,
       });
     },
 
@@ -753,7 +787,8 @@ export const useStore = create<AppStore>()((set, get) => {
         .map(id => ({ providerId: id, name: PROVIDER_NAME_MAP[id], text: buffers.fullText[id] }));
       if (completed.length < 2) return;
 
-      // 如果是重新生成（已有总结内容），先清空状态
+      // 如果是重新生成（已有总结内容），只清空当前显示内容
+      // 新生成的版本会在 messageHandler 中添加到 summaryVersions
       if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink)) {
         buffers.summaryFull = '';
         buffers.summaryThink = '';
@@ -784,8 +819,29 @@ export const useStore = create<AppStore>()((set, get) => {
     },
 
     regenerateSummary: () => {
-      // 重新生成总结：清空状态后触发
+      // 重新生成总结：清空当前内容后触发
       get().triggerSummary(true);
+    },
+
+    switchSummaryVersion: (index) => {
+      const s = get();
+      if (index < 0 || index >= s.summaryVersions.length) return;
+
+      // 获取目标版本
+      const version = s.summaryVersions[index];
+
+      // 更新 buffers 和 store 状态
+      buffers.summaryFull = version.response;
+      buffers.summaryThink = version.thinkResponse;
+      buffers.summaryDisplayedLen = version.response.length;
+      buffers.summaryThinkDisplayedLen = version.thinkResponse.length;
+
+      set({
+        summaryResponse: version.response,
+        summaryThinkResponse: version.thinkResponse,
+        summaryStats: version.stats,
+        summaryCurrentVersion: index,
+      });
     },
 
     goToProvider: async (providerId, activate = true) => {

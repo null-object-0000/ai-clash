@@ -55,6 +55,9 @@ export interface AppState {
   summaryOperationStatus: string;
   summaryStats: ProviderStats | null;
   summaryCustomPrompt: string;  // 自定义总结提示词
+  // 总结历史版本（运行时状态，非持久化）
+  summaryVersions: Array<{ response: string; thinkResponse: string; stats: ProviderStats | null; createdAt: number }>;
+  summaryCurrentVersion: number;  // 当前查看的版本索引
 
   // ─── UI Panels ───
   isHistoryPanelOpen: boolean;
@@ -120,6 +123,9 @@ export interface AppActions {
   regenerateSummary: () => void;
   goToProvider: (id: string, activate?: boolean) => Promise<any>;
   init: () => (() => void);
+
+  // ─── Summary Versions ───
+  switchSummaryVersion: (index: number) => void;  // 切换查看的总结版本
 
   // ─── Derived getters ───
   getEnabledProviderIds: () => ProviderId[];
