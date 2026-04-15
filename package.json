@@ -1,6 +1,6 @@
 {
     "name": "ai-clash",
-    "description": "AI 对撞机 - 一个问题问多个 AI",
+    "description": "💥 你的赛博董事会。一次提问，多款满血 AI 同屏对撞。零成本利用网页原生算力进行交叉验证，自带 AI 裁判一键归纳最优解，专治模型偏科与幻觉。",
     "private": true,
     "version": "1.0.0",
     "type": "module",
