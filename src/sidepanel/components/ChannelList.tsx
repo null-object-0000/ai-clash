@@ -95,10 +95,9 @@ export default function ChannelList() {
   const testingApiKey = useStore(s => s.testingApiKey);
   const { toggleProvider, goToProvider, openProviderSettings, testApiKey } = useStore.getState();
 
-  const enabledCount = Object.values(enabledMap).filter(v => v).length;
-
   // summarizer 是内置总结服务，不在常规通道列表中显示
   const visibleProviders = PROVIDER_META.filter((p: any) => p.id !== 'summarizer');
+  const enabledCount = visibleProviders.filter((p: any) => enabledMap[p.id as ProviderId]).length;
 
   return (
     <div className={styles.wrapper}>
