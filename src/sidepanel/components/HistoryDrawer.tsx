@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { CommentOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import type { ConversationsProps } from '@ant-design/x';
 import { Conversations } from '@ant-design/x';
 import { Drawer, Input, Modal } from 'antd';
@@ -10,7 +10,7 @@ import {
   type ProviderId, type ChatHistoryItem,
 } from '../types';
 
-const useStyles = createStyles(({ css }) => ({
+const useStyles = createStyles(({ css, token }) => ({
   conversations: css`
     width: 100%;
     .ant-conversations-list {
@@ -24,6 +24,29 @@ const useStyles = createStyles(({ css }) => ({
         white-space: nowrap;
       }
     }
+  `,
+  emptyState: css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: ${token.colorTextTertiary};
+  `,
+  emptyIcon: css`
+    font-size: 64px;
+    opacity: 0.3;
+    margin-bottom: 16px;
+  `,
+  emptyText: css`
+    font-size: 14px;
+    color: ${token.colorTextSecondary};
+  `,
+  emptyDesc: css`
+    font-size: 12px;
+    color: ${token.colorTextTertiary};
+    margin-top: 8px;
+    opacity: 0.7;
   `,
 }));
 
@@ -114,20 +137,28 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
         closable={false}
         styles={{ body: { padding: '0 8px 0 0', overflow: 'hidden auto' } }}
       >
-        <Conversations
-          items={conversationItems}
-          menu={conversationMenu}
-          groupable
-          onActiveChange={(key) => {
-            const item = historyList.find(h => h.id === key);
-            if (item) {
-              restoreHistorySession(item);
-            }
-            onClose();
-          }}
-          styles={{ item: { padding: '0 8px' } }}
-          className={styles.conversations}
-        />
+        {historyList.length === 0 ? (
+          <div className={styles.emptyState}>
+            <CommentOutlined className={styles.emptyIcon} />
+            <div className={styles.emptyText}>暂无历史记录</div>
+            <div className={styles.emptyDesc}>开始提问后，对话记录会保存在这里</div>
+          </div>
+        ) : (
+          <Conversations
+            items={conversationItems}
+            menu={conversationMenu}
+            groupable
+            onActiveChange={(key) => {
+              const item = historyList.find(h => h.id === key);
+              if (item) {
+                restoreHistorySession(item);
+              }
+              onClose();
+            }}
+            styles={{ item: { padding: '0 8px' } }}
+            className={styles.conversations}
+          />
+        )}
       </Drawer>
       <Modal
         open={!!renameTarget}
