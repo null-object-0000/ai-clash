@@ -319,7 +319,7 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
   onClick: () => void;
   styles: ReturnType<typeof useStyles>['styles'];
 }) {
-  const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
+  const Icon = providerId ? getProviderIcon(providerId as ProviderId | 'summary') : null;
   const stageLabel = stage === 'thinking' ? '思考中...'
     : stage === 'connecting' ? '连接中...'
       : stage === 'sending' ? '发送中...'
@@ -330,7 +330,7 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
         <RightOutlined size={12} style={{ opacity: 0.6 }} />
       </span>
       <div className="provider-header-content">
-        {Icon && <Icon size={14} />}
+        {Icon && <Icon style={{ fontSize: 14 }} />}
         <span className="provider-header-name" style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>{label}</span>
         {opStatus && (
           <span className="provider-header-status" style={{ animation: 'pulse 1s infinite' }}>{opStatus}</span>
@@ -378,13 +378,13 @@ function buildThoughtChainItems(stage: StageType, opStatus?: string, visitedStag
 
 function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; opStatus?: string; providerId?: string }) {
   const visited = providerId ? buffers.visitedStages[providerId as ProviderId] : undefined;
-  const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
+  const Icon = providerId ? getProviderIcon(providerId as ProviderId | 'summary') : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {Icon && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Icon size={16} />
+          <Icon style={{ fontSize: 16 }} />
           <span className="provider-header-name" style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
             {PROVIDER_NAME_MAP[providerId as ProviderId] || providerId}
           </span>
@@ -498,10 +498,10 @@ const App = () => {
         key: `ai-${turn.providerId}-${idx}`,
         role: 'assistant',
         content: turn.response || '等待中...',
+        style: { paddingTop: 0, paddingBottom: 0 },
         ...(isCollapsed ? {
           className: styles.bubbleContentHidden,
           contentRender: () => null,
-          style: { paddingTop: 0, paddingBottom: 0 },
         } : (turn.thinkResponse ? {
           contentRender: makeContentRender(turn.thinkResponse, false, thinkExpanded, (expanded) => {
             setThinkExpanded(turn.providerId, expanded);
@@ -551,6 +551,7 @@ const App = () => {
           key: `ai-current-${id}`,
           role: 'assistant',
           content: resp || '',
+          style: { paddingTop: 0 },
           ...(contentRenderFn ? { contentRender: contentRenderFn } : {}),
           ...(isCollapsed ? {
             className: styles.bubbleContentHidden,
@@ -583,28 +584,37 @@ const App = () => {
       if (isSummaryEnabled && (summaryStatus === 'running' || summaryResponse || summaryThinkResponse)) {
         const hasSummaryContent = !!(summaryThinkResponse || summaryResponse);
         const summaryStage = useStore.getState().summaryStage;
+        const isSummaryCollapsed = collapseMap['summary'];
+        const summaryThinkExpanded = thinkExpandedMap['summary'];
         items.push({
           key: 'summary',
           role: 'assistant',
           content: summaryResponse || '',
+          style: { paddingTop: 0, paddingBottom: 0 },
           loading: summaryStatus === 'running' && !hasSummaryContent,
           streaming: summaryStatus === 'running' && hasSummaryContent,
-          ...(summaryThinkResponse ? {
-            contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running', true),
-          } : {}),
+          ...(isSummaryCollapsed ? {
+            className: styles.bubbleContentHidden,
+            contentRender: () => null,
+          } : (summaryThinkResponse ? {
+            contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
+              setThinkExpanded('summary', expanded);
+            }),
+          } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
           header: (
             <ProviderHeader
+              providerId="summary"
               label="归纳总结"
               stats={summaryStats}
               status={summaryStatus}
               opStatus={summaryOperationStatus}
-              isCollapsed={false}
-              onClick={() => {}}
+              isCollapsed={isSummaryCollapsed}
+              onClick={() => toggleCollapse('summary')}
               styles={styles}
             />
           ),
-          ...(summaryStatus === 'running' && !hasSummaryContent ? {
+          ...(summaryStatus === 'running' && !hasSummaryContent && !isSummaryCollapsed ? {
             loadingRender: () => (
               <StageThoughtChain stage={summaryStage as StageType} opStatus={summaryOperationStatus} />
             ),
