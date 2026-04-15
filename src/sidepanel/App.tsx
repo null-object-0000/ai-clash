@@ -2,16 +2,19 @@ import {
   BulbOutlined,
   CarOutlined,
   CommentOutlined,
+  CopyOutlined,
   GlobalOutlined,
   HeartOutlined,
   MergeCellsOutlined,
   PlusOutlined,
+  RedoOutlined,
   SettingOutlined,
   TrophyOutlined,
 } from '@ant-design/icons';
 import { DownOutlined, RightOutlined } from '@ant-design/icons';
 import type { BubbleListProps, PromptsProps } from '@ant-design/x';
 import {
+  Actions,
   Bubble,
   Prompts,
   Sender,
@@ -21,7 +24,7 @@ import {
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown from '@ant-design/x-markdown';
-import { Flex, message, Tooltip } from 'antd';
+import { Flex, message, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers } from './store';
@@ -455,7 +458,7 @@ const App = () => {
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
   const thinkExpandedMap = useStore(s => s.thinkExpandedMap);
-  const { toggleCollapse, setThinkExpanded } = useStore();
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -581,11 +584,82 @@ const App = () => {
         });
       });
 
-      if (isSummaryEnabled && (summaryStatus === 'running' || summaryResponse || summaryThinkResponse)) {
-        const hasSummaryContent = !!(summaryThinkResponse || summaryResponse);
+      // 总结气泡显示条件：总结正在运行或已有内容
+      const hasSummaryContent = !!(summaryThinkResponse || summaryResponse);
+      const hasSummaryRunning = summaryStatus === 'running';
+      // 只有在总结完成/出错且有内容时才显示，避免空气泡
+      const hasSummaryCompleted = (summaryStatus === 'completed' || summaryStatus === 'error') && hasSummaryContent;
+
+      // 添加手动触发按钮：总结尚未生成且有足够的通道完成时显示
+      // 注意：这里只检查状态，不检查内容，因为 TASK_COMPLETED 发送时内容应该已经完整
+      const completedCount = enabledProviderIds.filter(id =>
+        statusMap[id] === 'completed' || statusMap[id] === 'error'
+      ).length;
+
+      // 手动触发按钮显示条件：总结尚未运行且没有完成的内容，且 >= 2 个通道完成
+      const shouldShowManualTrigger = !hasSummaryRunning && !hasSummaryCompleted && completedCount >= 2 && currentQuestion;
+
+      // 添加总结气泡：当总结正在运行或已有内容时显示
+      if ((hasSummaryRunning || hasSummaryCompleted) && currentQuestion) {
         const summaryStage = useStore.getState().summaryStage;
         const isSummaryCollapsed = collapseMap['summary'];
         const summaryThinkExpanded = thinkExpandedMap['summary'];
+        const isSummaryCompleted = summaryStatus === 'completed' || summaryStatus === 'error';
+
+        // 复制按钮
+        const copyButton = isSummaryCompleted && hasSummaryContent ? (
+          <button
+            className={styles.floatingBtnWithText}
+            style={{
+              borderRadius: '16px',
+              padding: '0 12px',
+              height: '32px',
+              fontSize: '13px',
+            }}
+            onClick={() => {
+              navigator.clipboard?.writeText(summaryResponse);
+              message.success('总结内容已复制到剪贴板');
+            }}
+          >
+            <CopyOutlined style={{ fontSize: 14 }} />
+            复制
+          </button>
+        ) : null;
+
+        // 重新生成的 Popconfirm 按钮
+        const regenerateButton = isSummaryCompleted && hasSummaryContent ? (
+          <Popconfirm
+            title="确认重新生成归纳总结吗？"
+            okText="确认"
+            cancelText="取消"
+            onConfirm={() => {
+              regenerateSummary();
+            }}
+            okButtonProps={{ danger: true }}
+          >
+            <button
+              className={styles.floatingBtnWithText}
+              style={{
+                borderRadius: '16px',
+                padding: '0 12px',
+                height: '32px',
+                fontSize: '13px',
+              }}
+            >
+              <RedoOutlined style={{ fontSize: 14 }} />
+              重新总结
+            </button>
+          </Popconfirm>
+        ) : null;
+
+        // 合并 footer 内容
+        const summaryFooter = copyButton || regenerateButton ? (
+          <Flex gap={8} align="center">
+            {copyButton}
+            {regenerateButton}
+          </Flex>
+        ) : null;
+
         items.push({
           key: 'summary',
           role: 'assistant',
@@ -602,6 +676,7 @@ const App = () => {
             }),
           } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
+          footer: summaryFooter,
           header: (
             <ProviderHeader
               providerId="summary"
@@ -621,6 +696,36 @@ const App = () => {
           } : {}),
         });
       }
+
+      if (shouldShowManualTrigger) {
+        items.push({
+          key: 'manual-summary-trigger',
+          role: 'assistant',
+          content: (
+            <Flex justify="center" style={{ padding: '16px 0' }}>
+              <button
+                className={styles.floatingBtnWithText}
+                onClick={() => triggerSummary(true)}
+                style={{
+                  borderRadius: '20px',
+                  padding: '10px 20px',
+                  minWidth: '180px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                ✨ 生成归纳总结
+              </button>
+            </Flex>
+          ),
+          header: null,
+        });
+      }
     }
 
     return items;
@@ -629,6 +734,7 @@ const App = () => {
     responses, thinkResponses, isSummaryEnabled, summaryStatus,
     summaryResponse, summaryThinkResponse, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,
+    triggerSummary, regenerateSummary, styles,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
@@ -751,7 +857,7 @@ const App = () => {
                         <span className="short-text">联网</span>
                       </Sender.Switch>
                     </Tooltip>
-                    <Tooltip title={summaryBlockReason || '归纳总结'}>
+                    <Tooltip title={summaryBlockReason || '自动总结'}>
                       <span>
                         <Sender.Switch
                           icon={<MergeCellsOutlined />}
@@ -760,7 +866,7 @@ const App = () => {
                           onChange={toggleSummary}
                           style={{ fontSize: '13px' }}
                         >
-                          <span className="full-text">归纳总结</span>
+                          <span className="full-text">自动总结</span>
                           <span className="short-text">总结</span>
                         </Sender.Switch>
                       </span>

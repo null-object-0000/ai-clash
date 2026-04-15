@@ -116,7 +116,8 @@ export interface AppActions {
   resetTaskState: () => void;
   tickStreamDisplay: () => void;
   schedulePersist: (delay?: number, rawUrlOverrides?: Partial<Record<ProviderId, string>>) => void;
-  triggerSummary: () => void;
+  triggerSummary: (forceTrigger?: boolean) => void;
+  regenerateSummary: () => void;
   goToProvider: (id: string, activate?: boolean) => Promise<any>;
   init: () => (() => void);
 

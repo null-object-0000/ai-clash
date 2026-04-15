@@ -740,15 +740,31 @@ export const useStore = create<AppStore>()((set, get) => {
       }, delay);
     },
 
-    triggerSummary: () => {
-      if (buffers.summaryTriggered) return;
+    triggerSummary: (forceTrigger = false) => {
+      // forceTrigger 为 true 时，忽略 buffers.summaryTriggered 检查，支持手动触发和重新生成
+      if (!forceTrigger && buffers.summaryTriggered) return;
       const s = get();
-      if (!s.isSummaryEnabled || !s.isSummaryConfigValid()) return;
+      // 手动触发时（forceTrigger=true）不需要检查 isSummaryEnabled，允许用户在关闭自动总结时手动触发
+      if (!forceTrigger && !s.isSummaryEnabled) return;
+      if (!s.isSummaryConfigValid()) return;
       const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
       const completed = enabledIds
         .filter(id => (s.statusMap[id] === 'completed' || s.statusMap[id] === 'error') && buffers.fullText[id]?.trim())
         .map(id => ({ providerId: id, name: PROVIDER_NAME_MAP[id], text: buffers.fullText[id] }));
       if (completed.length < 2) return;
+
+      // 如果是重新生成（已有总结内容），先清空状态
+      if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink)) {
+        buffers.summaryFull = '';
+        buffers.summaryThink = '';
+        buffers.summaryDisplayedLen = 0;
+        buffers.summaryThinkDisplayedLen = 0;
+        set({
+          summaryResponse: '',
+          summaryThinkResponse: '',
+          summaryStats: null,
+        });
+      }
 
       buffers.summaryTriggered = true;
       buffers.summaryTiming.startTime = Date.now();
@@ -765,6 +781,11 @@ export const useStore = create<AppStore>()((set, get) => {
           },
         },
       });
+    },
+
+    regenerateSummary: () => {
+      // 重新生成总结：清空状态后触发
+      get().triggerSummary(true);
     },
 
     goToProvider: async (providerId, activate = true) => {
