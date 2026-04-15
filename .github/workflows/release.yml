@@ -11,7 +11,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -31,11 +31,6 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Upload release asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./release/crx-ai-clash-${{ steps.get_version.outputs.version }}.zip
-          asset_name: ai-clash-extension-v${{ steps.get_version.outputs.version }}.zip
-          asset_content_type: application/zip
+          files: ./release/crx-ai-clash-${{ steps.get_version.outputs.version }}.zip
