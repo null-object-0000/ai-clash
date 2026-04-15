@@ -655,8 +655,8 @@ const App = () => {
           <div style={{ overflow: 'auto', flex: 1 }}>
             <Welcome
               variant="borderless"
-              title="👋 你好，我是 AI 对撞机"
-              description="一个问题问多个 AI，获取最全面的答案"
+              title="👋 欢迎召唤「AI 对撞机」"
+              description="一次提问，多款满血 AI 同屏对撞，直接拿最优解！"
               className={styles.chatWelcome}
             />
             <ChannelList />
