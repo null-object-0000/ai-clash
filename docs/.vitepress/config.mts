@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitepress'
 
 export default defineConfig({
+  base: '/ai-clash/',
+
   locales: {
     root: {
       label: '简体中文',
