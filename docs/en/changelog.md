@@ -11,6 +11,9 @@
 - **Revamped Summary Interaction**: Support for triggering the "Generate Summary" on-demand, along with a "Regenerate" feature, returning full control to the user.
 - **Official Website**: Launched a dedicated official website offering a complete version history and offline ZIP package developer mode installation guide.
 
+### 🛠️ Fixes & Improvements
+- **Follow-up Question Interception**: New anti-accidental-trigger confirmation modal in multi-channel mode to prevent unintended clearing of in-progress responses.
+
 ## [1.0.0] - 2026-04-15
 
 ### 🎉 MVP Release
