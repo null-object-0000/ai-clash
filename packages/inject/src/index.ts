@@ -47,3 +47,4 @@ export { doubaoProvider } from './providers/doubao.js';
 export { qianwenProvider } from './providers/qianwen.js';
 export { longcatProvider } from './providers/longcat.js';
 export { yuanbaoProvider } from './providers/yuanbao.js';
+export { wenxinProvider } from './providers/wenxin.js';

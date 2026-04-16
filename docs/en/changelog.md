@@ -3,6 +3,7 @@
 ## [1.1.0] - Upcoming
 
 ### 🎉 Major
+- **New Channel — Wenxin Yiyan**: Baidu's flagship LLM officially joins the arena! Fully adapted to the native computing power of the Wenxin Yiyan web interface, completing the lineup of China's top-tier foundation models.
 - **"Focus Follow" Director Mode**: Breaks through browser performance throttling on inactive background tabs. Background detection automatically awakens updating AI webpages to ensure full-speed concurrency, delivering a seamless and immersive viewing experience.
 
 ### ✨ Features

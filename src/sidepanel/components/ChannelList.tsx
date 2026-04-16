@@ -1,5 +1,5 @@
 import { SettingOutlined } from '@ant-design/icons';
-import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, XiaomiMiMo } from '@lobehub/icons';
+import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, Wenxin, XiaomiMiMo } from '@lobehub/icons';
 import { Button, Switch, Tag } from 'antd';
 import { createStyles } from 'antd-style';
 import { PROVIDER_META } from '../../shared/config.js';
@@ -13,6 +13,7 @@ const iconMap: Record<string, IconWithColor> = {
   doubao: Doubao,
   qianwen: Qwen,
   yuanbao: Yuanbao,
+  wenxin: Wenxin,
   longcat: LongCat,
   xiaomi: { Color: XiaomiMiMo },
 };

@@ -998,19 +998,32 @@ const App = () => {
       {/* ─── Sender ─── */}
       {!isCurrentSessionFromHistory && (
         <Flex vertical className={styles.chatSend}>
-          <Flex gap="small" style={{ marginBottom: 8 }}>
-            <Tooltip title="自动追踪并切换至正在输出的模型">
-              <Button
-                size="small"
-                type={isFocusFollowEnabled ? "primary" : "default"}
-                onClick={toggleFocusFollow}
-                icon={<VideoCameraOutlined />}
-                style={{ borderRadius: 6, fontSize: 13, height: 28 }}
-              >
-                导播模式
-              </Button>
-            </Tooltip>
-          </Flex>
+          {enabledCount >= 2 && (
+            <Flex gap="small" style={{ marginBottom: 8 }}>
+              <Tooltip title="多通道模型输出完成后自动生成归纳总结，帮助你快速抓住重点">
+                <Button
+                  size="small"
+                  type={isSummaryEnabled ? "primary" : "default"}
+                  onClick={toggleSummary}
+                  icon={<MergeCellsOutlined />}
+                  style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+                >
+                  自动总结
+                </Button>
+              </Tooltip>
+              <Tooltip title="自动追踪并切换至正在输出的模型">
+                <Button
+                  size="small"
+                  type={isFocusFollowEnabled ? "primary" : "default"}
+                  onClick={toggleFocusFollow}
+                  icon={<VideoCameraOutlined />}
+                  style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+                >
+                  导播模式
+                </Button>
+              </Tooltip>
+            </Flex>
+          )}
           <Sender
             loading={isAnyRunning}
             value={inputValue}
@@ -1025,42 +1038,22 @@ const App = () => {
               return (
                 <Flex justify="space-between" align="center">
                   <Flex gap="small" align="center">
-                    <Tooltip title="深度思考">
-                      <Sender.Switch
-                        icon={<BulbOutlined />}
-                        value={isDeepThinkingEnabled}
-                        onChange={toggleDeepThinking}
-                        style={{ fontSize: '13px' }}
-                      >
-                        <span className="full-text">深度思考</span>
-                        <span className="short-text">思考</span>
-                      </Sender.Switch>
-                    </Tooltip>
-                    <Tooltip title="联网搜索">
-                      <Sender.Switch
-                        icon={<GlobalOutlined />}
-                        value={isWebSearchEnabled}
-                        onChange={toggleWebSearch}
-                        style={{ fontSize: '13px' }}
-                      >
-                        <span className="full-text">联网搜索</span>
-                        <span className="short-text">联网</span>
-                      </Sender.Switch>
-                    </Tooltip>
-                    <Tooltip title={summaryBlockReason || '自动总结'}>
-                      <span>
-                        <Sender.Switch
-                          icon={<MergeCellsOutlined />}
-                          value={enabledCount >= 2 && isSummaryEnabled}
-                          disabled={enabledCount < 2}
-                          onChange={toggleSummary}
-                          style={{ fontSize: '13px' }}
-                        >
-                          <span className="full-text">自动总结</span>
-                          <span className="short-text">总结</span>
-                        </Sender.Switch>
-                      </span>
-                    </Tooltip>
+                    <Sender.Switch
+                      icon={<BulbOutlined />}
+                      value={isDeepThinkingEnabled}
+                      onChange={toggleDeepThinking}
+                      style={{ fontSize: '13px' }}
+                    >
+                      深度思考
+                    </Sender.Switch>
+                    <Sender.Switch
+                      icon={<GlobalOutlined />}
+                      value={isWebSearchEnabled}
+                      onChange={toggleWebSearch}
+                      style={{ fontSize: '13px' }}
+                    >
+                      联网搜索
+                    </Sender.Switch>
                   </Flex>
                   <Flex align="center">
                     {isAnyRunning ? (

@@ -1,4 +1,4 @@
-import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, XiaomiMiMo } from '@lobehub/icons';
+import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, XiaomiMiMo, Wenxin } from '@lobehub/icons';
 import { MergeCellsOutlined } from '@ant-design/icons';
 import type { ProviderId } from '../types';
 import type { ComponentType } from 'react';
@@ -10,6 +10,7 @@ const PROVIDER_ICON_MAP: Record<string, { Color?: IconComponent; Mono?: IconComp
   doubao: Doubao,
   qianwen: Qwen,
   yuanbao: Yuanbao,
+  wenxin: Wenxin,
   longcat: LongCat,
   xiaomi: { Color: XiaomiMiMo },
   summarizer: { Color: MergeCellsOutlined as unknown as IconComponent },

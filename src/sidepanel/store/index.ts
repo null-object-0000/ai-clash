@@ -516,7 +516,7 @@ export const useStore = create<AppStore>()((set, get) => {
             type: MSG_TYPES.DISPATCH_TASK,
             payload: {
               provider: id, prompt,
-              mode: s.modeMap[id] === 'web' && id === 'yuanbao' ? 'web' : s.modeMap[id],
+              mode: s.modeMap[id] === 'web' && (id === 'yuanbao' || id === 'wenxin') ? 'web' : s.modeMap[id],
               settings: {
                 isDeepThinkingEnabled: s.isDeepThinkingEnabled,
                 isWebSearchEnabled: s.isWebSearchEnabled,
@@ -928,6 +928,7 @@ export const useStore = create<AppStore>()((set, get) => {
             newModels[id] = apiConfig[id]?.model || '';
           }
           newModes.yuanbao = 'web';
+          newModes.wenxin = 'web';
 
           const sc = (result?.[SUMMARY_CONFIG_KEY] || {}) as SummaryConfig;
           const customPrompt = result?.[SUMMARY_PROMPT_KEY] as string | undefined;

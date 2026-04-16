@@ -128,6 +128,7 @@ export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEnt
         qianwen: 'emerald',
         longcat: 'violet',
         yuanbao: 'teal',
+        wenxin: 'blue',
         xiaomi: 'teal',
       };
       return [p.id, themeMap[p.id] || 'blue'];

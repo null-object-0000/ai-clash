@@ -72,20 +72,23 @@ async function init() {
 function detectProviderFromDomain(): string | null {
   const hostname = location.hostname;
 
-  if (hostname.includes('deepseek') || hostname.includes('chat.deepseek.com')) {
+  if (hostname.includes('chat.deepseek.com')) {
     return 'deepseek';
   }
-  if (hostname.includes('doubao') || hostname.includes('doubao.com')) {
+  if (hostname.includes('doubao.com')) {
     return 'doubao';
   }
-  if (hostname.includes('qianwen') || hostname.includes('tongyi.aliyun.com')) {
+  if (hostname.includes('tongyi.aliyun.com')) {
     return 'qianwen';
   }
-  if (hostname.includes('longcat') || hostname.includes('tiangong.cn')) {
+  if (hostname.includes('tiangong.cn')) {
     return 'longcat';
   }
-  if (hostname.includes('yuanbao') || hostname.includes('yuanbao.tencent.com')) {
+  if (hostname.includes('yuanbao.tencent.com')) {
     return 'yuanbao';
+  }
+  if (hostname.includes('yiyan.baidu.com')) {
+    return 'wenxin';
   }
 
   return null;

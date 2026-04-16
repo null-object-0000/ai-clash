@@ -12,10 +12,26 @@ export function wait(ms: number): Promise<void> {
 }
 
 /**
- * 查找元素（支持 >> 伪选择器语法）
+ * 转换支持通配符的 class 选择器 (如 .avatar__* 或 avatar__*)
+ * 以解决部分网站随机生成的动态 class hash 的痛点
+ */
+export function compileWildcardSelector(selector: string): string {
+  if (!selector || typeof selector !== 'string' || !selector.includes('*')) return selector;
+  
+  // 匹配：边界/点号 + 类名前缀 + *
+  return selector.replace(/(^|\s|>|\+|~|\]|\.)([a-zA-Z0-9_-]+)\*/g, (match, boundary, classPrefix) => {
+    const keepBoundary = boundary === '.' ? '' : boundary;
+    return `${keepBoundary}:is([class^="${classPrefix}"], [class*=" ${classPrefix}"])`;
+  });
+}
+
+/**
+ * 查找元素（支持 >> 和 * 通配符伪选择器语法）
  */
 export function findElement(selector: string): Element | null {
   if (!selector) return null;
+
+  selector = compileWildcardSelector(selector);
 
   // 处理 >> 伪选择器语法（用于文本匹配）
   if (selector.includes('>>')) {
@@ -122,4 +138,38 @@ export function hasClass(el: Element, className: string): boolean {
 export function classContains(el: Element, keyword: string): boolean {
   const kw = keyword.toLowerCase();
   return Array.from(el.classList).some(c => c.toLowerCase().includes(kw));
+}
+
+/**
+ * 检查元素的 class 是否以指定关键词开头（前缀匹配）
+ */
+export function classStartsWith(el: Element, prefix: string): boolean {
+  const pre = prefix.toLowerCase();
+  return Array.from(el.classList).some(c => c.toLowerCase().startsWith(pre));
+}
+
+/**
+ * 检查元素的 class 是否以指定关键词结尾（后缀匹配）
+ */
+export function classEndsWith(el: Element, suffix: string): boolean {
+  const suf = suffix.toLowerCase();
+  return Array.from(el.classList).some(c => c.toLowerCase().endsWith(suf));
+}
+
+/**
+ * 构建可靠的类名模糊匹配 CSS 选择器
+ * 解决 `[class^="xxx"]` 无法匹配 `<div class="other xxx">` 的问题
+ * 
+ * @param className 基准类名
+ * @param matchType 匹配类型：prefix (前缀), suffix (后缀), contains (包含)
+ * @returns 完整的 CSS 选择器
+ */
+export function buildFuzzyClassSelector(className: string, matchType: 'prefix' | 'suffix' | 'contains' = 'prefix'): string {
+  if (matchType === 'prefix') {
+    return `:is([class^="${className}"], [class*=" ${className}"])`;
+  }
+  if (matchType === 'suffix') {
+    return `:is([class$="${className}"], [class*="${className} "])`;
+  }
+  return `[class*="${className}"]`;
 }
