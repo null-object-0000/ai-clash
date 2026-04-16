@@ -24,7 +24,7 @@ import {
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown from '@ant-design/x-markdown';
-import { Button, Flex, message, Popconfirm, Tooltip } from 'antd';
+import { Button, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers } from './store';
@@ -919,6 +919,29 @@ const App = () => {
   // ==================== Event ====================
   const handleUserSubmit = async (val: string) => {
     if (!val.trim()) return;
+
+    // 多通道模式下的追问拦截：当已有对话内容且启用通道数 >= 2 时，需要确认
+    const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+    if (hasAsked && enabledCount >= 2) {
+      Modal.confirm({
+        title: '开启新对话？',
+        content: '多通道模式暂不支持连续追问。发送新问题将清空当前界面并开启全新的会话，之前的内容会自动保存至"历史记录"中。是否继续？',
+        okText: '确认',
+        cancelText: '取消',
+        onOk: () => {
+          setInputStr(val);
+          setInputValue(''); // 立即清空输入框，提升用户体验
+          submit();
+          listRef.current?.scrollTo({ top: 'bottom' });
+        },
+        onCancel: () => {
+          // 用户取消，保留输入框文字，不执行任何操作
+        },
+      });
+      return;
+    }
+
+    // 单通道模式或首次提问，直接提交
     setInputStr(val);
     setInputValue(''); // 立即清空输入框，提升用户体验
     await submit();
@@ -996,8 +1019,7 @@ const App = () => {
       </div>
 
       {/* ─── Sender ─── */}
-      {!isCurrentSessionFromHistory && (
-        <Flex vertical className={styles.chatSend}>
+      <Flex vertical className={styles.chatSend}>
           {enabledCount >= 2 && (
             <Flex gap="small" style={{ marginBottom: 8 }}>
               <Tooltip title="多通道模型输出完成后自动生成归纳总结，帮助你快速抓住重点">
@@ -1067,7 +1089,6 @@ const App = () => {
             }}
           />
         </Flex>
-      )}
 
       {/* ─── Modals & Drawers ─── */}
       <ChannelSettingsDrawer />
