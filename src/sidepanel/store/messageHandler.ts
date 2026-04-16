@@ -35,11 +35,9 @@ export function createMessageListener(
         if (p.isStatus) { set({ summaryOperationStatus: p.text }); return; }
         if (p.stage) set({ summaryStage: p.stage });
         if (!p.isThink && p.text && !buffers.summaryTiming.firstContentTime) buffers.summaryTiming.firstContentTime = Date.now();
-        setTimeout(() => {
-          if (p.isThink) buffers.summaryThink += p.text;
-          else buffers.summaryFull += p.text;
-          if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
-        }, 0);
+        if (p.isThink) buffers.summaryThink += p.text;
+        else buffers.summaryFull += p.text;
+        if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
         return;
       }
       const prov = provider as ProviderId;
@@ -74,16 +72,14 @@ export function createMessageListener(
         trackStageTransition(prov, 'responding', get);
         set((prev: AppStore) => ({ stageMap: { ...prev.stageMap, [prov]: 'responding' } }));
       }
-      setTimeout(() => {
-        if (p.isThink) {
-          if (!get().isDeepThinkingEnabled) return;
-          buffers.thinkText[prov] = (buffers.thinkText[prov] || '') + p.text;
-        } else {
-          buffers.fullText[prov] = (buffers.fullText[prov] || '') + p.text;
-        }
-        if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
-        get().schedulePersist();
-      }, 0);
+      if (p.isThink) {
+        if (!get().isDeepThinkingEnabled) return;
+        buffers.thinkText[prov] = (buffers.thinkText[prov] || '') + p.text;
+      } else {
+        buffers.fullText[prov] = (buffers.fullText[prov] || '') + p.text;
+      }
+      if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
+      get().schedulePersist();
 
     } else if (request.type === MSG_TYPES.TASK_STATUS_UPDATE) {
       if (provider === '_summary') { set({ summaryStatus: 'running', summaryOperationStatus: request.payload.text || '' }); return; }
