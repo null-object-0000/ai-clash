@@ -140,6 +140,10 @@ export const useStore = create<AppStore>()((set, get) => {
     // summaryVersions 已经由 messageHandler 在总结完成时正确维护
     if (s.summaryVersions.length === 0) return null;
 
+    // 检查是否有至少一个版本有实际内容，避免保存空的总结
+    const hasContent = s.summaryVersions.some(v => (v.response || '').trim() || (v.thinkResponse || '').trim());
+    if (!hasContent) return null;
+
     return {
       status: s.summaryStatus,
       versions: s.summaryVersions,
@@ -626,36 +630,44 @@ export const useStore = create<AppStore>()((set, get) => {
         if (versions.length > 0) {
           // 有历史版本：恢复到当前选中的版本
           const currentVersion = versions[currentIdx] || versions[versions.length - 1];
-          buffers.summaryFull = currentVersion.response;
-          buffers.summaryThink = currentVersion.thinkResponse;
-          buffers.summaryDisplayedLen = currentVersion.response.length;
-          buffers.summaryThinkDisplayedLen = currentVersion.thinkResponse.length;
-          buffers.summaryTriggered = true;
-          set({
-            summaryStatus: se.status,
-            summaryStage: 'responding',
-            summaryResponse: currentVersion.response,
-            summaryThinkResponse: currentVersion.thinkResponse,
-            summaryStats: currentVersion.stats ?? null,
-            summaryVersions: versions,
-            summaryCurrentVersion: currentIdx,
-          });
+          // 只有当版本有实际内容时才恢复，避免显示空气泡
+          if ((currentVersion.response || '').trim() || (currentVersion.thinkResponse || '').trim()) {
+            buffers.summaryFull = currentVersion.response;
+            buffers.summaryThink = currentVersion.thinkResponse;
+            buffers.summaryDisplayedLen = currentVersion.response.length;
+            buffers.summaryThinkDisplayedLen = currentVersion.thinkResponse.length;
+            buffers.summaryTriggered = true;
+            set({
+              summaryStatus: se.status,
+              summaryStage: 'responding',
+              summaryResponse: currentVersion.response,
+              summaryThinkResponse: currentVersion.thinkResponse,
+              summaryStats: currentVersion.stats ?? null,
+              summaryVersions: versions,
+              summaryCurrentVersion: currentIdx,
+            });
+          }
         } else {
           // 旧版本数据结构：兼容处理
-          buffers.summaryFull = (se as any).response || '';
-          buffers.summaryThink = (se as any).thinkResponse || '';
-          buffers.summaryDisplayedLen = buffers.summaryFull.length;
-          buffers.summaryThinkDisplayedLen = buffers.summaryThink.length;
-          buffers.summaryTriggered = true;
-          set({
-            summaryStatus: se.status,
-            summaryStage: 'responding',
-            summaryResponse: (se as any).response || '',
-            summaryThinkResponse: (se as any).thinkResponse || '',
-            summaryStats: (se as any).stats ?? null,
-            summaryVersions: [],
-            summaryCurrentVersion: 0,
-          });
+          const response = (se as any).response || '';
+          const thinkResponse = (se as any).thinkResponse || '';
+          // 只有当有实际内容时才恢复，避免显示空气泡
+          if ((response || '').trim() || (thinkResponse || '').trim()) {
+            buffers.summaryFull = response;
+            buffers.summaryThink = thinkResponse;
+            buffers.summaryDisplayedLen = response.length;
+            buffers.summaryThinkDisplayedLen = thinkResponse.length;
+            buffers.summaryTriggered = true;
+            set({
+              summaryStatus: se.status,
+              summaryStage: 'responding',
+              summaryResponse: response,
+              summaryThinkResponse: thinkResponse,
+              summaryStats: (se as any).stats ?? null,
+              summaryVersions: [],
+              summaryCurrentVersion: 0,
+            });
+          }
         }
       }
     },
@@ -936,24 +948,57 @@ export const useStore = create<AppStore>()((set, get) => {
           const singleHistory = Array.isArray(result?.[HISTORY_STORAGE_KEY_SINGLE]) ? result[HISTORY_STORAGE_KEY_SINGLE] : [];
 
           const normalizedMulti = multiHistory
-            .map((item: any) => ({
-              id: item.id || createSessionId(), type: 'multi' as const,
-              question: item.question || '', createdAt: item.createdAt || Date.now(),
-              providers: Object.fromEntries(PROVIDER_IDS.map(id => [id, {
-                enabled: false, mode: 'web', status: 'idle', stage: 'connecting',
-                response: '', thinkResponse: '', operationStatus: '', rawUrl: '', stats: null,
-                ...(item.providers?.[id] || {}),
-              }])) as Record<ProviderId, ProviderHistoryEntry>,
-              summary: item.summary ?? null,
-              customLabel: item.customLabel,
-              conversationTurns: Array.isArray(item.conversationTurns) ? item.conversationTurns : undefined,
-            }))
+            .map((item: any) => {
+              // 规范化 conversationTurns 数据，确保 response 和 thinkResponse 是字符串
+              let turns: CompletedTurn[] = [];
+              if (Array.isArray(item.conversationTurns)) {
+                turns = item.conversationTurns.map((t: any) => ({
+                  question: typeof t.question === 'string' ? t.question : '',
+                  providerId: t.providerId || 'deepseek',
+                  response: typeof t.response === 'string' ? t.response : '',
+                  thinkResponse: typeof t.thinkResponse === 'string' ? t.thinkResponse : '',
+                  rawUrl: t.rawUrl || '',
+                  stats: t.stats || null,
+                }));
+              }
+              // 规范化 providers 数据，确保 response 和 thinkResponse 是字符串
+              const normalizedProviders = Object.fromEntries(PROVIDER_IDS.map(id => {
+                const prov = item.providers?.[id] || {};
+                return [id, {
+                  enabled: false, mode: 'web', status: 'idle', stage: 'connecting',
+                  response: typeof prov.response === 'string' ? prov.response : '',
+                  thinkResponse: typeof prov.thinkResponse === 'string' ? prov.thinkResponse : '',
+                  operationStatus: prov.operationStatus || '',
+                  rawUrl: prov.rawUrl || '',
+                  stats: prov.stats || null,
+                  ...prov,
+                }];
+              })) as Record<ProviderId, ProviderHistoryEntry>;
+              return {
+                id: item.id || createSessionId(), type: 'multi' as const,
+                question: item.question || '', createdAt: item.createdAt || Date.now(),
+                providers: normalizedProviders,
+                summary: item.summary ?? null,
+                customLabel: item.customLabel,
+                conversationTurns: turns,
+              };
+            })
             .filter((item: any) => item.question.trim());
 
           const normalizedSingle = singleHistory
             .map((item: any) => {
               let turns: any[] = [];
-              if (Array.isArray(item.turns)) turns = item.turns;
+              if (Array.isArray(item.turns)) {
+                // 规范化 turns 数据，确保 response 和 thinkResponse 是字符串
+                turns = item.turns.map((t: any) => ({
+                  question: typeof t.question === 'string' ? t.question : '',
+                  response: typeof t.response === 'string' ? t.response : '',
+                  thinkResponse: typeof t.thinkResponse === 'string' ? t.thinkResponse : '',
+                  createdAt: t.createdAt || Date.now(),
+                  stats: t.stats || null,
+                  rawUrl: t.rawUrl || '',
+                }));
+              }
               else if (item.turns && typeof item.turns === 'object') {
                 turns = Object.values(item.turns as any).sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
               }

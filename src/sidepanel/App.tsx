@@ -270,18 +270,34 @@ const useStyles = createStyles(({ token, css }) => ({
   providerContent: css`
     padding-top: 4px;
   `,
+  transparentBubble: css`
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    > .ant-bubble-body {
+      padding: 0 !important;
+      background: transparent !important;
+    }
+  `,
 }));
 
 // ════════════════════════════════════════════════════════════════════
 // Shared sub-components
 // ════════════════════════════════════════════════════════════════════
 
-function renderMarkdown(content: string) {
-  return <XMarkdown className="x-markdown-light" content={content} />;
+function renderMarkdown(content: any) {
+  if (React.isValidElement(content)) {
+    return content;
+  }
+  const contentStr = typeof content === 'string' ? content : '';
+  return <XMarkdown className="x-markdown-light" content={contentStr} />;
 }
 
-function renderThinkAndMarkdown(thinkContent: string, content: string, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
-  const thinkDone = !isStreaming || !!content;
+function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  const contentIsString = typeof content === 'string';
+  const contentStr = contentIsString ? content : '';
+  const thinkDone = !isStreaming || !!contentStr;
   return (
     <>
       <Think
@@ -290,15 +306,18 @@ function renderThinkAndMarkdown(thinkContent: string, content: string, isStreami
         expanded={expanded}
         onExpand={onToggle}
       >
-        <XMarkdown className="x-markdown-light" content={thinkContent} />
+        <XMarkdown className="x-markdown-light" content={thinkStr} />
       </Think>
-      {content && <XMarkdown className="x-markdown-light" content={content} />}
+      {React.isValidElement(content) ? content : (contentStr ? <XMarkdown className="x-markdown-light" content={contentStr} /> : null)}
     </>
   );
 }
 
-function makeContentRender(thinkContent: string, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
-  return (content: string) => renderThinkAndMarkdown(thinkContent, content, isStreaming, expanded, onToggle);
+function makeContentRender(thinkContent: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  return (content: any) => {
+    return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle);
+  };
 }
 
 const role: BubbleListProps['role'] = {
@@ -566,6 +585,14 @@ const App = () => {
     const items: any[] = [];
 
     conversationTurns.forEach((turn, idx) => {
+      // 确保 response 和 thinkResponse 是字符串
+      const response = typeof turn.response === 'string' ? turn.response : '';
+      const thinkResponse = typeof turn.thinkResponse === 'string' ? turn.thinkResponse : '';
+      const hasContent = !!(response || thinkResponse);
+
+      // 如果没有内容，跳过不渲染，避免显示空气泡
+      if (!hasContent) return;
+
       items.push({
         key: `user-${idx}`,
         role: 'user',
@@ -576,13 +603,13 @@ const App = () => {
       items.push({
         key: `ai-${turn.providerId}-${idx}`,
         role: 'assistant',
-        content: turn.response || '等待中...',
+        content: response || '等待中...',
         style: { paddingTop: 0, paddingBottom: 0 },
         ...(isCollapsed ? {
           className: styles.bubbleContentHidden,
           contentRender: () => null,
-        } : (turn.thinkResponse ? {
-          contentRender: makeContentRender(turn.thinkResponse, false, thinkExpanded, (expanded) => {
+        } : (thinkResponse ? {
+          contentRender: makeContentRender(thinkResponse, false, thinkExpanded, (expanded) => {
             setThinkExpanded(turn.providerId, expanded);
           }),
         } : {})),
@@ -613,8 +640,12 @@ const App = () => {
         const think = thinkResponses[id];
         const resp = responses[id];
         const hasContent = !!(think || resp);
+        const isCompletedOrError = statusMap[id] === 'completed' || statusMap[id] === 'error';
         const isCollapsed = collapseMap[id];
         const thinkExpanded = thinkExpandedMap[id];
+
+        // 如果通道已完成/出错但没有内容，跳过不渲染，避免显示空气泡
+        if (isCompletedOrError && !hasContent) return;
 
         // 构建 contentRender：折叠时返回 null，否则根据是否有 think 来决定渲染方式
         let contentRenderFn = undefined;
@@ -661,7 +692,10 @@ const App = () => {
       });
 
       // 总结气泡显示条件：总结正在运行或已有内容
-      const hasSummaryContent = !!(summaryThinkResponse || summaryResponse);
+      // 确保 summaryResponse 和 summaryThinkResponse 是字符串，避免 object 导致的问题
+      const summaryResp = typeof summaryResponse === 'string' ? summaryResponse : '';
+      const summaryThink = typeof summaryThinkResponse === 'string' ? summaryThinkResponse : '';
+      const hasSummaryContent = !!(summaryThink.trim() || summaryResp.trim());
       const hasSummaryRunning = summaryStatus === 'running';
       // 只有在总结完成/出错且有内容时才显示，避免空气泡
       const hasSummaryCompleted = (summaryStatus === 'completed' || summaryStatus === 'error') && hasSummaryContent;
@@ -675,8 +709,12 @@ const App = () => {
       // 手动触发按钮显示条件：总结尚未运行且没有完成的内容，且 >= 2 个通道完成
       const shouldShowManualTrigger = !hasSummaryRunning && !hasSummaryCompleted && completedCount >= 2 && currentQuestion;
 
-      // 添加总结气泡：当总结正在运行或已有内容时显示
-      if ((hasSummaryRunning || hasSummaryCompleted) && currentQuestion) {
+      // 添加总结气泡：当总结正在运行，或总结完成/出错且有内容时显示
+      // 保证在开始总结但还没收到数据时能渲染出 loading 状态
+      const shouldShowSummary = currentQuestion && (
+        hasSummaryRunning || hasSummaryCompleted
+      );
+      if (shouldShowSummary) {
         const summaryStage = useStore.getState().summaryStage;
         const isSummaryCollapsed = collapseMap['summary'];
         const summaryThinkExpanded = thinkExpandedMap['summary'];
@@ -697,7 +735,7 @@ const App = () => {
                 fontSize: '13px',
               }}
               onClick={() => {
-                navigator.clipboard?.writeText(summaryResponse);
+                navigator.clipboard?.writeText(summaryResp);
                 message.success('总结内容已复制到剪贴板');
               }}
             >
@@ -714,7 +752,7 @@ const App = () => {
                   borderRadius: '50%',
                 }}
                 onClick={() => {
-                  navigator.clipboard?.writeText(summaryResponse);
+                  navigator.clipboard?.writeText(summaryResp);
                   message.success('总结内容已复制到剪贴板');
                 }}
               >
@@ -798,15 +836,15 @@ const App = () => {
         items.push({
           key: 'summary',
           role: 'assistant',
-          content: summaryResponse || '',
+          content: summaryResp || '',
           style: { paddingTop: 0, paddingBottom: 0 },
           loading: summaryStatus === 'running' && !hasSummaryContent,
           streaming: summaryStatus === 'running' && hasSummaryContent,
           ...(isSummaryCollapsed ? {
             className: styles.bubbleContentHidden,
             contentRender: () => null,
-          } : (summaryThinkResponse ? {
-            contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
+          } : (summaryThink ? {
+            contentRender: makeContentRender(summaryThink, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
               setThinkExpanded('summary', expanded);
             }),
           } : {})),
@@ -836,29 +874,28 @@ const App = () => {
         items.push({
           key: 'manual-summary-trigger',
           role: 'assistant',
+          variant: 'borderless',
+          className: styles.transparentBubble,
           content: (
-            <Flex justify="center" style={{ padding: '16px 0' }}>
+            <Flex justify="center" style={{ padding: '8px 0', width: '100%' }}>
               <button
                 className={styles.floatingBtnWithText}
                 onClick={() => triggerSummary(true)}
                 style={{
-                  borderRadius: '20px',
-                  padding: '10px 20px',
-                  minWidth: '180px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(102, 126, 234, 0.4)',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  letterSpacing: '0.5px',
+                  height: '36px',
+                  padding: '0 20px',
+                  fontSize: '13px',
+                  color: 'var(--ant-color-primary)',
+                  borderColor: 'var(--ant-color-primary-border)',
+                  background: 'var(--ant-color-primary-bg)',
                 }}
               >
-                ✨ 生成归纳总结
+                <MergeCellsOutlined /> 生成归纳总结
               </button>
             </Flex>
           ),
           header: null,
+          messageRender: (content: any) => content,
         });
       }
     }
