@@ -7,3 +7,4 @@ release
 test-results
 playwright-report
 .vscode
+docs/.vitepress/cache

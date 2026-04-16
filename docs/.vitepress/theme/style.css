@@ -1,0 +1,21 @@
+/* Chrome Web Store Button */
+.VPButton.brand[href*="chromewebstore"] {
+  background-color: #4285F4; /* Google Blue */
+  border-color: #4285F4;
+  color: #ffffff;
+}
+.VPButton.brand[href*="chromewebstore"]:hover {
+  background-color: #3367D6;
+  border-color: #3367D6;
+}
+
+/* Edge Add-ons Button */
+.VPButton.brand[href*="microsoftedge"] {
+  background: linear-gradient(135deg, #0C59A4 0%, #11AEEF 100%); /* Edge Gradient */
+  border-color: transparent;
+  color: #ffffff;
+}
+.VPButton.brand[href*="microsoftedge"]:hover {
+  background: linear-gradient(135deg, #094582 0%, #0D96D1 100%);
+  border-color: transparent;
+}

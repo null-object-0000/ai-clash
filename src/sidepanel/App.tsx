@@ -2,18 +2,21 @@ import {
   BulbOutlined,
   CarOutlined,
   CommentOutlined,
+  CopyOutlined,
   GlobalOutlined,
   HeartOutlined,
+  LeftOutlined,
   MergeCellsOutlined,
   PlusOutlined,
+  RedoOutlined,
+  RightOutlined,
   SettingOutlined,
   TrophyOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
-import { DownOutlined, RightOutlined } from '@ant-design/icons';
 import type { BubbleListProps, PromptsProps } from '@ant-design/x';
 import {
   Bubble,
-  Prompts,
   Sender,
   Think,
   ThoughtChain,
@@ -21,7 +24,7 @@ import {
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown from '@ant-design/x-markdown';
-import { Flex, message, Tooltip } from 'antd';
+import { Button, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers } from './store';
@@ -265,18 +268,34 @@ const useStyles = createStyles(({ token, css }) => ({
   providerContent: css`
     padding-top: 4px;
   `,
+  transparentBubble: css`
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    > .ant-bubble-body {
+      padding: 0 !important;
+      background: transparent !important;
+    }
+  `,
 }));
 
 // ════════════════════════════════════════════════════════════════════
 // Shared sub-components
 // ════════════════════════════════════════════════════════════════════
 
-function renderMarkdown(content: string) {
-  return <XMarkdown className="x-markdown-light" content={content} />;
+function renderMarkdown(content: any) {
+  if (React.isValidElement(content)) {
+    return content;
+  }
+  const contentStr = typeof content === 'string' ? content : '';
+  return <XMarkdown className="x-markdown-light" content={contentStr} />;
 }
 
-function renderThinkAndMarkdown(thinkContent: string, content: string, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
-  const thinkDone = !isStreaming || !!content;
+function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  const contentIsString = typeof content === 'string';
+  const contentStr = contentIsString ? content : '';
+  const thinkDone = !isStreaming || !!contentStr;
   return (
     <>
       <Think
@@ -285,15 +304,18 @@ function renderThinkAndMarkdown(thinkContent: string, content: string, isStreami
         expanded={expanded}
         onExpand={onToggle}
       >
-        <XMarkdown className="x-markdown-light" content={thinkContent} />
+        <XMarkdown className="x-markdown-light" content={thinkStr} />
       </Think>
-      {content && <XMarkdown className="x-markdown-light" content={content} />}
+      {React.isValidElement(content) ? content : (contentStr ? <XMarkdown className="x-markdown-light" content={contentStr} /> : null)}
     </>
   );
 }
 
-function makeContentRender(thinkContent: string, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
-  return (content: string) => renderThinkAndMarkdown(thinkContent, content, isStreaming, expanded, onToggle);
+function makeContentRender(thinkContent: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  return (content: any) => {
+    return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle);
+  };
 }
 
 const role: BubbleListProps['role'] = {
@@ -319,7 +341,7 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
   onClick: () => void;
   styles: ReturnType<typeof useStyles>['styles'];
 }) {
-  const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
+  const Icon = providerId ? getProviderIcon(providerId as ProviderId | 'summary') : null;
   const stageLabel = stage === 'thinking' ? '思考中...'
     : stage === 'connecting' ? '连接中...'
       : stage === 'sending' ? '发送中...'
@@ -330,7 +352,7 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
         <RightOutlined size={12} style={{ opacity: 0.6 }} />
       </span>
       <div className="provider-header-content">
-        {Icon && <Icon size={14} />}
+        {Icon && <Icon style={{ fontSize: 14 }} />}
         <span className="provider-header-name" style={{ fontSize: 13, fontWeight: 600, opacity: 0.9 }}>{label}</span>
         {opStatus && (
           <span className="provider-header-status" style={{ animation: 'pulse 1s infinite' }}>{opStatus}</span>
@@ -343,6 +365,78 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
         )}
       </div>
     </div>
+  );
+}
+
+// 版本切换器组件
+function VersionSwitcher({ totalVersions, currentVersion, onSwitch }: {
+  totalVersions: number;
+  currentVersion: number;
+  onSwitch: (index: number) => void;
+}) {
+  if (totalVersions <= 1) return null;
+
+  const canPrev = currentVersion > 0;
+  const canNext = currentVersion < totalVersions - 1;
+
+  return (
+    <Flex align="center" gap={2}>
+      <button
+        className="version-switcher-btn"
+        style={{
+          width: '22px',
+          height: '22px',
+          fontSize: '10px',
+          opacity: canPrev ? 1 : 0.4,
+          cursor: canPrev ? 'pointer' : 'not-allowed',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: '50%',
+          background: 'transparent',
+          color: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+        }}
+        disabled={!canPrev}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (canPrev) onSwitch(currentVersion - 1);
+        }}
+        title={canPrev ? '查看上一个版本' : '已经是第一个版本'}
+      >
+        <LeftOutlined style={{ fontSize: 8 }} />
+      </button>
+      <span style={{ fontSize: '10px', color: 'var(--ant-color-text-secondary)', minWidth: '50px', textAlign: 'center' }}>
+        {currentVersion + 1} / {totalVersions}
+      </span>
+      <button
+        className="version-switcher-btn"
+        style={{
+          width: '22px',
+          height: '22px',
+          fontSize: '10px',
+          opacity: canNext ? 1 : 0.4,
+          cursor: canNext ? 'pointer' : 'not-allowed',
+          border: '1px solid rgba(0,0,0,0.1)',
+          borderRadius: '50%',
+          background: 'transparent',
+          color: 'inherit',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+        }}
+        disabled={!canNext}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (canNext) onSwitch(currentVersion + 1);
+        }}
+        title={canNext ? '查看下一个版本' : '已经是最后一个版本'}
+      >
+        <RightOutlined style={{ fontSize: 8 }} />
+      </button>
+    </Flex>
   );
 }
 
@@ -378,13 +472,13 @@ function buildThoughtChainItems(stage: StageType, opStatus?: string, visitedStag
 
 function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; opStatus?: string; providerId?: string }) {
   const visited = providerId ? buffers.visitedStages[providerId as ProviderId] : undefined;
-  const Icon = providerId ? getProviderIcon(providerId as ProviderId) : null;
+  const Icon = providerId ? getProviderIcon(providerId as ProviderId | 'summary') : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {Icon && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Icon size={16} />
+          <Icon style={{ fontSize: 16 }} />
           <span className="provider-header-name" style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
             {PROVIDER_NAME_MAP[providerId as ProviderId] || providerId}
           </span>
@@ -405,9 +499,11 @@ function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; 
 const App = () => {
   const { styles } = useStyles();
   const listRef = useRef<BubbleListRef>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(400);
 
   // 预设提示词
   const presetPrompts: PromptsProps['items'] = useMemo(() => [
@@ -441,6 +537,7 @@ const App = () => {
   const thinkResponses = useStore(s => s.thinkResponses);
   const enabledMap = useStore(s => s.enabledMap);
   const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
+  const isFocusFollowEnabled = useStore(s => s.isFocusFollowEnabled);
   const isDeepThinkingEnabled = useStore(s => s.isDeepThinkingEnabled);
   const isWebSearchEnabled = useStore(s => s.isWebSearchEnabled);
   const summaryStatus = useStore(s => s.summaryStatus);
@@ -453,11 +550,13 @@ const App = () => {
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
   const thinkExpandedMap = useStore(s => s.thinkExpandedMap);
-  const { toggleCollapse, setThinkExpanded } = useStore();
+  const summaryVersions = useStore(s => s.summaryVersions);
+  const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
-    toggleDeepThinking, toggleWebSearch, toggleSummary,
+    toggleDeepThinking, toggleWebSearch, toggleSummary, toggleFocusFollow,
   } = useStore.getState();
 
   // ==================== Init ====================
@@ -466,11 +565,33 @@ const App = () => {
     return cleanup;
   }, []);
 
+  // ==================== Resize Observer ====================
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setSidebarWidth(entry.contentRect.width);
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+    return () => resizeObserver.disconnect();
+  }, []);
+
   // ==================== Messages ====================
   const messages = useMemo(() => {
     const items: any[] = [];
 
     conversationTurns.forEach((turn, idx) => {
+      // 确保 response 和 thinkResponse 是字符串
+      const response = typeof turn.response === 'string' ? turn.response : '';
+      const thinkResponse = typeof turn.thinkResponse === 'string' ? turn.thinkResponse : '';
+      const hasContent = !!(response || thinkResponse);
+
+      // 如果没有内容，跳过不渲染，避免显示空气泡
+      if (!hasContent) return;
+
       items.push({
         key: `user-${idx}`,
         role: 'user',
@@ -481,13 +602,13 @@ const App = () => {
       items.push({
         key: `ai-${turn.providerId}-${idx}`,
         role: 'assistant',
-        content: turn.response || '等待中...',
+        content: response || '等待中...',
+        style: { paddingTop: 0, paddingBottom: 0 },
         ...(isCollapsed ? {
           className: styles.bubbleContentHidden,
           contentRender: () => null,
-          style: { paddingTop: 0, paddingBottom: 0 },
-        } : (turn.thinkResponse ? {
-          contentRender: makeContentRender(turn.thinkResponse, false, thinkExpanded, (expanded) => {
+        } : (thinkResponse ? {
+          contentRender: makeContentRender(thinkResponse, false, thinkExpanded, (expanded) => {
             setThinkExpanded(turn.providerId, expanded);
           }),
         } : {})),
@@ -518,8 +639,12 @@ const App = () => {
         const think = thinkResponses[id];
         const resp = responses[id];
         const hasContent = !!(think || resp);
+        const isCompletedOrError = statusMap[id] === 'completed' || statusMap[id] === 'error';
         const isCollapsed = collapseMap[id];
         const thinkExpanded = thinkExpandedMap[id];
+
+        // 如果通道已完成/出错但没有内容，跳过不渲染，避免显示空气泡
+        if (isCompletedOrError && !hasContent) return;
 
         // 构建 contentRender：折叠时返回 null，否则根据是否有 think 来决定渲染方式
         let contentRenderFn = undefined;
@@ -535,6 +660,7 @@ const App = () => {
           key: `ai-current-${id}`,
           role: 'assistant',
           content: resp || '',
+          style: { paddingTop: 0 },
           ...(contentRenderFn ? { contentRender: contentRenderFn } : {}),
           ...(isCollapsed ? {
             className: styles.bubbleContentHidden,
@@ -564,35 +690,215 @@ const App = () => {
         });
       });
 
-      if (isSummaryEnabled && (summaryStatus === 'running' || summaryResponse || summaryThinkResponse)) {
-        const hasSummaryContent = !!(summaryThinkResponse || summaryResponse);
+      // 总结气泡显示条件：总结正在运行或已有内容
+      // 确保 summaryResponse 和 summaryThinkResponse 是字符串，避免 object 导致的问题
+      const summaryResp = typeof summaryResponse === 'string' ? summaryResponse : '';
+      const summaryThink = typeof summaryThinkResponse === 'string' ? summaryThinkResponse : '';
+      const hasSummaryContent = !!(summaryThink.trim() || summaryResp.trim());
+      const hasSummaryRunning = summaryStatus === 'running';
+      // 只有在总结完成/出错且有内容时才显示，避免空气泡
+      const hasSummaryCompleted = (summaryStatus === 'completed' || summaryStatus === 'error') && hasSummaryContent;
+
+      // 添加手动触发按钮：总结尚未生成且有足够的通道完成时显示
+      // 注意：这里只检查状态，不检查内容，因为 TASK_COMPLETED 发送时内容应该已经完整
+      const completedCount = enabledProviderIds.filter(id =>
+        statusMap[id] === 'completed' || statusMap[id] === 'error'
+      ).length;
+      const isAnyLocalRunning = enabledProviderIds.some(id => statusMap[id] === 'running');
+
+      // 手动触发按钮显示条件：
+      // 1. 总结尚未运行且未完成
+      // 2. 至少有 2 个通道完成
+      // 3. 如果开启了自动总结，则等待所有通道完成前不显示手动触发按钮，避免造成困扰
+      const shouldShowManualTrigger = !hasSummaryRunning && !hasSummaryCompleted && completedCount >= 2 && currentQuestion && !(isSummaryEnabled && isAnyLocalRunning);
+
+      // 添加总结气泡：当总结正在运行，或总结完成/出错且有内容时显示
+      // 保证在开始总结但还没收到数据时能渲染出 loading 状态
+      const shouldShowSummary = currentQuestion && (
+        hasSummaryRunning || hasSummaryCompleted
+      );
+      if (shouldShowSummary) {
         const summaryStage = useStore.getState().summaryStage;
+        const isSummaryCollapsed = collapseMap['summary'];
+        const summaryThinkExpanded = thinkExpandedMap['summary'];
+        const isSummaryCompleted = summaryStatus === 'completed' || summaryStatus === 'error';
+
+        // 根据侧边栏宽度决定是否只显示图标
+        const showButtonText = sidebarWidth >= 500;
+
+        // 复制按钮
+        const copyButton = isSummaryCompleted && hasSummaryContent ? (
+          showButtonText ? (
+            <button
+              className={styles.floatingBtnWithText}
+              style={{
+                borderRadius: '16px',
+                padding: '0 12px',
+                height: '32px',
+                fontSize: '13px',
+              }}
+              onClick={() => {
+                navigator.clipboard?.writeText(summaryResp);
+                message.success('总结内容已复制到剪贴板');
+              }}
+            >
+              <CopyOutlined style={{ fontSize: 14 }} />
+              复制总结
+            </button>
+          ) : (
+            <Tooltip title="复制总结" placement="top">
+              <button
+                className={styles.floatingBtn}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                }}
+                onClick={() => {
+                  navigator.clipboard?.writeText(summaryResp);
+                  message.success('总结内容已复制到剪贴板');
+                }}
+              >
+                <CopyOutlined style={{ fontSize: 14 }} />
+              </button>
+            </Tooltip>
+          )
+        ) : null;
+
+        // 重新生成的 Popconfirm 按钮
+        const regenerateButton = isSummaryCompleted && hasSummaryContent ? (
+          showButtonText ? (
+            <Popconfirm
+              title="确认重新生成归纳总结吗？"
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => {
+                regenerateSummary();
+              }}
+              okButtonProps={{ danger: true }}
+            >
+              <button
+                className={styles.floatingBtnWithText}
+                style={{
+                  borderRadius: '16px',
+                  padding: '0 12px',
+                  height: '32px',
+                  fontSize: '13px',
+                }}
+              >
+                <RedoOutlined style={{ fontSize: 14 }} />
+                重新总结
+              </button>
+            </Popconfirm>
+          ) : (
+            <Popconfirm
+              title="确认重新生成归纳总结吗？"
+              okText="确认"
+              cancelText="取消"
+              onConfirm={() => {
+                regenerateSummary();
+              }}
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="重新总结" placement="top">
+                <button
+                  className={styles.floatingBtn}
+                  style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                  }}
+                >
+                  <RedoOutlined style={{ fontSize: 14 }} />
+                </button>
+              </Tooltip>
+            </Popconfirm>
+          )
+        ) : null;
+
+        // 版本切换器
+        const versionSwitcher = summaryVersions.length > 1 ? (
+          <VersionSwitcher
+            totalVersions={summaryVersions.length}
+            currentVersion={summaryCurrentVersion}
+            onSwitch={switchSummaryVersion}
+          />
+        ) : null;
+
+        // 合并 footer 内容
+        const summaryFooter = copyButton || regenerateButton ? (
+          <Flex gap={8} align="center" justify="space-between" style={{ width: '100%' }}>
+            <Flex gap={8} align="center">
+              {copyButton}
+              {regenerateButton}
+            </Flex>
+            {versionSwitcher}
+          </Flex>
+        ) : null;
+
         items.push({
           key: 'summary',
           role: 'assistant',
-          content: summaryResponse || '',
+          content: summaryResp || '',
+          style: { paddingTop: 0, paddingBottom: 0 },
           loading: summaryStatus === 'running' && !hasSummaryContent,
           streaming: summaryStatus === 'running' && hasSummaryContent,
-          ...(summaryThinkResponse ? {
-            contentRender: makeContentRender(summaryThinkResponse, summaryStatus === 'running', true),
-          } : {}),
+          ...(isSummaryCollapsed ? {
+            className: styles.bubbleContentHidden,
+            contentRender: () => null,
+          } : (summaryThink ? {
+            contentRender: makeContentRender(summaryThink, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
+              setThinkExpanded('summary', expanded);
+            }),
+          } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
+          footer: summaryFooter,
           header: (
             <ProviderHeader
+              providerId="summary"
               label="归纳总结"
               stats={summaryStats}
               status={summaryStatus}
               opStatus={summaryOperationStatus}
-              isCollapsed={false}
-              onClick={() => {}}
+              isCollapsed={isSummaryCollapsed}
+              onClick={() => toggleCollapse('summary')}
               styles={styles}
             />
           ),
-          ...(summaryStatus === 'running' && !hasSummaryContent ? {
+          ...(summaryStatus === 'running' && !hasSummaryContent && !isSummaryCollapsed ? {
             loadingRender: () => (
               <StageThoughtChain stage={summaryStage as StageType} opStatus={summaryOperationStatus} />
             ),
           } : {}),
+        });
+      }
+
+      if (shouldShowManualTrigger) {
+        items.push({
+          key: 'manual-summary-trigger',
+          role: 'assistant',
+          variant: 'borderless',
+          className: styles.transparentBubble,
+          content: (
+            <Flex justify="center" style={{ padding: '8px 0', width: '100%' }}>
+              <button
+                className={styles.floatingBtnWithText}
+                onClick={() => triggerSummary(true)}
+                style={{
+                  height: '36px',
+                  padding: '0 20px',
+                  fontSize: '13px',
+                  color: 'var(--ant-color-primary)',
+                  borderColor: 'var(--ant-color-primary-border)',
+                  background: 'var(--ant-color-primary-bg)',
+                }}
+              >
+                <MergeCellsOutlined /> 生成归纳总结
+              </button>
+            </Flex>
+          ),
+          header: null,
+          messageRender: (content: any) => content,
         });
       }
     }
@@ -603,6 +909,9 @@ const App = () => {
     responses, thinkResponses, isSummaryEnabled, summaryStatus,
     summaryResponse, summaryThinkResponse, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,
+    triggerSummary, regenerateSummary, switchSummaryVersion,
+    summaryVersions, summaryCurrentVersion,
+    sidebarWidth,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
@@ -610,6 +919,29 @@ const App = () => {
   // ==================== Event ====================
   const handleUserSubmit = async (val: string) => {
     if (!val.trim()) return;
+
+    // 多通道模式下的追问拦截：当已有对话内容且启用通道数 >= 2 时，需要确认
+    const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+    if (hasAsked && enabledCount >= 2) {
+      Modal.confirm({
+        title: '开启新对话？',
+        content: '多通道模式暂不支持连续追问。发送新问题将清空当前界面并开启全新的会话，之前的内容会自动保存至"历史记录"中。是否继续？',
+        okText: '确认',
+        cancelText: '取消',
+        onOk: () => {
+          setInputStr(val);
+          setInputValue(''); // 立即清空输入框，提升用户体验
+          submit();
+          listRef.current?.scrollTo({ top: 'bottom' });
+        },
+        onCancel: () => {
+          // 用户取消，保留输入框文字，不执行任何操作
+        },
+      });
+      return;
+    }
+
+    // 单通道模式或首次提问，直接提交
     setInputStr(val);
     setInputValue(''); // 立即清空输入框，提升用户体验
     await submit();
@@ -621,7 +953,7 @@ const App = () => {
   const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
 
   return (
-    <div className={styles.copilotChat}>
+    <div className={styles.copilotChat} ref={containerRef}>
       {/* ─── Floating Toolbar ─── */}
       <div className={styles.floatingToolbar}>
         <button
@@ -687,8 +1019,33 @@ const App = () => {
       </div>
 
       {/* ─── Sender ─── */}
-      {!isCurrentSessionFromHistory && (
-        <Flex vertical className={styles.chatSend}>
+      <Flex vertical className={styles.chatSend}>
+          {enabledCount >= 2 && (
+            <Flex gap="small" style={{ marginBottom: 8 }}>
+              <Tooltip title="多通道模型输出完成后自动生成归纳总结，帮助你快速抓住重点">
+                <Button
+                  size="small"
+                  type={isSummaryEnabled ? "primary" : "default"}
+                  onClick={toggleSummary}
+                  icon={<MergeCellsOutlined />}
+                  style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+                >
+                  自动总结
+                </Button>
+              </Tooltip>
+              <Tooltip title="自动追踪并切换至正在输出的模型">
+                <Button
+                  size="small"
+                  type={isFocusFollowEnabled ? "primary" : "default"}
+                  onClick={toggleFocusFollow}
+                  icon={<VideoCameraOutlined />}
+                  style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+                >
+                  导播模式
+                </Button>
+              </Tooltip>
+            </Flex>
+          )}
           <Sender
             loading={isAnyRunning}
             value={inputValue}
@@ -703,42 +1060,22 @@ const App = () => {
               return (
                 <Flex justify="space-between" align="center">
                   <Flex gap="small" align="center">
-                    <Tooltip title="深度思考">
-                      <Sender.Switch
-                        icon={<BulbOutlined />}
-                        value={isDeepThinkingEnabled}
-                        onChange={toggleDeepThinking}
-                        style={{ fontSize: '13px' }}
-                      >
-                        <span className="full-text">深度思考</span>
-                        <span className="short-text">思考</span>
-                      </Sender.Switch>
-                    </Tooltip>
-                    <Tooltip title="联网搜索">
-                      <Sender.Switch
-                        icon={<GlobalOutlined />}
-                        value={isWebSearchEnabled}
-                        onChange={toggleWebSearch}
-                        style={{ fontSize: '13px' }}
-                      >
-                        <span className="full-text">联网搜索</span>
-                        <span className="short-text">联网</span>
-                      </Sender.Switch>
-                    </Tooltip>
-                    <Tooltip title={summaryBlockReason || '归纳总结'}>
-                      <span>
-                        <Sender.Switch
-                          icon={<MergeCellsOutlined />}
-                          value={enabledCount >= 2 && isSummaryEnabled}
-                          disabled={enabledCount < 2}
-                          onChange={toggleSummary}
-                          style={{ fontSize: '13px' }}
-                        >
-                          <span className="full-text">归纳总结</span>
-                          <span className="short-text">总结</span>
-                        </Sender.Switch>
-                      </span>
-                    </Tooltip>
+                    <Sender.Switch
+                      icon={<BulbOutlined />}
+                      value={isDeepThinkingEnabled}
+                      onChange={toggleDeepThinking}
+                      style={{ fontSize: '13px' }}
+                    >
+                      深度思考
+                    </Sender.Switch>
+                    <Sender.Switch
+                      icon={<GlobalOutlined />}
+                      value={isWebSearchEnabled}
+                      onChange={toggleWebSearch}
+                      style={{ fontSize: '13px' }}
+                    >
+                      联网搜索
+                    </Sender.Switch>
                   </Flex>
                   <Flex align="center">
                     {isAnyRunning ? (
@@ -752,12 +1089,11 @@ const App = () => {
             }}
           />
         </Flex>
-      )}
 
       {/* ─── Modals & Drawers ─── */}
       <ChannelSettingsDrawer />
       <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
-      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} sidebarWidth={sidebarWidth} />
     </div>
   );
 };

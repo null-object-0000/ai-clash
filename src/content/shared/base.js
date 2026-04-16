@@ -14,7 +14,7 @@ import { isContextValid, safeSend } from '../shared/utils.js';
 
 /**
  * 启动 provider
- * @param {string} providerId - 提供者 ID (deepseek/doubao/qianwen/longcat/yuanbao)
+ * @param {string} providerId - 提供者 ID (deepseek/doubao/qianwen/longcat/yuanbao/wenxin)
  */
 export function bootstrapProvider(providerId) {
   const PROVIDER = providerId;
@@ -204,7 +204,7 @@ export function bootstrapProvider(providerId) {
           seq: pingSeq
         }, '*');
       });
-    } catch (_) {}
+    } catch (_) { }
 
     if (hasMainWorld) {
       logger.log(`[AI Clash ${PROVIDER}] ✓ 使用 MAIN 世界 standalone 注入，RPC 通信就绪`);

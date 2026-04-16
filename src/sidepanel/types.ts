@@ -38,11 +38,13 @@ export interface SidepanelSettings {
   isDeepThinkingEnabled?: boolean;
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
+  isFocusFollowEnabled?: boolean;
 }
 
 export interface SummaryConfig {
   providerId?: string;
   model?: string;
+  customPrompt?: string;  // 用户自定义提示词
 }
 
 
@@ -58,11 +60,19 @@ export interface ProviderHistoryEntry {
   stats: ProviderStats | null;
 }
 
-export interface SummaryHistoryEntry {
-  status: 'idle' | 'running' | 'completed' | 'error';
+// 总结的单个版本
+export interface SummaryVersionEntry {
   response: string;
   thinkResponse: string;
   stats: ProviderStats | null;
+  createdAt: number;  // 版本生成时间戳
+}
+
+// 总结历史记录（支持多版本）
+export interface SummaryHistoryEntry {
+  status: 'idle' | 'running' | 'completed' | 'error';
+  versions: SummaryVersionEntry[];  // 历史版本数组
+  currentVersionIndex: number;  // 当前查看的版本索引
 }
 
 export interface CompletedTurn {
@@ -80,7 +90,7 @@ export interface MultiChannelHistoryItem {
   question: string;
   createdAt: number;
   providers: Record<ProviderId, ProviderHistoryEntry>;
-  summary: SummaryHistoryEntry | null;
+  summary?: SummaryHistoryEntry | null;  // 可选，支持多版本
   conversationTurns?: CompletedTurn[];
   customLabel?: string;
 }
@@ -101,7 +111,7 @@ export interface SingleChannelHistoryItem {
     stats?: ProviderStats;
     rawUrl?: string;
   }>;
-  summary?: SummaryHistoryEntry;
+  summary?: SummaryHistoryEntry;  // 可选，支持多版本
 }
 
 export type ChatHistoryItem = MultiChannelHistoryItem | SingleChannelHistoryItem;
@@ -118,6 +128,7 @@ export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEnt
         qianwen: 'emerald',
         longcat: 'violet',
         yuanbao: 'teal',
+        wenxin: 'blue',
         xiaomi: 'teal',
       };
       return [p.id, themeMap[p.id] || 'blue'];

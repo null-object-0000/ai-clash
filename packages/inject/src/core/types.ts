@@ -23,10 +23,11 @@
  * - `'qianwen'` - 通义千问 (https://tongyi.aliyun.com)
  * - `'longcat'` - LongCat/天工 (https://tiangong.cn)
  * - `'yuanbao'` - 腾讯元宝 (https://yuanbao.tencent.com)
+ * - `'wenxin'` - 百度文心一言 (https://yiyan.baidu.com)
  *
  *、也支持自定义字符串作为扩展提供者的 ID。
  */
-export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'longcat' | 'yuanbao' | string;
+export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'longcat' | 'yuanbao' | 'wenxin' | string;
 
 /**
  * 适配器类型

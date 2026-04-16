@@ -11,7 +11,7 @@ import {
   type SingleChannelHistoryItem,
 } from '../types';
 import {
-  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, ENABLED_PROVIDERS_KEY,
+  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY,
   HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE,
   MAX_HISTORY_COUNT, CHARS_PER_FRAME,
   createSessionId, createDefaultRecord,
@@ -19,6 +19,37 @@ import {
 } from './helpers';
 import type { AppStore, SidepanelSettings, SummaryConfig, ApiConfig } from './types';
 import { createMessageListener } from './messageHandler';
+
+// 默认的归纳总结系统提示词
+const DEFAULT_SUMMARY_PROMPT = `# Role
+你是一个搭载在「AI 对撞机」上的高级仲裁与决策引擎。你的任务是深度分析多位顶尖 AI 专家针对同一问题给出的独立回答，去伪存真、提炼共识、保留分歧，最终为用户生成一份集大成的终极回复。
+
+# Core Directives (核心准则)
+1. 交叉核实 (Fact-Checking)：剔除明显的幻觉和事实性错误。
+2. 视角碰撞 (Collision)：敏锐捕捉不同模型之间的【观点分歧】。不要掩盖分歧，而是客观展现它们在主观判断、代码实现或策略选择上的差异。
+3. 降噪重构 (De-noising)：拒绝简单的复制拼接，消除各回答中的冗余废话（如"好的，我来为您解答"）。
+
+# Output Workflow (输出自适应路由)
+请严格根据用户输入的问题类型，选择对应的输出框架：
+
+### 🟢 场景 A：明确任务类（如：写代码、翻译、食谱、公文写作、数学题）
+*用户需要的是一个直接可用的最终成品。*
+直接输出一份整合了各方优点的【终极最优解】。在最优解下方，用简短的 \`### 💡 对撞机点评\` 补充说明各模型的贡献或差异即可，无需长篇大论。
+
+### 🔴 场景 B：开放决策/深度探讨类（如：行业分析、人生建议、技术选型、哲理探讨）
+*用户需要的是深度视角的碰撞与决策支持。请严格按照以下 Markdown 结构输出：*
+
+### 核心共识
+> 一针见血地提炼所有专家都认同的核心事实和底层逻辑。
+
+### 观点对撞
+> 梳理专家们存在的分歧点。列出具体的争议，客观剖析各自的底层论据及合理性。
+
+### 综合解析
+> 打破单一视角，将信息重新编排，多维度（如长短期/微观宏观等）将各专家的独到见解融入其中。
+
+### 终极建议
+> 基于对撞分析，给出具有极高可操作性的结论或 \`If-Then\` 情景化建议。`;
 
 export { buffers } from './helpers';
 export type { AppStore } from './types';
@@ -39,6 +70,7 @@ export const useStore = create<AppStore>()((set, get) => {
         isWebSearchEnabled: s.isWebSearchEnabled,
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
+        isFocusFollowEnabled: s.isFocusFollowEnabled,
       },
     });
   };
@@ -65,6 +97,13 @@ export const useStore = create<AppStore>()((set, get) => {
     const s = get();
     chrome.storage?.local.set({
       [SUMMARY_CONFIG_KEY]: { providerId: s.summaryProviderId, model: s.summaryModel },
+    });
+  };
+
+  const saveSummaryPrompt = () => {
+    const s = get();
+    chrome.storage?.local.set({
+      [SUMMARY_PROMPT_KEY]: s.summaryCustomPrompt,
     });
   };
 
@@ -97,11 +136,19 @@ export const useStore = create<AppStore>()((set, get) => {
   const buildSummaryHistoryEntry = (): SummaryHistoryEntry | null => {
     const s = get();
     if (s.summaryStatus === 'idle') return null;
+
+    // 直接使用已有的版本数组，避免重复添加
+    // summaryVersions 已经由 messageHandler 在总结完成时正确维护
+    if (s.summaryVersions.length === 0) return null;
+
+    // 检查是否有至少一个版本有实际内容，避免保存空的总结
+    const hasContent = s.summaryVersions.some(v => (v.response || '').trim() || (v.thinkResponse || '').trim());
+    if (!hasContent) return null;
+
     return {
       status: s.summaryStatus,
-      response: buffers.summaryFull || '',
-      thinkResponse: buffers.summaryThink || '',
-      stats: null,
+      versions: s.summaryVersions,
+      currentVersionIndex: s.summaryCurrentVersion,
     };
   };
 
@@ -228,6 +275,7 @@ export const useStore = create<AppStore>()((set, get) => {
     isWebSearchEnabled: false,
     isDebugEnabled: false,
     isSummaryEnabled: true,
+    isFocusFollowEnabled: false,
     summaryProviderId: 'summarizer',
     summaryModel: 'summarizer-v1',
 
@@ -251,8 +299,8 @@ export const useStore = create<AppStore>()((set, get) => {
     operationStatus: createDefaultRecord(''),
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
-    collapseMap: createDefaultRecord(false), // false = 展开，true = 折叠
-    thinkExpandedMap: createDefaultRecord(false), // true = 展开思考，false = 折叠思考
+    collapseMap: { ...createDefaultRecord(false), summary: false }, // false = 展开，true = 折叠
+    thinkExpandedMap: { ...createDefaultRecord(false), summary: true }, // true = 展开思考，false = 折叠思考
 
     summaryStatus: 'idle',
     summaryStage: 'responding',
@@ -260,6 +308,9 @@ export const useStore = create<AppStore>()((set, get) => {
     summaryThinkResponse: '',
     summaryOperationStatus: '',
     summaryStats: null,
+    summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT,  // 自定义总结提示词
+    summaryVersions: [],  // 历史版本数组
+    summaryCurrentVersion: 0,  // 当前查看的版本索引
 
     isHistoryPanelOpen: false,
     activeProviderSettings: '',
@@ -312,8 +363,15 @@ export const useStore = create<AppStore>()((set, get) => {
       saveSettings();
     },
 
+    toggleFocusFollow: () => {
+      set(prev => ({ isFocusFollowEnabled: !prev.isFocusFollowEnabled }));
+      saveSettings();
+    },
+
     setSummaryProviderId: (v) => { set({ summaryProviderId: v }); saveSummaryConfig(); },
     setSummaryModel: (v) => { set({ summaryModel: v }); saveSummaryConfig(); },
+    setSummaryCustomPrompt: (v) => { set({ summaryCustomPrompt: v }); saveSummaryPrompt(); },
+    resetSummaryPrompt: () => { set({ summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT }); saveSummaryPrompt(); },
 
     // ─── Provider Config Actions ───
 
@@ -409,8 +467,8 @@ export const useStore = create<AppStore>()((set, get) => {
       }
 
       // 重置折叠状态：所有启用的通道默认展开，深度思考默认展开
-      const newCollapseMap = createDefaultRecord(false);
-      const newThinkExpandedMap = createDefaultRecord(true);
+      const newCollapseMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
+      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: true };
       for (const id of PROVIDER_IDS) {
         newCollapseMap[id] = !s.enabledMap[id];
         newThinkExpandedMap[id] = true;
@@ -458,7 +516,7 @@ export const useStore = create<AppStore>()((set, get) => {
             type: MSG_TYPES.DISPATCH_TASK,
             payload: {
               provider: id, prompt,
-              mode: s.modeMap[id] === 'web' && id === 'yuanbao' ? 'web' : s.modeMap[id],
+              mode: s.modeMap[id] === 'web' && (id === 'yuanbao' || id === 'wenxin') ? 'web' : s.modeMap[id],
               settings: {
                 isDeepThinkingEnabled: s.isDeepThinkingEnabled,
                 isWebSearchEnabled: s.isWebSearchEnabled,
@@ -477,8 +535,8 @@ export const useStore = create<AppStore>()((set, get) => {
     createNewChat: () => {
       get().resetTaskState();
       const s = get();
-      const newCollapseMap = createDefaultRecord(false);
-      const newThinkExpandedMap = createDefaultRecord(true);
+      const newCollapseMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
+      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: true };
       for (const id of PROVIDER_IDS) {
         newCollapseMap[id] = !s.enabledMap[id];
         newThinkExpandedMap[id] = true;
@@ -538,8 +596,8 @@ export const useStore = create<AppStore>()((set, get) => {
         const newRaw = createDefaultRecord('');
         const newStats = createDefaultRecord<ProviderStats | null>(null);
         // 多通道历史：默认折叠所有通道，折叠深度思考
-        const newCollapse = createDefaultRecord(true);
-        const newThinkExpanded = createDefaultRecord(false);
+        const newCollapse: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
+        const newThinkExpanded: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: true };
 
         for (const id of PROVIDER_IDS) {
           const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', rawUrl: '', stats: null };
@@ -572,17 +630,52 @@ export const useStore = create<AppStore>()((set, get) => {
 
       const se = item.type === 'single' ? item.summary : item.summary;
       if (se) {
-        buffers.summaryFull = se.response;
-        buffers.summaryThink = se.thinkResponse;
-        buffers.summaryDisplayedLen = se.response.length;
-        buffers.summaryThinkDisplayedLen = se.thinkResponse.length;
-        buffers.summaryTriggered = true;
-        set({
-          summaryStatus: se.status,
-          summaryStage: 'responding',
-          summaryResponse: se.response,
-          summaryThinkResponse: se.thinkResponse,
-        });
+        // 新版本数据结构：包含 versions 数组和 currentVersionIndex
+        const versions = (se as any).versions || [];
+        const currentIdx = (se as any).currentVersionIndex ?? 0;
+
+        if (versions.length > 0) {
+          // 有历史版本：恢复到当前选中的版本
+          const currentVersion = versions[currentIdx] || versions[versions.length - 1];
+          // 只有当版本有实际内容时才恢复，避免显示空气泡
+          if ((currentVersion.response || '').trim() || (currentVersion.thinkResponse || '').trim()) {
+            buffers.summaryFull = currentVersion.response;
+            buffers.summaryThink = currentVersion.thinkResponse;
+            buffers.summaryDisplayedLen = currentVersion.response.length;
+            buffers.summaryThinkDisplayedLen = currentVersion.thinkResponse.length;
+            buffers.summaryTriggered = true;
+            set({
+              summaryStatus: se.status,
+              summaryStage: 'responding',
+              summaryResponse: currentVersion.response,
+              summaryThinkResponse: currentVersion.thinkResponse,
+              summaryStats: currentVersion.stats ?? null,
+              summaryVersions: versions,
+              summaryCurrentVersion: currentIdx,
+            });
+          }
+        } else {
+          // 旧版本数据结构：兼容处理
+          const response = (se as any).response || '';
+          const thinkResponse = (se as any).thinkResponse || '';
+          // 只有当有实际内容时才恢复，避免显示空气泡
+          if ((response || '').trim() || (thinkResponse || '').trim()) {
+            buffers.summaryFull = response;
+            buffers.summaryThink = thinkResponse;
+            buffers.summaryDisplayedLen = response.length;
+            buffers.summaryThinkDisplayedLen = thinkResponse.length;
+            buffers.summaryTriggered = true;
+            set({
+              summaryStatus: se.status,
+              summaryStage: 'responding',
+              summaryResponse: response,
+              summaryThinkResponse: thinkResponse,
+              summaryStats: (se as any).stats ?? null,
+              summaryVersions: [],
+              summaryCurrentVersion: 0,
+            });
+          }
+        }
       }
     },
 
@@ -656,6 +749,8 @@ export const useStore = create<AppStore>()((set, get) => {
         summaryThinkResponse: '',
         summaryOperationStatus: '',
         summaryStats: null,
+        summaryVersions: [],
+        summaryCurrentVersion: 0,
       });
     },
 
@@ -698,15 +793,32 @@ export const useStore = create<AppStore>()((set, get) => {
       }, delay);
     },
 
-    triggerSummary: () => {
-      if (buffers.summaryTriggered) return;
+    triggerSummary: (forceTrigger = false) => {
+      // forceTrigger 为 true 时，忽略 buffers.summaryTriggered 检查，支持手动触发和重新生成
+      if (!forceTrigger && buffers.summaryTriggered) return;
       const s = get();
-      if (!s.isSummaryEnabled || !s.isSummaryConfigValid()) return;
+      // 手动触发时（forceTrigger=true）不需要检查 isSummaryEnabled，允许用户在关闭自动总结时手动触发
+      if (!forceTrigger && !s.isSummaryEnabled) return;
+      if (!s.isSummaryConfigValid()) return;
       const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
       const completed = enabledIds
         .filter(id => (s.statusMap[id] === 'completed' || s.statusMap[id] === 'error') && buffers.fullText[id]?.trim())
         .map(id => ({ providerId: id, name: PROVIDER_NAME_MAP[id], text: buffers.fullText[id] }));
       if (completed.length < 2) return;
+
+      // 如果是重新生成（已有总结内容），只清空当前显示内容
+      // 新生成的版本会在 messageHandler 中添加到 summaryVersions
+      if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink)) {
+        buffers.summaryFull = '';
+        buffers.summaryThink = '';
+        buffers.summaryDisplayedLen = 0;
+        buffers.summaryThinkDisplayedLen = 0;
+        set({
+          summaryResponse: '',
+          summaryThinkResponse: '',
+          summaryStats: null,
+        });
+      }
 
       buffers.summaryTriggered = true;
       buffers.summaryTiming.startTime = Date.now();
@@ -716,8 +828,38 @@ export const useStore = create<AppStore>()((set, get) => {
         type: MSG_TYPES.DISPATCH_SUMMARY,
         payload: {
           question: s.currentQuestion, responses: completed,
-          summaryConfig: { providerId: s.summaryProviderId, model: s.summaryModel },
+          summaryConfig: {
+            providerId: s.summaryProviderId,
+            model: s.summaryModel,
+            customPrompt: s.summaryCustomPrompt,
+          },
         },
+      });
+    },
+
+    regenerateSummary: () => {
+      // 重新生成总结：清空当前内容后触发
+      get().triggerSummary(true);
+    },
+
+    switchSummaryVersion: (index) => {
+      const s = get();
+      if (index < 0 || index >= s.summaryVersions.length) return;
+
+      // 获取目标版本
+      const version = s.summaryVersions[index];
+
+      // 更新 buffers 和 store 状态
+      buffers.summaryFull = version.response;
+      buffers.summaryThink = version.thinkResponse;
+      buffers.summaryDisplayedLen = version.response.length;
+      buffers.summaryThinkDisplayedLen = version.thinkResponse.length;
+
+      set({
+        summaryResponse: version.response,
+        summaryThinkResponse: version.thinkResponse,
+        summaryStats: version.stats,
+        summaryCurrentVersion: index,
       });
     },
 
@@ -770,7 +912,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
     init: () => {
       chrome.storage?.local.get(
-        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
+        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
         async (result) => {
           const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
           const debugVal = saved.isDebugEnabled ?? false;
@@ -786,8 +928,10 @@ export const useStore = create<AppStore>()((set, get) => {
             newModels[id] = apiConfig[id]?.model || '';
           }
           newModes.yuanbao = 'web';
+          newModes.wenxin = 'web';
 
           const sc = (result?.[SUMMARY_CONFIG_KEY] || {}) as SummaryConfig;
+          const customPrompt = result?.[SUMMARY_PROMPT_KEY] as string | undefined;
 
           // 从存储中读取用户上次开启的通道，不再检查 tab 有效性
           // 首次使用时，默认开启所有不需要登录的通道
@@ -812,24 +956,57 @@ export const useStore = create<AppStore>()((set, get) => {
           const singleHistory = Array.isArray(result?.[HISTORY_STORAGE_KEY_SINGLE]) ? result[HISTORY_STORAGE_KEY_SINGLE] : [];
 
           const normalizedMulti = multiHistory
-            .map((item: any) => ({
-              id: item.id || createSessionId(), type: 'multi' as const,
-              question: item.question || '', createdAt: item.createdAt || Date.now(),
-              providers: Object.fromEntries(PROVIDER_IDS.map(id => [id, {
-                enabled: false, mode: 'web', status: 'idle', stage: 'connecting',
-                response: '', thinkResponse: '', operationStatus: '', rawUrl: '', stats: null,
-                ...(item.providers?.[id] || {}),
-              }])) as Record<ProviderId, ProviderHistoryEntry>,
-              summary: item.summary ?? null,
-              customLabel: item.customLabel,
-              conversationTurns: Array.isArray(item.conversationTurns) ? item.conversationTurns : undefined,
-            }))
+            .map((item: any) => {
+              // 规范化 conversationTurns 数据，确保 response 和 thinkResponse 是字符串
+              let turns: CompletedTurn[] = [];
+              if (Array.isArray(item.conversationTurns)) {
+                turns = item.conversationTurns.map((t: any) => ({
+                  question: typeof t.question === 'string' ? t.question : '',
+                  providerId: t.providerId || 'deepseek',
+                  response: typeof t.response === 'string' ? t.response : '',
+                  thinkResponse: typeof t.thinkResponse === 'string' ? t.thinkResponse : '',
+                  rawUrl: t.rawUrl || '',
+                  stats: t.stats || null,
+                }));
+              }
+              // 规范化 providers 数据，确保 response 和 thinkResponse 是字符串
+              const normalizedProviders = Object.fromEntries(PROVIDER_IDS.map(id => {
+                const prov = item.providers?.[id] || {};
+                return [id, {
+                  enabled: false, mode: 'web', status: 'idle', stage: 'connecting',
+                  response: typeof prov.response === 'string' ? prov.response : '',
+                  thinkResponse: typeof prov.thinkResponse === 'string' ? prov.thinkResponse : '',
+                  operationStatus: prov.operationStatus || '',
+                  rawUrl: prov.rawUrl || '',
+                  stats: prov.stats || null,
+                  ...prov,
+                }];
+              })) as Record<ProviderId, ProviderHistoryEntry>;
+              return {
+                id: item.id || createSessionId(), type: 'multi' as const,
+                question: item.question || '', createdAt: item.createdAt || Date.now(),
+                providers: normalizedProviders,
+                summary: item.summary ?? null,
+                customLabel: item.customLabel,
+                conversationTurns: turns,
+              };
+            })
             .filter((item: any) => item.question.trim());
 
           const normalizedSingle = singleHistory
             .map((item: any) => {
               let turns: any[] = [];
-              if (Array.isArray(item.turns)) turns = item.turns;
+              if (Array.isArray(item.turns)) {
+                // 规范化 turns 数据，确保 response 和 thinkResponse 是字符串
+                turns = item.turns.map((t: any) => ({
+                  question: typeof t.question === 'string' ? t.question : '',
+                  response: typeof t.response === 'string' ? t.response : '',
+                  thinkResponse: typeof t.thinkResponse === 'string' ? t.thinkResponse : '',
+                  createdAt: t.createdAt || Date.now(),
+                  stats: t.stats || null,
+                  rawUrl: t.rawUrl || '',
+                }));
+              }
               else if (item.turns && typeof item.turns === 'object') {
                 turns = Object.values(item.turns as any).sort((a: any, b: any) => (a.createdAt || 0) - (b.createdAt || 0));
               }
@@ -855,9 +1032,11 @@ export const useStore = create<AppStore>()((set, get) => {
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
             isSummaryEnabled: saved.isSummaryEnabled ?? true,
+            isFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
             isDebugEnabled: debugVal,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',
+            summaryCustomPrompt: customPrompt ?? DEFAULT_SUMMARY_PROMPT,
             enabledMap: newEnabled,
             historyList: allHistory,
           });

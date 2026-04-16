@@ -4,9 +4,12 @@
   <img src="public/logo.png" width="120" alt="AI 对撞机 Logo">
 </p>
 
+![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)
+![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge)
+
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
-> 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝
+> 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言
 
 <p align="center">
   <img src="demo/demo_1.png" width="100%" alt="演示图 1">
@@ -32,7 +35,7 @@
 
 ## 🚀 2 分钟就能用上
 
-### 方式一：商店安装（即将上线）
+### 方式一：商店安装
 
 1. 打开 Chrome/Edge 应用商店，搜索「AI 对撞机」
 2. 点击「添加到 Chrome/Edge」，1秒安装完成

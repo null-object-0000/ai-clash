@@ -283,10 +283,10 @@ const SUMMARY_SYSTEM_PROMPT = `# Role
  * 处理归纳总结请求：收集各通道回答，调用指定 API 进行汇总分析
  * @param {string} question - 用户原始问题
  * @param {Array<{providerId: string, name: string, text: string}>} responses - 各通道回答
- * @param {{providerId: string, model: string}} summaryConfig - 归纳总结配置
+ * @param {{providerId: string, model: string, customPrompt?: string}} summaryConfig - 归纳总结配置
  */
 async function handleSummaryRequest(question, responses, summaryConfig) {
-  const { providerId, model } = summaryConfig;
+  const { providerId, model, customPrompt } = summaryConfig;
   const provider = getProvider(providerId);
   if (!provider || !provider.apiConfig?.enabled) {
     throw new Error('归纳总结 API 配置无效，请在设置中选择有效通道');
@@ -326,6 +326,9 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
   const userContent = `【用户原始问题】\n${question}\n\n${responseParts}`;
 
+  // 使用自定义提示词，如果未设置则使用默认提示词
+  const systemPrompt = customPrompt ?? SUMMARY_SYSTEM_PROMPT;
+
   // 使用统一的保活机制
   beginRequest();
 
@@ -333,7 +336,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
     const stream = await client.chat.completions.create({
       model: effectiveModel,
       messages: [
-        { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
       stream: true,
@@ -561,6 +564,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             sendResponse({ success: false, error: err.message, urlMap: {} });
         });
         return true;
+    }
+
+    if (request.type === MSG_TYPES.TRY_FOCUS_FOLLOW) {
+        const { completedProvider } = request.payload;
+        const completedTabId = providerTabMap[completedProvider];
+        if (!completedTabId) return false;
+
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const activeTab = tabs[0];
+            // Only switch if the completed tab IS the currently active tab
+            if (!activeTab || activeTab.id !== completedTabId) return;
+
+            // Wait 1.2s for DOM to flush and user to see the final output
+            setTimeout(() => {
+                // Check if still active
+                chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+                    const currentActiveTab = tabs[0];
+                    if (!currentActiveTab || currentActiveTab.id !== completedTabId) return;
+
+                    // Get running providers from sidepanel
+                    chrome.runtime.sendMessage({ type: MSG_TYPES.GET_RUNNING_PROVIDERS }, (res) => {
+                        const runningIds = res?.runningIds || [];
+                        if (runningIds.length > 0) {
+                            const nextId = runningIds[0];
+                            const nextTabId = providerTabMap[nextId];
+                            if (nextTabId) {
+                                logger.log(`[Focus Follow] Switching to ${nextId}`);
+                                chrome.tabs.update(nextTabId, { active: true });
+                                const completedName = getProvider(completedProvider)?.name || completedProvider;
+                                const nextName = getProvider(nextId)?.name || nextId;
+                                chrome.runtime.sendMessage({
+                                    type: MSG_TYPES.SHOW_TOAST,
+                                    payload: { message: `✅ ${completedName} 完成，正为您切换至等候中的 ${nextName}...` }
+                                }).catch(() => {});
+                            }
+                        }
+                    });
+                });
+            }, 1200);
+        });
+        return false;
     }
 
     return false;

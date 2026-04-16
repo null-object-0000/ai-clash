@@ -8,6 +8,7 @@ export type SidepanelSettings = {
   isWebSearchEnabled?: boolean;
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
+  isFocusFollowEnabled?: boolean;
 };
 export type SummaryConfig = { providerId?: string; model?: string };
 export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
@@ -18,6 +19,7 @@ export interface AppState {
   isWebSearchEnabled: boolean;
   isDebugEnabled: boolean;
   isSummaryEnabled: boolean;
+  isFocusFollowEnabled: boolean;
   summaryProviderId: string;
   summaryModel: string;
 
@@ -44,8 +46,8 @@ export interface AppState {
   operationStatus: Record<ProviderId, string>;
   rawUrlMap: Record<ProviderId, string>;
   statsMap: Record<ProviderId, ProviderStats | null>;
-  collapseMap: Record<ProviderId, boolean>; // false = 展开，true = 折叠
-  thinkExpandedMap: Record<ProviderId, boolean>; // true = 展开思考，false = 折叠思考
+  collapseMap: Record<ProviderId | 'summary', boolean>; // false = 展开，true = 折叠
+  thinkExpandedMap: Record<ProviderId | 'summary', boolean>; // true = 展开思考，false = 折叠思考
 
   // ─── Summary ───
   summaryStatus: 'idle' | 'running' | 'completed' | 'error';
@@ -54,6 +56,10 @@ export interface AppState {
   summaryThinkResponse: string;
   summaryOperationStatus: string;
   summaryStats: ProviderStats | null;
+  summaryCustomPrompt: string;  // 自定义总结提示词
+  // 总结历史版本（运行时状态，非持久化）
+  summaryVersions: Array<{ response: string; thinkResponse: string; stats: ProviderStats | null; createdAt: number }>;
+  summaryCurrentVersion: number;  // 当前查看的版本索引
 
   // ─── UI Panels ───
   isHistoryPanelOpen: boolean;
@@ -74,8 +80,11 @@ export interface AppActions {
   toggleWebSearch: () => void;
   toggleDebug: () => void;
   toggleSummary: () => void;
+  toggleFocusFollow: () => void;
   setSummaryProviderId: (v: string) => void;
   setSummaryModel: (v: string) => void;
+  setSummaryCustomPrompt: (v: string) => void;
+  resetSummaryPrompt: () => void;
 
   // ─── Provider Config ───
   toggleProvider: (id: string) => Promise<void>;
@@ -99,10 +108,10 @@ export interface AppActions {
   toggleShowApiKey: (id: string) => void;
 
   // ─── Collapse ───
-  toggleCollapse: (providerId: ProviderId) => void;
+  toggleCollapse: (providerId: ProviderId | 'summary') => void;
   collapseAll: () => void;
   expandAll: () => void;
-  setThinkExpanded: (providerId: ProviderId, expanded: boolean) => void;
+  setThinkExpanded: (providerId: ProviderId | 'summary', expanded: boolean) => void;
 
   // ─── History ───
   deleteHistoryItem: (id: string) => void;
@@ -113,9 +122,13 @@ export interface AppActions {
   resetTaskState: () => void;
   tickStreamDisplay: () => void;
   schedulePersist: (delay?: number, rawUrlOverrides?: Partial<Record<ProviderId, string>>) => void;
-  triggerSummary: () => void;
+  triggerSummary: (forceTrigger?: boolean) => void;
+  regenerateSummary: () => void;
   goToProvider: (id: string, activate?: boolean) => Promise<any>;
   init: () => (() => void);
+
+  // ─── Summary Versions ───
+  switchSummaryVersion: (index: number) => void;  // 切换查看的总结版本
 
   // ─── Derived getters ───
   getEnabledProviderIds: () => ProviderId[];

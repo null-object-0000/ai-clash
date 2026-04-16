@@ -156,6 +156,14 @@ export const PROVIDERS = [
     // 元宝不支持 API 模式，无需 apiConfig
   },
   {
+    id: 'wenxin',
+    name: '文心一言',
+    matchPattern: 'https://yiyan.baidu.com/*',
+    startUrl: 'https://yiyan.baidu.com/chat/',
+    requiresLogin: false, // 登录拦截: 否（无强制前置拦截）
+    // 文心目前优先集成网页端
+  },
+  {
     id: 'longcat',
     name: 'LongCat',
     matchPattern: 'https://longcat.chat/*',

@@ -725,22 +725,28 @@ async function fillContentEditable(el: HTMLElement, text: string): Promise<void>
   document.execCommand('delete', false, null as any);
   await wait(100);
 
-  // 对于 Slate 等特殊编辑器，尝试粘贴事件
-  if (el.hasAttribute('data-slate-editor')) {
-    try {
-      const dataTransfer = new DataTransfer();
-      dataTransfer.setData('text/plain', text);
-      el.dispatchEvent(new ClipboardEvent('paste', {
-        clipboardData: dataTransfer,
-        bubbles: true,
-        cancelable: true,
-      }));
+  // 对于 Slate、Draft 等特殊 React/Vue 编辑器（通常这些都不会响应简单的 innerText 赋值），
+  // 模拟一次逼真的 ClipboardEvent('paste') 往往是最有效的通用方案。
+  try {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.setData('text/plain', text);
+    const pasteEvent = new ClipboardEvent('paste', {
+      clipboardData: dataTransfer,
+      bubbles: true,
+      cancelable: true,
+    });
+    
+    // 如果阻止了默认行为，说明网页自己接管了 paste
+    const prevented = !el.dispatchEvent(pasteEvent);
+    if (prevented) {
+      // 成功触发拦截
       return;
-    } catch {
-      // 兜底
     }
+  } catch {
+    // 兜底
   }
 
+  // 最后的一道兜底：原生赋值（可能会在某些 React 编辑器里敲下一个键就被重置）
   el.innerText = text;
   el.dispatchEvent(new Event('input', { bubbles: true }));
   el.dispatchEvent(new Event('change', { bubbles: true }));

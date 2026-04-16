@@ -2,13 +2,14 @@
     "name": "ai-clash",
     "description": "💥 你的赛博董事会。一次提问，多款满血 AI 同屏对撞。零成本利用网页原生算力进行交叉验证，自带 AI 裁判一键归纳最优解，专治模型偏科与幻觉。",
     "private": true,
-    "version": "1.0.0",
+    "version": "1.1.0",
     "type": "module",
     "workspaces": [
         "packages/inject"
     ],
     "scripts": {
         "dev": "bun run build:inject && tsc --noEmit && vite build --watch",
+        "dev:docs": "cd docs && bun dev",
         "typecheck": "tsc --noEmit && (cd packages/inject && bun run typecheck)",
         "build:inject": "bun --filter @ai-clash/inject build",
         "build": "bun run build:inject && tsc --noEmit && vite build",
