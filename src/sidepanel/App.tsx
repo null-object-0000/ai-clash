@@ -704,9 +704,13 @@ const App = () => {
       const completedCount = enabledProviderIds.filter(id =>
         statusMap[id] === 'completed' || statusMap[id] === 'error'
       ).length;
+      const isAnyLocalRunning = enabledProviderIds.some(id => statusMap[id] === 'running');
 
-      // 手动触发按钮显示条件：总结尚未运行且没有完成的内容，且 >= 2 个通道完成
-      const shouldShowManualTrigger = !hasSummaryRunning && !hasSummaryCompleted && completedCount >= 2 && currentQuestion;
+      // 手动触发按钮显示条件：
+      // 1. 总结尚未运行且未完成
+      // 2. 至少有 2 个通道完成
+      // 3. 如果开启了自动总结，则等待所有通道完成前不显示手动触发按钮，避免造成困扰
+      const shouldShowManualTrigger = !hasSummaryRunning && !hasSummaryCompleted && completedCount >= 2 && currentQuestion && !(isSummaryEnabled && isAnyLocalRunning);
 
       // 添加总结气泡：当总结正在运行，或总结完成/出错且有内容时显示
       // 保证在开始总结但还没收到数据时能渲染出 loading 状态
