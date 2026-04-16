@@ -1,5 +1,6 @@
+import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
-import { PROVIDER_IDS, type ProviderId, type ProviderStatus } from '../types';
+import { PROVIDER_IDS, type ProviderId, type ProviderStatus, PROVIDER_NAME_MAP } from '../types';
 import { buffers, createDefaultRecord } from './helpers';
 import type { AppStore } from './types';
 
@@ -25,7 +26,7 @@ export function createMessageListener(
   set: StoreSet,
   syncProviderRawUrls: (ids: ProviderId[]) => Promise<void>,
 ) {
-  return (request: any) => {
+  return (request: any, sender: any, sendResponse: any) => {
     const { provider } = request.payload || {};
     const store = get();
 
@@ -85,6 +86,7 @@ export function createMessageListener(
       if (provider === '_summary') { set({ summaryStatus: 'running', summaryOperationStatus: request.payload.text || '' }); return; }
       const prov = provider as ProviderId;
       if (!prov) return;
+      if (get().statusMap[prov] === 'error') return;
       const stage = request.payload.stage;
       if (stage) trackStageTransition(prov, stage, get);
       set((prev: AppStore) => ({
@@ -138,6 +140,8 @@ export function createMessageListener(
       }
       const prov = provider as ProviderId;
       if (!prov) return;
+      if (get().statusMap[prov] === 'completed') return; // Deduplication
+      
       set((prev: AppStore) => ({ statusMap: { ...prev.statusMap, [prov]: 'completed' }, operationStatus: { ...prev.operationStatus, [prov]: '' } }));
       const timing = buffers.timing[prov];
       if (timing.startTime > 0 && timing.firstContentTime > 0) {
@@ -165,6 +169,11 @@ export function createMessageListener(
         }
         if (!stillRunning) {
           if (s.isSummaryEnabled && s.hasAsked && !s.isCurrentSessionFromHistory) get().triggerSummary();
+        } else if (s.isFocusFollowEnabled) {
+          chrome.runtime?.sendMessage({
+            type: MSG_TYPES.TRY_FOCUS_FOLLOW,
+            payload: { completedProvider: prov }
+          });
         }
       }, 50);
 
@@ -178,6 +187,8 @@ export function createMessageListener(
       }
       const prov = provider as ProviderId;
       if (!prov) return;
+      if (get().statusMap[prov] === 'error') return; // Deduplication
+      
       const errText = `[系统报错] ${request.payload.message || request.payload.error || '未知错误'}`;
       buffers.fullText[prov] = errText;
       buffers.displayedLen[prov] = errText.length;
@@ -192,8 +203,26 @@ export function createMessageListener(
       setTimeout(() => {
         const s = get();
         const stillRunning = PROVIDER_IDS.some(id => s.statusMap[id] === 'running');
-        if (!stillRunning && s.isSummaryEnabled && s.hasAsked && !s.isCurrentSessionFromHistory) get().triggerSummary();
+        if (!stillRunning && s.isSummaryEnabled && s.hasAsked && !s.isCurrentSessionFromHistory) {
+          get().triggerSummary();
+        } else if (stillRunning && s.isFocusFollowEnabled) {
+          chrome.runtime?.sendMessage({
+            type: MSG_TYPES.TRY_FOCUS_FOLLOW,
+            payload: { completedProvider: prov }
+          });
+        }
       }, 50);
+    } else if (request.type === MSG_TYPES.GET_RUNNING_PROVIDERS) {
+      if (sendResponse) {
+        const s = get();
+        const runningIds = PROVIDER_IDS.filter(id => s.statusMap[id] === 'running');
+        sendResponse({ runningIds });
+      }
+      return false; // synchronous response
+    } else if (request.type === MSG_TYPES.SHOW_TOAST) {
+      const msg = request.payload?.message;
+      if (msg) message.success(msg);
     }
+    return false;
   };
 }

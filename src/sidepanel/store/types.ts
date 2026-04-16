@@ -8,6 +8,7 @@ export type SidepanelSettings = {
   isWebSearchEnabled?: boolean;
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
+  isFocusFollowEnabled?: boolean;
 };
 export type SummaryConfig = { providerId?: string; model?: string };
 export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
@@ -18,6 +19,7 @@ export interface AppState {
   isWebSearchEnabled: boolean;
   isDebugEnabled: boolean;
   isSummaryEnabled: boolean;
+  isFocusFollowEnabled: boolean;
   summaryProviderId: string;
   summaryModel: string;
 
@@ -78,6 +80,7 @@ export interface AppActions {
   toggleWebSearch: () => void;
   toggleDebug: () => void;
   toggleSummary: () => void;
+  toggleFocusFollow: () => void;
   setSummaryProviderId: (v: string) => void;
   setSummaryModel: (v: string) => void;
   setSummaryCustomPrompt: (v: string) => void;

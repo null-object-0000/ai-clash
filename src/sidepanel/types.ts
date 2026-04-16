@@ -38,6 +38,7 @@ export interface SidepanelSettings {
   isDeepThinkingEnabled?: boolean;
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
+  isFocusFollowEnabled?: boolean;
 }
 
 export interface SummaryConfig {

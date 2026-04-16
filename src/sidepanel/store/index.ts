@@ -70,6 +70,7 @@ export const useStore = create<AppStore>()((set, get) => {
         isWebSearchEnabled: s.isWebSearchEnabled,
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
+        isFocusFollowEnabled: s.isFocusFollowEnabled,
       },
     });
   };
@@ -274,6 +275,7 @@ export const useStore = create<AppStore>()((set, get) => {
     isWebSearchEnabled: false,
     isDebugEnabled: false,
     isSummaryEnabled: true,
+    isFocusFollowEnabled: false,
     summaryProviderId: 'summarizer',
     summaryModel: 'summarizer-v1',
 
@@ -358,6 +360,11 @@ export const useStore = create<AppStore>()((set, get) => {
       const enabled = PROVIDER_IDS.filter(id => s.enabledMap[id]);
       if (enabled.length < 2) return;
       set(prev => ({ isSummaryEnabled: !prev.isSummaryEnabled }));
+      saveSettings();
+    },
+
+    toggleFocusFollow: () => {
+      set(prev => ({ isFocusFollowEnabled: !prev.isFocusFollowEnabled }));
       saveSettings();
     },
 
@@ -1024,6 +1031,7 @@ export const useStore = create<AppStore>()((set, get) => {
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
             isSummaryEnabled: saved.isSummaryEnabled ?? true,
+            isFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
             isDebugEnabled: debugVal,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',

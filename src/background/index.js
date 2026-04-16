@@ -566,6 +566,47 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.type === MSG_TYPES.TRY_FOCUS_FOLLOW) {
+        const { completedProvider } = request.payload;
+        const completedTabId = providerTabMap[completedProvider];
+        if (!completedTabId) return false;
+
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            const activeTab = tabs[0];
+            // Only switch if the completed tab IS the currently active tab
+            if (!activeTab || activeTab.id !== completedTabId) return;
+
+            // Wait 1.2s for DOM to flush and user to see the final output
+            setTimeout(() => {
+                // Check if still active
+                chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+                    const currentActiveTab = tabs[0];
+                    if (!currentActiveTab || currentActiveTab.id !== completedTabId) return;
+
+                    // Get running providers from sidepanel
+                    chrome.runtime.sendMessage({ type: MSG_TYPES.GET_RUNNING_PROVIDERS }, (res) => {
+                        const runningIds = res?.runningIds || [];
+                        if (runningIds.length > 0) {
+                            const nextId = runningIds[0];
+                            const nextTabId = providerTabMap[nextId];
+                            if (nextTabId) {
+                                logger.log(`[Focus Follow] Switching to ${nextId}`);
+                                chrome.tabs.update(nextTabId, { active: true });
+                                const completedName = getProvider(completedProvider)?.name || completedProvider;
+                                const nextName = getProvider(nextId)?.name || nextId;
+                                chrome.runtime.sendMessage({
+                                    type: MSG_TYPES.SHOW_TOAST,
+                                    payload: { message: `✅ ${completedName} 完成，正为您切换至等候中的 ${nextName}...` }
+                                }).catch(() => {});
+                            }
+                        }
+                    });
+                });
+            }, 1200);
+        });
+        return false;
+    }
+
     return false;
 });
 

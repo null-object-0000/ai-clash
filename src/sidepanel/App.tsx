@@ -12,13 +12,11 @@ import {
   RightOutlined,
   SettingOutlined,
   TrophyOutlined,
+  VideoCameraOutlined,
 } from '@ant-design/icons';
-import { DownOutlined } from '@ant-design/icons';
 import type { BubbleListProps, PromptsProps } from '@ant-design/x';
 import {
-  Actions,
   Bubble,
-  Prompts,
   Sender,
   Think,
   ThoughtChain,
@@ -26,7 +24,7 @@ import {
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown from '@ant-design/x-markdown';
-import { Flex, message, Popconfirm, Tooltip } from 'antd';
+import { Button, Flex, message, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers } from './store';
@@ -539,6 +537,7 @@ const App = () => {
   const thinkResponses = useStore(s => s.thinkResponses);
   const enabledMap = useStore(s => s.enabledMap);
   const isSummaryEnabled = useStore(s => s.isSummaryEnabled);
+  const isFocusFollowEnabled = useStore(s => s.isFocusFollowEnabled);
   const isDeepThinkingEnabled = useStore(s => s.isDeepThinkingEnabled);
   const isWebSearchEnabled = useStore(s => s.isWebSearchEnabled);
   const summaryStatus = useStore(s => s.summaryStatus);
@@ -557,7 +556,7 @@ const App = () => {
 
   const {
     setInputStr, submit, createNewChat,
-    toggleDeepThinking, toggleWebSearch, toggleSummary,
+    toggleDeepThinking, toggleWebSearch, toggleSummary, toggleFocusFollow,
   } = useStore.getState();
 
   // ==================== Init ====================
@@ -995,6 +994,19 @@ const App = () => {
       {/* ─── Sender ─── */}
       {!isCurrentSessionFromHistory && (
         <Flex vertical className={styles.chatSend}>
+          <Flex gap="small" style={{ marginBottom: 8 }}>
+            <Tooltip title="自动追踪并切换至正在输出的模型">
+              <Button
+                size="small"
+                type={isFocusFollowEnabled ? "primary" : "default"}
+                onClick={toggleFocusFollow}
+                icon={<VideoCameraOutlined />}
+                style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+              >
+                导播模式
+              </Button>
+            </Tooltip>
+          </Flex>
           <Sender
             loading={isAnyRunning}
             value={inputValue}
