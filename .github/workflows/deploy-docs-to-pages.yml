@@ -39,6 +39,8 @@ jobs:
 
       - name: Build site
         run: cd docs && bun run build
+        env:
+          BASE_URL: /ai-clash/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

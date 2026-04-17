@@ -1,7 +1,11 @@
 import { defineConfig } from 'vitepress'
 
+// 从环境变量获取 base 路径，支持 GitHub Pages 二级目录和自有站点根目录访问
+// GitHub Pages 部署时通过环境变量 BASE_URL 传入 /ai-clash/
+const base = process.env.BASE_URL || process.env.VITE_BASE_URL || '/'
+
 export default defineConfig({
-  base: '/ai-clash/',
+  base: base,
 
   locales: {
     root: {
