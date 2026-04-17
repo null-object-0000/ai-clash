@@ -5,7 +5,7 @@
 </p>
 
 ![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)
-![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge)
+![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge&link=https%3A%2F%2Fchromewebstore.google.com%2Fdetail%2Fggngmgpjdklmkpoldbfahmeefpnfhhai)
 
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
