@@ -32,7 +32,7 @@ export default defineConfig({
         nav: [
           { text: 'Home', link: '/en/' },
           { text: 'Install Guide', link: '/en/download' },
-          { text: 'Changelog', link: '/en/changelog' },
+          { text: 'Changelog', link: '/changelog' },
           { text: 'Privacy Policy', link: '/en/privacy' }
         ],
       }
