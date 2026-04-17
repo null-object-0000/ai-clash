@@ -47,8 +47,7 @@ export default defineConfig({
     ],
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2026-present AI Clash'
+      copyright: 'Copyright © 2026-present AI Clash | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="footer-link"> 苏 ICP 备 2024114357 号 -5</a>'
     }
   }
 })
