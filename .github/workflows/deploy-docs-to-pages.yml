@@ -1,4 +1,4 @@
-name: Deploy Docs (VitePress)
+name: Deploy Docs to Pages (VitePress)
 
 on:
   push:
@@ -22,23 +22,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # Not needed if lastUpdated is not configured, but good for Vitepress
-          
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: Install dependencies
         run: cd docs && bun install
 
       - name: Build site
         run: cd docs && bun run build
+        env:
+          BASE_URL: /ai-clash/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

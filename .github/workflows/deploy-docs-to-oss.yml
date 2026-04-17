@@ -1,0 +1,108 @@
+name: Deploy Docs to OSS (VitePress)
+
+# 需要在 GitHub Secrets 中配置以下变量：
+# OSS_ACCESS_KEY_ID: OSS 访问密钥 ID
+# OSS_SECRET_ACCESS_KEY: OSS 访问密钥 Secret
+# OSS_ENDPOINT: OSS 端点地址（如：https://oss-cn-shanghai.aliyuncs.com）
+# OSS_BUCKET: OSS 存储桶名称
+# OSS_REGION: OSS 区域（可选，默认为 us-east-1）
+# OSS_PATH: OSS 存储路径（可选，如：docs/）
+
+on:
+  push:
+    branches:
+      - main  # 可以根据需要修改分支名
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: cd docs && bun install
+
+      - name: Build site
+        run: cd docs && bun run build
+        env:
+          BASE_URL: /
+
+      - name: Install tools
+        run: |
+          # 检测是否是阿里云 OSS
+          OSS_ENDPOINT="${{ secrets.OSS_ENDPOINT }}"
+          if [[ "$OSS_ENDPOINT" =~ aliyuncs\.com ]]; then
+            echo "检测到阿里云 OSS，安装 ossutil"
+            # 安装 ossutil
+            wget -q https://gosspublic.alicdn.com/ossutil/1.7.14/ossutil64 -O ossutil
+            chmod +x ossutil
+            sudo mv ossutil /usr/local/bin/
+          else
+            echo "检测到非阿里云 OSS，安装 AWS CLI"
+            # 安装 AWS CLI
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip -q awscliv2.zip
+            sudo ./aws/install --update
+          fi
+
+      - name: Upload to OSS
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.OSS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.OSS_REGION || 'us-east-1' }}
+        run: |
+          # 构建上传路径
+          OSS_BUCKET="${{ secrets.OSS_BUCKET }}"
+          OSS_PATH="${{ secrets.OSS_PATH || '' }}"
+          OSS_ENDPOINT="${{ secrets.OSS_ENDPOINT }}"
+          
+          # 判断是否是阿里云 OSS
+          if [[ "$OSS_ENDPOINT" =~ aliyuncs\.com ]]; then
+            echo "使用 ossutil 上传到阿里云 OSS"
+            
+            # 构建 ossutil 上传路径
+            if [ -n "$OSS_PATH" ]; then
+              OSS_TARGET="oss://${OSS_BUCKET}/${OSS_PATH}"
+            else
+              OSS_TARGET="oss://${OSS_BUCKET}"
+            fi
+            
+            # 使用 ossutil sync 同步文件（类似 aws s3 sync）
+            # sync 命令会自动递归，支持 --update 和 --delete
+            # --update 只上传更新的文件
+            # --delete 删除目标中不存在的文件（确保目标与源完全一致）
+            # -e 指定 endpoint
+            # -i 指定 AccessKey ID
+            # -k 指定 AccessKey Secret
+            ossutil sync docs/.vitepress/dist/ ${OSS_TARGET} \
+              --update \
+              --delete \
+              -e ${OSS_ENDPOINT} \
+              -i "${{ secrets.OSS_ACCESS_KEY_ID }}" \
+              -k "${{ secrets.OSS_SECRET_ACCESS_KEY }}"
+          else
+            echo "使用 AWS CLI 上传到 S3 兼容的 OSS"
+            
+            # 构建 AWS S3 上传路径
+            if [ -n "$OSS_PATH" ]; then
+              S3_PATH="s3://${OSS_BUCKET}/${OSS_PATH}"
+            else
+              S3_PATH="s3://${OSS_BUCKET}"
+            fi
+            
+            # 上传文件到 S3 兼容的 OSS
+            # --endpoint-url 使用基础端点（不包含 bucket 名称）
+            # --delete 参数会删除目标中不存在的文件
+            aws s3 sync docs/.vitepress/dist/ ${S3_PATH} \
+              --endpoint-url ${OSS_ENDPOINT} \
+              --delete \
+              --region ${AWS_DEFAULT_REGION}
+          fi

@@ -78,7 +78,7 @@ function detectProviderFromDomain(): string | null {
   if (hostname.includes('doubao.com')) {
     return 'doubao';
   }
-  if (hostname.includes('tongyi.aliyun.com')) {
+  if (hostname.includes('www.qianwen.com')) {
     return 'qianwen';
   }
   if (hostname.includes('tiangong.cn')) {

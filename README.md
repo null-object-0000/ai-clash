@@ -4,8 +4,8 @@
   <img src="public/logo.png" width="120" alt="AI 对撞机 Logo">
 </p>
 
-![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)
-![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge)
+[![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)](https://github.com/null-object-0000/ai-clash/releases)
+[![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge)](https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai)
 
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >

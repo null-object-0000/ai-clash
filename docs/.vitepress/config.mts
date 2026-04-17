@@ -1,7 +1,11 @@
 import { defineConfig } from 'vitepress'
 
+// 从环境变量获取 base 路径，支持 GitHub Pages 二级目录和自有站点根目录访问
+// GitHub Pages 部署时通过环境变量 BASE_URL 传入 /ai-clash/
+const base = process.env.BASE_URL || process.env.VITE_BASE_URL || '/'
+
 export default defineConfig({
-  base: '/ai-clash/',
+  base: base,
 
   locales: {
     root: {
@@ -28,7 +32,7 @@ export default defineConfig({
         nav: [
           { text: 'Home', link: '/en/' },
           { text: 'Install Guide', link: '/en/download' },
-          { text: 'Changelog', link: '/en/changelog' },
+          { text: 'Changelog', link: '/changelog' },
           { text: 'Privacy Policy', link: '/en/privacy' }
         ],
       }
@@ -43,8 +47,7 @@ export default defineConfig({
     ],
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2026-present AI Clash'
+      copyright: 'Copyright © 2026-present AI Clash | <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" class="footer-link"> 苏 ICP 备 2024114357 号 -5</a>'
     }
   }
 })

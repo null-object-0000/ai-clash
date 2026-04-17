@@ -274,7 +274,7 @@ export const useStore = create<AppStore>()((set, get) => {
     isDeepThinkingEnabled: true,
     isWebSearchEnabled: false,
     isDebugEnabled: false,
-    isSummaryEnabled: true,
+    isSummaryEnabled: false,
     isFocusFollowEnabled: false,
     summaryProviderId: 'summarizer',
     summaryModel: 'summarizer-v1',
@@ -1031,7 +1031,7 @@ export const useStore = create<AppStore>()((set, get) => {
           set({
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
-            isSummaryEnabled: saved.isSummaryEnabled ?? true,
+            isSummaryEnabled: saved.isSummaryEnabled ?? false,
             isFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
             isDebugEnabled: debugVal,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
