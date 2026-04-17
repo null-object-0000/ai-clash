@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "AI Clash"
-  text: "The Ultimate LLM Arena"
+  text: "Ultimate LLM Arena"
   tagline: Say goodbye to switching tabs! Summon multiple top AI models side-by-side with a single click, and get the ultimate answer with our built-in summary engine.
   image:
     src: /logo.png
@@ -27,3 +27,7 @@ features:
   - title: 💸 Zero API Cost
     details: Utilizes pure frontend DOM manipulation to directly tap into the native computing power of the web versions (DeepSeek, Kimi, etc.) you are already logged into.
 ---
+
+<div style="text-align: center; margin: 40px 0;">
+  <img src="/动画.gif" alt="AI Clash Demo Animation" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</div>

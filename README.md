@@ -12,7 +12,7 @@
 > 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言
 
 <p align="center">
-  <img src="demo/demo_1.png" width="100%" alt="演示图 1">
+  <img src="docs/public/动画.gif" width="100%" alt="演示动画">
 </p>
 
 ## ✨ 为什么你一定要用这个工具？
@@ -81,6 +81,10 @@
 3. **写文案**：朋友圈文案、短视频脚本、工作报告、作文，不同风格一次拿到
 4. **问题咨询**：生活疑问、学习问题、职场困惑，多AI回答对比，避免被误导
 5. **决策参考**：买什么电子产品、去哪里旅游、怎么选offer，多个建议更靠谱
+
+<p align="center">
+  <img src="demo/demo_1.png" width="100%" alt="演示图 1">
+</p>
 
 <p align="center">
   <img src="demo/demo_2.png" width="45%" alt="演示图 2">

@@ -25,5 +25,9 @@ features:
   - title: ⚖️ 内置 AI 裁判总结
     details: 自动对比各家回答，折叠冗长分析过程，一语道破核心分歧，直出最优终极建议。
   - title: 💸 零 API 成本
-    details: 采用纯前端 DOM 劫持技术，直接榨取你已登录网页端（DeepSeek/Kimi等）的原生算力。
+    details: 采用纯前端 DOM 劫持技术，直接榨取你已登录网页端（DeepSeek/Kimi 等）的原生算力。
 ---
+
+<div style="text-align: center; margin: 40px 0;">
+  <img src="/动画.gif" alt="AI Clash 演示动画" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+</div>
