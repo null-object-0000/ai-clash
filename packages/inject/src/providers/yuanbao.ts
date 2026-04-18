@@ -33,58 +33,6 @@ const thinkingAction: ToggleAction = {
   },
 };
 
-// 智能搜索实现
-const searchAction: ToggleAction = {
-  async getState() {
-    // 元宝有点特殊，它可以开启自动搜索，如果开启自动搜索，我们认为智能搜索是关闭的
-    const selectors = ['[dt-button-id="internet_search"]'];
-    const el = findAnyElement(selectors);
-    if (!el) return { found: false, enabled: false };
-
-    // 找 el 子节点中类名为 index_v2_mainSection__ 的子节点中 index_v2_contentText__ 开头的，看他的文本内容，如果包含"自动搜索"则认为智能搜索是关闭的，否则认为是开启的
-    const mainSectionEl = Array.from(el.children).find(child => Array.from(child.classList).some(c => c.startsWith('index_v2_mainSection__')));
-    const contentEl = mainSectionEl ? Array.from(mainSectionEl.children).find(child => Array.from(child.classList).some(c => c.startsWith('index_v2_contentText__'))) : null;
-    if (contentEl && contentEl.textContent === '自动搜索') {
-      // 强行改成手动模式并关闭智能搜索
-      simulateRealClick(el);
-
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // 找 .internet-search-switch-popup .t-dropdown__item-text 的子节点的子节点的内部 index_v2_dropDownItemName__ 开头的元素且内部文本等于"手动"，点击它
-      const popupItem = Array.from(document.querySelectorAll('.internet-search-switch-popup .t-dropdown__item-text div div'))
-        .find(item => Array.from(item.classList).some(c => c.startsWith('index_v2_dropDownItemName__')) && item.textContent === '手动');
-      if (popupItem) {
-        simulateRealClick(popupItem.parentElement?.parentElement!);
-
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        return await this.getState(); // 重新获取状态，应该就变成智能搜索已开启了
-      }
-
-      return { found: true, enabled: false };
-    }
-
-    const hasSelectedClass = Array.from(el.classList).some(c => c.startsWith('index_v2_active__'));
-    return { found: true, enabled: hasSelectedClass };
-  },
-
-  async enable() {
-    const selectors = ['[dt-button-id="internet_search"]'];
-    const el = findAnyElement(selectors);
-    if (!el) return false;
-    simulateRealClick(el);
-    return true;
-  },
-
-  async disable() {
-    const selectors = ['[dt-button-id="internet_search"]'];
-    const el = findAnyElement(selectors);
-    if (!el) return false;
-    simulateRealClick(el);
-    return true;
-  },
-};
-
 // Auth 登录信息配置
 const authAction: AuthAction = {
   loggedInSelectors: [
@@ -127,8 +75,6 @@ export const yuanbaoProvider: ProviderConfig = {
     },
     // 思考模式 - 使用抽象接口
     thinking: thinkingAction,
-    // 智能搜索（联网搜索） - 使用抽象接口
-    search: searchAction,
     // 登录信息检测
     auth: authAction,
   },
