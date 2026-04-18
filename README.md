@@ -9,7 +9,7 @@
 
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
-> 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言
+> 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言 | Xiaomi MIMO
 
 <p align="center">
   <img src="docs/public/动画.gif" width="100%" alt="演示动画">
@@ -56,13 +56,7 @@
 
 ### 第 1 步：账号授权（一次性操作）
 
-首次使用时，只需用浏览器登录一下你想用的 AI 网站，让它保持登录状态即可（不需要一直开着网页）：
-
-* 🌐 [DeepSeek](https://chat.deepseek.com)
-* 🌐 [豆包](https://www.doubao.com)
-* 🌐 [通义千问](https://www.qianwen.com)
-* 🌐 [LongCat](https://longcat.chat)
-* 🌐 [腾讯元宝](https://yuanbao.tencent.com)
+首次使用时，只需用浏览器登录一下你想用的 AI 网站，让它保持登录状态即可（不需要一直开着网页）
 
 ### 第 2 步：呼出对撞机
 
