@@ -74,7 +74,8 @@ export function createMessageListener(
         set((prev: AppStore) => ({ stageMap: { ...prev.stageMap, [prov]: 'responding' } }));
       }
       if (p.isThink) {
-        if (!get().isDeepThinkingEnabled) return;
+        // 即使没有开启深度思考模式，也要保存思考内容（底层模型可能仍然输出了思考）
+        // if (!get().isDeepThinkingEnabled) return;
         buffers.thinkText[prov] = (buffers.thinkText[prov] || '') + p.text;
       } else {
         buffers.fullText[prov] = (buffers.fullText[prov] || '') + p.text;
