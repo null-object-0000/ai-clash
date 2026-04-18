@@ -1,38 +1,73 @@
 ---
-name: Bug report
-about: Create a report to help us improve
-title: ''
-labels: ''
+name: 错误报告
+about: 反馈问题以帮助我们改进
+title: 'fix: '
+labels: bug
 assignees: ''
 
 ---
 
-**Describe the bug**
-A clear and concise description of what the bug is.
+## 📋 问题描述
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+{请清晰简洁描述问题是什么}
 
-**Expected behavior**
-A clear and concise description of what you expected to happen.
+---
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+## 🔄 复现步骤
 
-**Desktop (please complete the following information):**
- - OS: [e.g. iOS]
- - Browser [e.g. chrome, safari]
- - Version [e.g. 22]
+1. 前往 '...'
+2. 点击 '....'
+3. 滚动到 '....'
+4. 看到错误
 
-**Smartphone (please complete the following information):**
- - Device: [e.g. iPhone6]
- - OS: [e.g. iOS8.1]
- - Browser [e.g. stock browser, safari]
- - Version [e.g. 22]
+---
 
-**Additional context**
-Add any other context about the problem here.
+## ✅ 预期行为
+
+{请清晰简洁描述你期望发生什么}
+
+---
+
+## 📸 截图
+
+{如有，添加截图以帮助解释问题}
+
+---
+
+## 🖥️ 环境信息
+
+### 桌面端
+
+| 项目 | 详情 |
+|------|------|
+| 操作系统 | [如：Windows 11 / macOS 14 / Ubuntu 22.04] |
+| 浏览器 | [如：Chrome 120 / Edge 120] |
+| 扩展版本 | [如：1.2.0] |
+
+### 移动端（如适用）
+
+| 项目 | 详情 |
+|------|------|
+| 设备 | [如：iPhone 15 / 小米 14] |
+| 操作系统 | [如：iOS 17 / Android 14] |
+| 浏览器 | [如：Safari / Chrome] |
+| 浏览器版本 | [如：22] |
+
+---
+
+## 📝 补充信息
+
+{添加其他与问题相关的上下文信息}
+
+---
+
+## 🧩 影响通道（如适用）
+
+- [ ] DeepSeek
+- [ ] 豆包
+- [ ] 通义千问
+- [ ] 腾讯元宝
+- [ ] 文心一言
+- [ ] LongCat
+- [ ] Xiaomi MIMO
+- [ ] 其他：{请填写}
