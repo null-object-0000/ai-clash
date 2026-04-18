@@ -1,9 +1,10 @@
 ---
-name: 🆕 新增 AI 通道
+name: "\U0001F195 新增 AI 通道"
 about: 申请接入新的 AI 大模型平台
 title: 'feat: 接入新通道：{通道名称}'
-labels: ['enhancement', 'new provider']
-assignees: []
+labels: enhancement
+assignees: ''
+
 ---
 
 ## 📋 通道基本信息
