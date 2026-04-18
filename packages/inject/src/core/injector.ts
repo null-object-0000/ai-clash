@@ -96,14 +96,6 @@ function resetSSEState() {
 function parseSSELine(line: string) {
   if (!currentProvider?.sse?.parseLine) return;
 
-  // 兼容 "event: name" (带空格) 和 "event:name" (无空格) 两种格式
-  if (line.startsWith('event:') || line.startsWith('event: ')) {
-    return;
-  } else if (line.startsWith('id:') || line.startsWith('id: ')) {
-    // 忽略 id: 行
-    return;
-  }
-
   const result = currentProvider.sse.parseLine(line);
   if (!result) return;
 
@@ -386,36 +378,39 @@ function getConversationIdFromUrl(provider: ProviderConfig): string | undefined 
   const config = provider.conversation?.idFromUrl;
   if (!config) return undefined;
 
-  const pathname = window.location.pathname;
+  // 先从 pathname 提取，如果失败再尝试 hash（支持 hash 路由如 MiMo）
+  const urlParts = [window.location.pathname, window.location.hash];
   const pattern = config.pattern;
   const excludePattern = config.excludePattern;
 
   if (pattern) {
     try {
       const regex = new RegExp(pattern);
-      const match = pathname.match(regex);
-      if (match) {
-        const group = config.captureGroup ?? 1;
-        let id: string | undefined;
-        if (typeof group === 'number') {
-          id = match[group];
-        } else if (typeof group === 'string') {
-          id = (match as any).groups?.[group];
-        } else {
-          id = match[1];
-        }
-        // 检查是否需要排除
-        if (id && excludePattern) {
-          try {
-            const excludeRegex = new RegExp(excludePattern);
-            if (excludeRegex.test(id)) {
-              return undefined;
-            }
-          } catch {
-            // excludePattern 正则无效，忽略
+      for (const urlPart of urlParts) {
+        const match = urlPart.match(regex);
+        if (match) {
+          const group = config.captureGroup ?? 1;
+          let id: string | undefined;
+          if (typeof group === 'number') {
+            id = match[group];
+          } else if (typeof group === 'string') {
+            id = (match as any).groups?.[group];
+          } else {
+            id = match[1];
           }
+          // 检查是否需要排除
+          if (id && excludePattern) {
+            try {
+              const excludeRegex = new RegExp(excludePattern);
+              if (excludeRegex.test(id)) {
+                continue;
+              }
+            } catch {
+              // excludePattern 正则无效，忽略
+            }
+          }
+          return id;
         }
-        return id;
       }
       return undefined;
     } catch {
@@ -633,7 +628,14 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
       console.log(`[AI Clash Inject] ${provider.id}: _send 开始执行，等待输入框...`);
       const inputEl = await waitForAnyElement(chat.input.box, 8000);
       console.log(`[AI Clash Inject] ${provider.id}: 输入框${inputEl ? '找到' : '未找到'}`);
-      const sendBtn = findAnyElement(chat.send.button);
+
+      // 查找发送按钮 - 优先使用 customFind 方法（用于需要特殊验证的场景如 MiMo）
+      let sendBtn: Element | null = null;
+      if (chat.send.customFind) {
+        sendBtn = chat.send.customFind();
+      } else {
+        sendBtn = findAnyElement(chat.send.button);
+      }
       console.log(`[AI Clash Inject] ${provider.id}: 发送按钮${sendBtn ? '找到' : '未找到'}`);
 
       // 如果有回调，先设置 SSE 拦截器和回调（在点击按钮前）

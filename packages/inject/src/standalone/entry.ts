@@ -90,6 +90,9 @@ function detectProviderFromDomain(): string | null {
   if (hostname.includes('yiyan.baidu.com')) {
     return 'wenxin';
   }
+  if (hostname.includes('aistudio.xiaomimimo.com')) {
+    return 'xiaomi';
+  }
 
   return null;
 }

@@ -8,6 +8,7 @@ export { qianwenProvider } from './qianwen.js';
 export { longcatProvider } from './longcat.js';
 export { yuanbaoProvider } from './yuanbao.js';
 export { wenxinProvider } from './wenxin.js';
+export { xiaomiProvider } from './mimo.js';
 
 import type { ProviderConfig, ProviderId } from '../core/types.js';
 import { deepseekProvider } from './deepseek.js';
@@ -16,6 +17,7 @@ import { qianwenProvider } from './qianwen.js';
 import { longcatProvider } from './longcat.js';
 import { yuanbaoProvider } from './yuanbao.js';
 import { wenxinProvider } from './wenxin.js';
+import { xiaomiProvider } from './mimo.js';
 
 /**
  * Provider 注册表
@@ -27,6 +29,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   longcat: longcatProvider,
   yuanbao: yuanbaoProvider,
   wenxin: wenxinProvider,
+  xiaomi: xiaomiProvider,
 };
 
 /**

@@ -24,10 +24,11 @@
  * - `'longcat'` - LongCat/天工 (https://tiangong.cn)
  * - `'yuanbao'` - 腾讯元宝 (https://yuanbao.tencent.com)
  * - `'wenxin'` - 百度文心一言 (https://yiyan.baidu.com)
+ * - `'xiaomi'` - 小米 MiMo (https://aistudio.xiaomimimo.com)
  *
  *、也支持自定义字符串作为扩展提供者的 ID。
  */
-export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'longcat' | 'yuanbao' | 'wenxin' | string;
+export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'longcat' | 'yuanbao' | 'wenxin' | 'xiaomi' | string;
 
 /**
  * 适配器类型
@@ -238,6 +239,11 @@ export interface InputAction {
  */
 export interface SendAction {
   button: string[];
+  /**
+   * 自定义按钮查找函数（用于需要特殊验证的场景，如 MiMo 需要验证 SVG Path）
+   * @returns 验证通过的按钮元素，未找到返回 null
+   */
+  customFind?: () => Element | null;
 }
 
 /**

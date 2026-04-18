@@ -1,22 +1,11 @@
 import { SettingOutlined } from '@ant-design/icons';
-import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, Wenxin, XiaomiMiMo } from '@lobehub/icons';
 import { Button, Switch, Tag } from 'antd';
 import { createStyles } from 'antd-style';
 import { PROVIDER_META } from '../../shared/config.js';
 import { useStore } from '../store';
+import { getProviderIcon } from '../utils/providerIcons.js';
 import type { ProviderId } from '../types';
 import React from 'react';
-
-type IconWithColor = { Color: React.ComponentType<{ size?: number; className?: string }> };
-const iconMap: Record<string, IconWithColor> = {
-  deepseek: DeepSeek,
-  doubao: Doubao,
-  qianwen: Qwen,
-  yuanbao: Yuanbao,
-  wenxin: Wenxin,
-  longcat: LongCat,
-  xiaomi: { Color: XiaomiMiMo },
-};
 
 const useStyles = createStyles(({ token, css }) => ({
   wrapper: css`
@@ -108,17 +97,17 @@ export default function ChannelList() {
       </div>
       {visibleProviders.map((provider: any) => {
         const pid = provider.id as ProviderId;
-        const Icon = iconMap[provider.id];
         const enabled = enabledMap[pid];
         const modeValue = modeMap[pid];
         const isApi = modeValue === 'api';
         const apiKey = apiKeyMap[pid] || '';
         const testing = testingApiKey[provider.id] ?? false;
+        const Icon = getProviderIcon(provider.id)!;
 
         return (
           <div key={provider.id} className={styles.row}>
             <div className={styles.iconWrap}>
-              {Icon && <Icon.Color size={20} />}
+              {Icon && React.createElement(Icon, { size: 20 })}
             </div>
             <div className={styles.nameArea}>
               <span className={styles.providerName}>{provider.name}</span>

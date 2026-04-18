@@ -1,25 +1,15 @@
 import { ExportOutlined } from '@ant-design/icons';
-import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, XiaomiMiMo, Wenxin } from '@lobehub/icons';
 import { Alert, Button, Drawer, Input, Modal, Segmented, Select } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useState } from 'react';
 import { PROVIDER_META, getModelOptions, getDefaultModel } from '../../shared/config.js';
 import { useStore } from '../store';
 import { PROVIDER_NAME_MAP, type ProviderId, type ProviderMode } from '../types';
+import { getProviderColorIcon } from '../utils/providerIcons.js';
 
 const NARROW_THRESHOLD = 500;
 
 const { Password } = Input;
-
-const iconMap: Record<string, { Color: React.ComponentType<{ size?: number }> }> = {
-  deepseek: DeepSeek,
-  doubao: Doubao,
-  qianwen: Qwen,
-  yuanbao: Yuanbao,
-  wenxin: Wenxin,
-  longcat: LongCat,
-  xiaomi: { Color: XiaomiMiMo },
-};
 
 const useStyles = createStyles(({ token, css }) => ({
   titleRow: css`
@@ -123,7 +113,7 @@ export default function ChannelSettingsDrawer() {
   const testResult = apiKeyTestResult[activeProviderId];
   const apiKeyLink = meta?.apiKeyLink;
   const apiNote = meta?.apiNote;
-  const IconSet = iconMap[activeProviderId];
+  const Icon = getProviderColorIcon(activeProviderId);
 
   const modeOptions = [
     { label: '网页模式', value: 'web' },
@@ -136,7 +126,7 @@ export default function ChannelSettingsDrawer() {
 
   const titleNode = (
     <div className={styles.titleRow}>
-      {IconSet && <IconSet.Color size={22} />}
+      {Icon && <Icon size={22} />}
       <span>{providerLabel} 设置</span>
     </div>
   );
