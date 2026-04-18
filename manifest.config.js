@@ -70,11 +70,11 @@ export default defineManifest({
   description: '__MSG_extensionDescription__',
   default_locale: 'zh_CN',
   icons: {
-    48: 'public/logo.png',
+    48: 'docs/public/logo.png',
   },
   action: {
     default_icon: {
-      48: 'public/logo.png',
+      48: 'docs/public/logo.png',
     },
     default_title: '打开 AI 对撞机',
   },

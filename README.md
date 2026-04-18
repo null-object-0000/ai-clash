@@ -1,7 +1,7 @@
 # AI 对撞机 (AI Clash)
 
 <p align="center">
-  <img src="public/logo.png" width="120" alt="AI 对撞机 Logo">
+  <img src="docs/public/logo.png" width="120" alt="AI 对撞机 Logo">
 </p>
 
 [![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)](https://github.com/null-object-0000/ai-clash/releases)
@@ -83,12 +83,12 @@
 5. **决策参考**：买什么电子产品、去哪里旅游、怎么选offer，多个建议更靠谱
 
 <p align="center">
-  <img src="demo/demo_1.png" width="100%" alt="演示图 1">
+  <img src="docs/public/demo_1.png" width="100%" alt="演示图 1">
 </p>
 
 <p align="center">
-  <img src="demo/demo_2.png" width="45%" alt="演示图 2">
-  <img src="demo/demo_3.png" width="45%" alt="演示图 3">
+  <img src="docs/public/demo_2.png" width="45%" alt="演示图 2">
+  <img src="docs/public/demo_3.png" width="45%" alt="演示图 3">
 </p>
 
 ## 💡 这样用效率更高
