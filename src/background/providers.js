@@ -152,7 +152,7 @@ export const PROVIDERS = [
     name: '元宝',
     matchPattern: 'https://yuanbao.tencent.com/*',
     startUrl: 'https://yuanbao.tencent.com/chat/',
-    requiresLogin: true, // 需要登录
+    requiresLogin: false, // 需要登录
     // 元宝不支持 API 模式，无需 apiConfig
   },
   {
