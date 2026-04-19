@@ -53,6 +53,8 @@ const DEFAULT_SUMMARY_PROMPT = `# Role
 
 export { buffers } from './helpers';
 export type { AppStore } from './types';
+export { PROVIDER_META } from '../../shared/config.js';
+export { MSG_TYPES } from '../../shared/messages.js';
 
 // ════════════════════════════════════════════════════════════════════
 // Store

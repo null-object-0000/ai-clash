@@ -24,14 +24,15 @@ import {
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown from '@ant-design/x-markdown';
-import { Button, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
+import { Button, Dropdown, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useStore, buffers } from './store';
+import { useStore, buffers, PROVIDER_META } from './store';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type StageType,
 } from './types';
+import { MSG_TYPES } from './store';
 import ChannelList from './components/ChannelList';
 import ChannelSettingsDrawer from './components/ChannelSettingsDrawer';
 import GlobalSettingsModal from './components/GlobalSettingsModal';
@@ -550,6 +551,118 @@ const App = () => {
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
   const thinkExpandedMap = useStore(s => s.thinkExpandedMap);
+
+  // 添加通道建议选项
+  const providerSuggestions = useMemo(() => {
+    return PROVIDER_META
+      .filter((p: any) => p.id !== 'summarizer' && !enabledMap[p.id as ProviderId])
+      .map((provider: any) => {
+        const Icon = getProviderIcon(provider.id as ProviderId);
+        return {
+          key: provider.id,
+          label: provider.name,
+          icon: Icon ? <Icon /> : undefined,
+        };
+      });
+  }, [enabledMap]);
+
+  const handleAddChannel = ({ key }: { key: string }) => {
+    const provider = PROVIDER_META.find((p: any) => p.id === key);
+    if (provider) {
+      const providerId = provider.id as ProviderId;
+      const s = useStore.getState();
+
+      // 如果当前有问题，将新通道加入队列等待提交
+      if (currentQuestion) {
+        // 检查是否有通道正在运行（responding 状态）
+        const respondingChannels = PROVIDER_IDS.filter(id =>
+          s.statusMap[id] === 'running' && s.stageMap[id] === 'responding'
+        );
+
+        if (respondingChannels.length === 0) {
+          // 没有通道在 responding，立即提交
+          toggleProvider(providerId);
+          message.success(`已启用 ${provider.name} 通道`);
+          submitNewChannel(providerId, currentQuestion, s);
+        } else {
+          // 有通道在 responding，先启用通道，等待完成后提交
+          toggleProvider(providerId);
+
+          // 设置通道为 idle 等待状态
+          const newStatusMap = { ...s.statusMap, [providerId]: 'idle' as const };
+          const newCollapseMap = { ...s.collapseMap, [providerId]: false };
+          const newThinkExpandedMap = { ...s.thinkExpandedMap, [providerId]: true };
+
+          useStore.setState({
+            statusMap: newStatusMap,
+            collapseMap: newCollapseMap,
+            thinkExpandedMap: newThinkExpandedMap,
+          });
+
+          message.info(`已启用 ${provider.name} 通道，将在当前通道完成后自动提交`);
+        }
+      } else {
+        // 没有当前问题，只是启用通道
+        toggleProvider(providerId);
+        message.success(`已启用 ${provider.name} 通道`);
+      }
+    }
+  };
+
+  // 提交新通道的辅助函数
+  const submitNewChannel = (providerId: ProviderId, question: string, s: ReturnType<typeof useStore.getState>) => {
+    // 更新状态，显示加载阶段
+    const newStatusMap = { ...s.statusMap, [providerId]: 'running' as const };
+    const newStageMap = { ...s.stageMap, [providerId]: 'opening' as StageType };
+    const newCollapseMap = { ...s.collapseMap, [providerId]: false };
+    const newThinkExpandedMap = { ...s.thinkExpandedMap, [providerId]: true };
+
+    useStore.setState({
+      statusMap: newStatusMap,
+      stageMap: newStageMap,
+      collapseMap: newCollapseMap,
+      thinkExpandedMap: newThinkExpandedMap,
+    });
+
+    // 重置 timing 和 buffers
+    buffers.timing[providerId].startTime = Date.now();
+    buffers.timing[providerId].firstContentTime = 0;
+    buffers.fullText[providerId] = '';
+    buffers.thinkText[providerId] = '';
+    buffers.displayedLen[providerId] = 0;
+    buffers.thinkDisplayedLen[providerId] = 0;
+
+    // 重置总结相关状态
+    buffers.summaryTriggered = false;
+    buffers.summaryFull = '';
+    buffers.summaryThink = '';
+    buffers.summaryDisplayedLen = 0;
+    buffers.summaryThinkDisplayedLen = 0;
+    useStore.setState({
+      summaryVersions: [],
+      summaryCurrentVersion: 0,
+      summaryResponse: '',
+      summaryThinkResponse: '',
+      summaryStats: null,
+      summaryStatus: 'idle',
+    });
+
+    // 提交任务
+    chrome.runtime?.sendMessage({
+      type: MSG_TYPES.DISPATCH_TASK,
+      payload: {
+        provider: providerId,
+        prompt: question,
+        mode: s.modeMap[providerId] === 'web' && (providerId === 'yuanbao' || providerId === 'wenxin') ? 'web' : s.modeMap[providerId],
+        settings: {
+          isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+          isWebSearchEnabled: s.isWebSearchEnabled,
+          conversationHistory: s.conversationTurns.map(t => ({ question: t.question, response: t.response })),
+          isNewConversation: false,
+        },
+      },
+    });
+  };
   const summaryVersions = useStore(s => s.summaryVersions);
   const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
   const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion } = useStore();
@@ -557,13 +670,54 @@ const App = () => {
   const {
     setInputStr, submit, createNewChat,
     toggleDeepThinking, toggleWebSearch, toggleSummary, toggleFocusFollow,
+    toggleProvider,
   } = useStore.getState();
 
   // ==================== Init ====================
   useEffect(() => {
     const cleanup = useStore.getState().init();
-    return cleanup;
-  }, []);
+
+    // 监听通道完成事件，触发队列检查
+    const messageListener = (request: any) => {
+      if (request.type === MSG_TYPES.TASK_COMPLETED && request.payload.provider !== '_summary') {
+        // 有通道完成了，检查是否有等待的新通道需要提交
+        checkAndSubmitPendingChannel(currentQuestion);
+      }
+    };
+
+    chrome.runtime?.onMessage.addListener(messageListener);
+
+    return () => {
+      cleanup?.();
+      chrome.runtime?.onMessage.removeListener(messageListener);
+    };
+  }, [currentQuestion]);
+
+  // 检查并提交等待中的通道
+  const checkAndSubmitPendingChannel = (question: string | null) => {
+    if (!question) return;
+
+    const s = useStore.getState();
+    // 查找正在运行但已经开始输出的通道（responding 状态）
+    // 只要有通道开始输出，就可以提交下一个新通道
+    const respondingChannels = PROVIDER_IDS.filter(id =>
+      s.statusMap[id] === 'running' && s.stageMap[id] === 'responding'
+    );
+
+    // 如果没有通道在 responding 状态，检查是否有刚刚启用但还没提交的通道
+    if (respondingChannels.length === 0) {
+      // 查找已启用但状态为 idle 的通道（可能是刚添加的）
+      const idleEnabledChannels = PROVIDER_IDS.filter(id =>
+        s.enabledMap[id] && s.statusMap[id] === 'idle' && !buffers.fullText[id]
+      );
+
+      // 只提交一个，串行处理
+      if (idleEnabledChannels.length > 0) {
+        const nextChannel = idleEnabledChannels[0];
+        submitNewChannel(nextChannel, question, s);
+      }
+    }
+  };
 
   // ==================== Resize Observer ====================
   useEffect(() => {
@@ -1044,6 +1198,53 @@ const App = () => {
                   导播模式
                 </Button>
               </Tooltip>
+              {hasAsked && summaryStatus !== 'running' && (
+                <>
+                  {providerSuggestions.length === 0 ? (
+                    <Tooltip title="已启用所有 AI 通道，无需添加">
+                      <Button
+                        size="small"
+                        type="default"
+                        icon={<PlusOutlined />}
+                        style={{ borderRadius: 6, fontSize: 13, height: 28, opacity: 0.5 }}
+                        disabled
+                      >
+                        添加通道
+                      </Button>
+                    </Tooltip>
+                  ) : (
+                    <Dropdown
+                      menu={{
+                        items: providerSuggestions,
+                        onClick: handleAddChannel,
+                      }}
+                      trigger={['click']}
+                    >
+                      <Button
+                        size="small"
+                        type="default"
+                        icon={<PlusOutlined />}
+                        style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+                      >
+                        添加通道
+                      </Button>
+                    </Dropdown>
+                  )}
+                </>
+              )}
+              {hasAsked && summaryStatus === 'running' && (
+                <Tooltip title="正在归纳总结中，请稍后再添加通道">
+                  <Button
+                    size="small"
+                    type="default"
+                    icon={<PlusOutlined />}
+                    style={{ borderRadius: 6, fontSize: 13, height: 28, opacity: 0.5 }}
+                    disabled
+                  >
+                    添加通道
+                  </Button>
+                </Tooltip>
+              )}
             </Flex>
           )}
           <Sender
@@ -1056,38 +1257,38 @@ const App = () => {
             onCancel={() => message.info('取消功能待实现')}
             suffix={false}
             footer={(_, { components }) => {
-              const { SendButton, LoadingButton } = components;
-              return (
-                <Flex justify="space-between" align="center">
-                  <Flex gap="small" align="center">
-                    <Sender.Switch
-                      icon={<BulbOutlined />}
-                      value={isDeepThinkingEnabled}
-                      onChange={toggleDeepThinking}
-                      style={{ fontSize: '13px' }}
-                    >
-                      深度思考
-                    </Sender.Switch>
-                    <Sender.Switch
-                      icon={<GlobalOutlined />}
-                      value={isWebSearchEnabled}
-                      onChange={toggleWebSearch}
-                      style={{ fontSize: '13px' }}
-                    >
-                      联网搜索
-                    </Sender.Switch>
-                  </Flex>
-                  <Flex align="center">
-                    {isAnyRunning ? (
-                      <LoadingButton type="default" />
-                    ) : (
-                      <SendButton type="primary" disabled={false} />
-                    )}
-                  </Flex>
-                </Flex>
-              );
-            }}
-          />
+                  const { SendButton, LoadingButton } = components;
+                  return (
+                    <Flex justify="space-between" align="center">
+                      <Flex gap="small" align="center">
+                        <Sender.Switch
+                          icon={<BulbOutlined />}
+                          value={isDeepThinkingEnabled}
+                          onChange={toggleDeepThinking}
+                          style={{ fontSize: '13px' }}
+                        >
+                          深度思考
+                        </Sender.Switch>
+                        <Sender.Switch
+                          icon={<GlobalOutlined />}
+                          value={isWebSearchEnabled}
+                          onChange={toggleWebSearch}
+                          style={{ fontSize: '13px' }}
+                        >
+                          联网搜索
+                        </Sender.Switch>
+                      </Flex>
+                      <Flex align="center">
+                        {isAnyRunning ? (
+                          <LoadingButton type="default" />
+                        ) : (
+                          <SendButton type="primary" disabled={false} />
+                        )}
+                      </Flex>
+                    </Flex>
+                  );
+                }}
+              />
         </Flex>
 
       {/* ─── Modals & Drawers ─── */}
