@@ -7,6 +7,17 @@ const base = process.env.BASE_URL || process.env.VITE_BASE_URL || '/'
 export default defineConfig({
   base: base,
 
+  head: [
+    [
+      'script',
+      {
+        defer: '',
+        src: 'https://cloud.umami.is/script.js',
+        'data-website-id': '3895ace9-ac76-4d79-aa29-40618f3386c9'
+      }
+    ]
+  ],
+
   locales: {
     root: {
       label: '简体中文',
