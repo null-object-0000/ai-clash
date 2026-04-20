@@ -76,15 +76,6 @@
 4. **问题咨询**：生活疑问、学习问题、职场困惑，多AI回答对比，避免被误导
 5. **决策参考**：买什么电子产品、去哪里旅游、怎么选offer，多个建议更靠谱
 
-<p align="center">
-  <img src="docs/public/demo_1.png" width="100%" alt="演示图 1">
-</p>
-
-<p align="center">
-  <img src="docs/public/demo_2.png" width="45%" alt="演示图 2">
-  <img src="docs/public/demo_3.png" width="45%" alt="演示图 3">
-</p>
-
 ## 💡 这样用效率更高
 
 ### 🎛️ 想开哪个AI你说了算
