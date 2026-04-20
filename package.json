@@ -24,7 +24,7 @@
         "@ant-design/x-markdown": "^2.5.0",
         "@ant-design/x-sdk": "^2.5.0",
         "@lobehub/icons": "^5.4.0",
-        "antd": "^6.3.5",
+        "antd": "^6.3.6",
         "antd-style": "^4.1.0",
         "dayjs": "^1.11.20",
         "motion": "^12.38.0",
