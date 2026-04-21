@@ -112,12 +112,13 @@ async function saveApiConfig(config) {
   });
 }
 
-function sendProviderError(providerId, message) {
+function sendProviderError(providerId, message, errorType = 'system_error') {
   chrome.runtime.sendMessage({
     type: MSG_TYPES.ERROR,
     payload: {
       provider: providerId,
       message,
+      errorType,
     }
   });
 }
@@ -474,6 +475,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    // ---- 重试单个通道（用户登录后点击「重新提问」） ----
+    if (request.type === MSG_TYPES.RETRY_TASK) {
+        const { provider: providerId, prompt, settings } = request.payload;
+        const provider = getProvider(providerId);
+        if (!provider) {
+            sendResponse({ status: 'error', error: 'provider 不存在' });
+            return true;
+        }
+
+        // 异步处理重试
+        (async () => {
+            try {
+                // 重试时总是使用 Web 模式（用户已经在网页登录了）
+                await routeToTab(provider, prompt, settings);
+            } catch (error) {
+                sendProviderError(providerId, error.message || '重试失败');
+            } finally {
+                sendResponse({ status: 'routed' });
+            }
+        })();
+
+        return true;
+    }
+
     // ---- 归纳总结 ----
     if (request.type === MSG_TYPES.DISPATCH_SUMMARY) {
         const { question, responses, summaryConfig } = request.payload;
@@ -775,33 +800,72 @@ async function openAndActivateTab(provider) {
 }
 
 // 等待页面加载完成
-async function waitForTabComplete(tabId, timeout = 30000) {
+async function waitForTabComplete(tabId, timeout = 10000) {
     return new Promise((resolve, reject) => {
-        // 先检查页面是否已经加载完成
-        chrome.tabs.get(tabId, (tab) => {
-            if (chrome.runtime.lastError) {
-                reject(new Error('Tab 不存在'));
-                return;
-            }
-            if (tab.status === 'complete') {
-                resolve();
-                return;
-            }
+        let resolved = false;
 
-            // 页面还在加载，监听 onUpdated 事件
-            const timeoutId = setTimeout(() => {
-                chrome.tabs.onUpdated.removeListener(listener);
+        const cleanup = () => {
+            resolved = true;
+            chrome.tabs.onUpdated.removeListener(listener);
+            clearInterval(pollIntervalId);
+            clearTimeout(timeoutId);
+        };
+
+        const timeoutId = setTimeout(() => {
+            if (!resolved) {
+                cleanup();
                 reject(new Error('页面加载超时'));
-            }, timeout);
+            }
+        }, timeout);
 
-            function listener(updatedTabId, info) {
-                if (updatedTabId === tabId && info.status === 'complete') {
-                    chrome.tabs.onUpdated.removeListener(listener);
-                    clearTimeout(timeoutId);
+        function listener(updatedTabId, info) {
+            if (updatedTabId === tabId && info.status === 'complete') {
+                cleanup();
+                resolve();
+            }
+        }
+
+        // 轮询检查作为后备（扩展重新加载后 onUpdated 事件可能不会触发）
+        const pollIntervalId = setInterval(async () => {
+            try {
+                const tab = await chrome.tabs.get(tabId);
+                if (tab.status === 'complete') {
+                    cleanup();
                     resolve();
                 }
+            } catch (e) {
+                if (!resolved) {
+                    cleanup();
+                    reject(new Error('Tab 已关闭'));
+                }
             }
-            chrome.tabs.onUpdated.addListener(listener);
+        }, 500);
+
+        chrome.tabs.onUpdated.addListener(listener);
+
+        getTabPromise(tabId).then((tab) => {
+            if (tab.status === 'complete') {
+                cleanup();
+                resolve();
+            }
+        }).catch((e) => {
+            if (!resolved) {
+                cleanup();
+                reject(new Error(`Tab 检查失败：${e.message}`));
+            }
+        });
+    });
+}
+
+// 将 chrome.tabs.get 包装成 Promise
+function getTabPromise(tabId) {
+    return new Promise((resolve, reject) => {
+        chrome.tabs.get(tabId, (tab) => {
+            if (chrome.runtime.lastError) {
+                reject(new Error(chrome.runtime.lastError.message));
+                return;
+            }
+            resolve(tab);
         });
     });
 }
@@ -867,7 +931,7 @@ async function routeToTab(provider, prompt, settings) {
         }
     }).catch(() => {});
 
-    // 6. 发送消息执行任务
+    // 6. 发送消息执行任务（登录检测由 Content Script 负责）
     await injectContentScriptAndSendMessage(tabId, provider, msg);
 }
 

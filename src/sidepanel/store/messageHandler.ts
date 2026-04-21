@@ -1,6 +1,6 @@
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
-import { PROVIDER_IDS, type ProviderId, type ProviderStatus, PROVIDER_NAME_MAP } from '../types';
+import { PROVIDER_IDS, type ProviderId, type ProviderStatus, PROVIDER_NAME_MAP, type ErrorType } from '../types';
 import { buffers, createDefaultRecord } from './helpers';
 import type { AppStore } from './types';
 
@@ -25,6 +25,8 @@ export function createMessageListener(
   get: StoreGet,
   set: StoreSet,
   syncProviderRawUrls: (ids: ProviderId[]) => Promise<void>,
+  setProviderError: (id: ProviderId, type: ErrorType, url?: string, opStatus?: string) => void,
+  clearProviderError: (id: ProviderId) => void,
 ) {
   return (request: any, sender: any, sendResponse: any) => {
     const { provider } = request.payload || {};
@@ -46,9 +48,14 @@ export function createMessageListener(
       if (p.isStatus) {
         // clearError: true 表示清除之前的错误状态（重试成功场景）
         if (p.clearError) {
-          // 清除错误状态和已累积的文本
-          set((prev: AppStore) => ({
-            operationStatus: { ...prev.operationStatus, [prov]: '' },
+          // 检查当前是否是登录错误状态，如果是则不清除
+          const currentErrorType = get().errorTypeMap[prov];
+          if (currentErrorType === 'login_required') {
+            return;
+          }
+          clearProviderError(prov);
+          // 清除错误状态后，重置相关状态
+          set(prev => ({
             stageMap: { ...prev.stageMap, [prov]: 'connecting' },
             responses: { ...prev.responses, [prov]: '' },
             thinkResponses: { ...prev.thinkResponses, [prov]: '' },
@@ -141,8 +148,12 @@ export function createMessageListener(
       }
       const prov = provider as ProviderId;
       if (!prov) return;
-      if (get().statusMap[prov] === 'completed') return; // Deduplication
-      
+      // 去重：已完成或当前是登录错误状态（不覆盖登录错误）
+      const currentStatus = get().statusMap[prov];
+      const currentErrorType = get().errorTypeMap[prov];
+      if (currentStatus === 'completed') return;
+      if (currentErrorType === 'login_required') return; // 保持登录错误状态，让用户看到引导按钮
+
       set((prev: AppStore) => ({ statusMap: { ...prev.statusMap, [prov]: 'completed' }, operationStatus: { ...prev.operationStatus, [prov]: '' } }));
       const timing = buffers.timing[prov];
       if (timing.startTime > 0 && timing.firstContentTime > 0) {
@@ -189,15 +200,25 @@ export function createMessageListener(
       const prov = provider as ProviderId;
       if (!prov) return;
       if (get().statusMap[prov] === 'error') return; // Deduplication
-      
-      const errText = `[系统报错] ${request.payload.message || request.payload.error || '未知错误'}`;
-      buffers.fullText[prov] = errText;
-      buffers.displayedLen[prov] = errText.length;
-      set((prev: AppStore) => ({
-        statusMap: { ...prev.statusMap, [prov]: 'error' },
-        operationStatus: { ...prev.operationStatus, [prov]: '' },
-        responses: { ...prev.responses, [prov]: errText },
-      }));
+
+      const errorType = request.payload.errorType || 'system_error';
+      const errMsg = request.payload.message || request.payload.error || '未知错误';
+
+      if (errorType === 'login_required') {
+        // 登录错误：显示引导 UI，不显示错误文本
+        setProviderError(prov, 'login_required', '', '未登录或会话过期');
+      } else {
+        // 系统错误：显示错误文本
+        const errText = `[系统报错] ${errMsg}`;
+        buffers.fullText[prov] = errText;
+        buffers.displayedLen[prov] = errText.length;
+        set((prev: AppStore) => ({
+          statusMap: { ...prev.statusMap, [prov]: 'error' },
+          operationStatus: { ...prev.operationStatus, [prov]: '' },
+          responses: { ...prev.responses, [prov]: errText },
+        }));
+      }
+
       syncProviderRawUrls([prov]);
       get().schedulePersist();
 
@@ -213,6 +234,14 @@ export function createMessageListener(
           });
         }
       }, 50);
+    } else if (request.type === MSG_TYPES.LOGIN_REQUIRED) {
+      // 处理未登录错误
+      const prov = provider as ProviderId;
+      if (!prov) return;
+
+      const { loginUrl } = request.payload;
+      setProviderError(prov, 'login_required', loginUrl || '', '未登录或会话过期');
+      get().schedulePersist();
     } else if (request.type === MSG_TYPES.GET_RUNNING_PROVIDERS) {
       if (sendResponse) {
         const s = get();
