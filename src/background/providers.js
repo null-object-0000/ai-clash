@@ -14,6 +14,7 @@ export const PROVIDERS = [
     matchPattern: 'https://ai-clash-service.snewbie.site/*',
     startUrl: 'https://ai-clash-service.snewbie.site/',
     requiresLogin: false, // 内置服务，无需登录
+    region: 'cn', // 地区：cn（中国）| global（海外）
     hasContentScript: false,
     // API 模式配置 - 内置总结服务
     apiConfig: {
@@ -36,6 +37,7 @@ export const PROVIDERS = [
     matchPattern: 'https://chat.deepseek.com/*',
     startUrl: 'https://chat.deepseek.com/',
     requiresLogin: true, // 需要登录
+    region: 'cn', // 深度求索 - 中国
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -63,6 +65,7 @@ export const PROVIDERS = [
     matchPattern: 'https://www.doubao.com/*',
     startUrl: 'https://www.doubao.com/chat/',
     requiresLogin: false, // 不需要登录即可对话
+    region: 'cn', // 字节豆包 - 中国
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -85,6 +88,7 @@ export const PROVIDERS = [
     matchPattern: 'https://www.qianwen.com/*',
     startUrl: 'https://www.qianwen.com/',
     requiresLogin: false, // 不需要登录即可对话
+    region: 'cn', // 阿里云通义千问 - 中国
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -153,6 +157,7 @@ export const PROVIDERS = [
     matchPattern: 'https://yuanbao.tencent.com/*',
     startUrl: 'https://yuanbao.tencent.com/chat/',
     requiresLogin: false, // 需要登录
+    region: 'cn', // 腾讯元宝 - 中国
     // 元宝不支持 API 模式，无需 apiConfig
   },
   {
@@ -161,6 +166,7 @@ export const PROVIDERS = [
     matchPattern: 'https://yiyan.baidu.com/*',
     startUrl: 'https://yiyan.baidu.com/chat/',
     requiresLogin: false, // 登录拦截: 否（无强制前置拦截）
+    region: 'cn', // 百度文心一言 - 中国
     // 文心目前优先集成网页端
   },
   {
@@ -169,6 +175,7 @@ export const PROVIDERS = [
     matchPattern: 'https://longcat.chat/*',
     startUrl: 'https://longcat.chat/',
     requiresLogin: true, // 需要登录
+    region: 'cn', // 长猫 - 中国
     enabled: false, // 暂时禁用，回归测试中
     // API 模式配置
     apiConfig: {
@@ -206,6 +213,7 @@ export const PROVIDERS = [
     matchPattern: 'https://aistudio.xiaomimimo.com/*',
     startUrl: 'https://aistudio.xiaomimimo.com/#/c',
     requiresLogin: true, // 需要登录
+    region: 'cn', // 小米 MIMO - 中国
     // API 模式配置
     apiConfig: {
       enabled: true,

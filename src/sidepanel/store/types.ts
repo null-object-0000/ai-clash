@@ -88,6 +88,8 @@ export interface AppActions {
 
   // ─── Provider Config ───
   toggleProvider: (id: string) => Promise<void>;
+  selectAllProviders: () => Promise<void>;
+  invertProviderSelection: () => Promise<void>;
   setProviderMode: (id: ProviderId, mode: ProviderMode) => void;
   setProviderApiKey: (id: ProviderId, value: string) => void;
   setProviderModel: (id: ProviderId, value: string) => void;

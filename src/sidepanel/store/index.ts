@@ -390,6 +390,33 @@ export const useStore = create<AppStore>()((set, get) => {
       saveEnabledProviders();
     },
 
+    selectAllProviders: async () => {
+      const s = get();
+      // summarizer 是内置总结服务，不在常规通道列表中显示，所以全选时排除它
+      const visibleProviderIds = PROVIDER_IDS.filter(id => id !== 'summarizer');
+      const allEnabled = visibleProviderIds.every(id => s.enabledMap[id]);
+      // 如果已经全部启用，则全部禁用；否则全部启用
+      const newValue = !allEnabled;
+      const nextEnabledMap = { ...s.enabledMap };
+      visibleProviderIds.forEach(id => {
+        nextEnabledMap[id] = newValue;
+      });
+      set({ enabledMap: nextEnabledMap });
+      saveEnabledProviders();
+    },
+
+    invertProviderSelection: async () => {
+      const s = get();
+      // summarizer 是内置总结服务，不在常规通道列表中显示，所以反选时排除它
+      const visibleProviderIds = PROVIDER_IDS.filter(id => id !== 'summarizer');
+      const nextEnabledMap = { ...s.enabledMap };
+      visibleProviderIds.forEach(id => {
+        nextEnabledMap[id] = !s.enabledMap[id];
+      });
+      set({ enabledMap: nextEnabledMap });
+      saveEnabledProviders();
+    },
+
     setProviderMode: (id, mode) => {
       if (mode === 'api' && !get().apiKeyMap[id]?.trim()) return;
       set(prev => ({ modeMap: { ...prev.modeMap, [id]: mode } }));
