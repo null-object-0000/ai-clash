@@ -419,6 +419,7 @@ function getConversationIdFromUrl(provider: ProviderConfig): string | undefined 
   }
 
   // 没有配置 pattern，尝试从 pathname 最后一段提取
+  const pathname = window.location.pathname;
   const segments = pathname.split('/').filter(Boolean);
   let id = segments.length > 0 ? segments[segments.length - 1] : undefined;
 
@@ -862,13 +863,21 @@ function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
 
   return {
     async getInfo(): Promise<AuthInfo> {
-      // 检查是否已登录：只要 loggedInSelectors 中任意一个元素存在即视为已登录
+      // 1. 优先检查未登录特征元素（如"立即登录"按钮）
+      if (auth.loggedOutSelectors) {
+        const loggedOutEl = findAnyElement(auth.loggedOutSelectors);
+        if (loggedOutEl) {
+          return { loggedIn: false };
+        }
+      }
+
+      // 2. 检查是否已登录：只要 loggedInSelectors 中任意一个元素存在即视为已登录
       const loggedInEl = findAnyElement(auth.loggedInSelectors);
       if (!loggedInEl) {
         return { loggedIn: false };
       }
 
-      // 提取用户名
+      // 3. 提取用户名
       let username: string | undefined;
       if (auth.usernameSelectors) {
         const usernameEl = findAnyElement(auth.usernameSelectors);
@@ -877,7 +886,7 @@ function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
         }
       }
 
-      // 提取头像 URL
+      // 4. 提取头像 URL
       let avatarUrl: string | undefined;
       if (auth.avatarSelectors) {
         const avatarEl = findAnyElement(auth.avatarSelectors);

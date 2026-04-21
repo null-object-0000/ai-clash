@@ -272,13 +272,12 @@ export const useStore = create<AppStore>()((set, get) => {
   // ─── 错误状态管理助手 ───
 
   /**
-   * 设置提供器的错误状态，确保 errorTypeMap、loginUrlMap、statusMap 保持一致
+   * 设置提供器的错误状态，确保 errorTypeMap、statusMap 保持一致
    */
-  const setProviderError = (providerId: ProviderId, errorType: ErrorType, loginUrl = '', operationStatus = '') => {
+  const setProviderError = (providerId: ProviderId, errorType: ErrorType, operationStatus = '') => {
     set(prev => ({
       statusMap: { ...prev.statusMap, [providerId]: 'error' },
       errorTypeMap: { ...prev.errorTypeMap, [providerId]: errorType },
-      loginUrlMap: { ...prev.loginUrlMap, [providerId]: errorType === 'login_required' ? loginUrl : '' },
       operationStatus: { ...prev.operationStatus, [providerId]: operationStatus },
     }));
   };
@@ -290,7 +289,6 @@ export const useStore = create<AppStore>()((set, get) => {
     set(prev => ({
       statusMap: { ...prev.statusMap, [providerId]: 'idle' },
       errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'none' },
-      loginUrlMap: { ...prev.loginUrlMap, [providerId]: '' },
       operationStatus: { ...prev.operationStatus, [providerId]: '' },
     }));
   };
@@ -328,7 +326,6 @@ export const useStore = create<AppStore>()((set, get) => {
     thinkResponses: createDefaultRecord(''),
     operationStatus: createDefaultRecord(''),
     errorTypeMap: createDefaultRecord<ErrorType>('none'),
-    loginUrlMap: createDefaultRecord(''),
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
     collapseMap: { ...createDefaultRecord(false), summary: false }, // false = 展开，true = 折叠

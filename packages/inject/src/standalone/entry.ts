@@ -158,8 +158,27 @@ window.addEventListener('message', async (event) => {
 
     const { seq, capability, method, args } = event.data;
 
+    // 处理 auth.getInfo 调用
+    if (capability === 'auth' && method === 'getInfo') {
+      try {
+        const result = await waitingInjector.call(capability, method, ...(args || []));
+        window.postMessage({
+          type: '__aiclash_auth_result',
+          seq,
+          result,
+        }, '*');
+      } catch (err) {
+        console.error('[AI Clash Inject] auth.getInfo failed:', err);
+        window.postMessage({
+          type: '__aiclash_auth_result',
+          seq,
+          result: { loggedIn: false, error: String(err) },
+        }, '*');
+      }
+      return;
+    }
+
     // 处理 chat.send 的特殊回调转发
-    // content script 只传 [prompt, options]，我们在这边重建回调
     if (capability === 'chat' && method === 'send') {
       const [prompt, options] = args;
 
@@ -214,10 +233,10 @@ window.addEventListener('message', async (event) => {
 
       // 正常调用
       waitingInjector.call(capability, method, prompt, options, wrappedCallbacks)
-        .then(result => {
+        .then((result: any) => {
           console.log('[AI Clash Inject] chat.send completed:', result);
         })
-        .catch(err => {
+        .catch((err: any) => {
           console.error('[AI Clash Inject] chat.send failed:', err);
         });
       return;

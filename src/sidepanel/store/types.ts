@@ -45,7 +45,6 @@ export interface AppState {
   thinkResponses: Record<ProviderId, string>;
   operationStatus: Record<ProviderId, string>;
   errorTypeMap: Record<ProviderId, ErrorType>; // 错误类型映射
-  loginUrlMap: Record<ProviderId, string>; // 各平台登录链接
   rawUrlMap: Record<ProviderId, string>;
   statsMap: Record<ProviderId, ProviderStats | null>;
   collapseMap: Record<ProviderId | 'summary', boolean>; // false = 展开，true = 折叠

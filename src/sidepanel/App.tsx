@@ -554,7 +554,6 @@ const App = () => {
   const summaryStats = useStore(s => s.summaryStats);
   const operationStatus = useStore(s => s.operationStatus);
   const errorTypeMap = useStore(s => s.errorTypeMap);
-  const loginUrlMap = useStore(s => s.loginUrlMap);
   const summaryOperationStatus = useStore(s => s.summaryOperationStatus);
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
@@ -683,13 +682,8 @@ const App = () => {
 
   // 处理「去登录」按钮点击
   const handleGoToLogin = async (providerId: ProviderId) => {
-    const loginUrl = loginUrlMap[providerId];
-    if (loginUrl) {
-      window.open(loginUrl, '_blank');
-    } else {
-      // 如果没有记录的登录链接，使用 goToProvider 打开默认页面
-      await goToProvider(providerId, true);
-    }
+    // 只需激活对应的 tab，让用户自己操作登录
+    await goToProvider(providerId, true);
   };
 
   // 处理「重新提问」按钮点击

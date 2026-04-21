@@ -12,6 +12,10 @@ const authAction: AuthAction = {
   loggedInSelectors: [
     '.bg-mimo-bg-body .pr-2.pl-2 .items-center button img',
   ],
+  // 未登录特征：存在"立即登录"按钮
+  loggedOutSelectors: [
+    'button >> 立即登录',
+  ],
   usernameSelectors: [
     '.bg-mimo-bg-body .pr-2.pl-2 .items-center button span.text-sm',
   ],

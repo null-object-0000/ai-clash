@@ -200,13 +200,19 @@ export interface AuthAction {
    */
   loggedInSelectors: string[];
   /**
+   * 未登录状态检测选择器 - 当这些元素存在时表示未登录
+   * 通常是登录按钮、登录表单等
+   * 优先级高于 loggedInSelectors
+   */
+  loggedOutSelectors?: string[];
+  /**
    * 用户名文本提取选择器
    */
-  usernameSelectors?: string[];
+  usernameSelectors: string[];
   /**
    * 头像图片 URL 提取选择器
    */
-  avatarSelectors?: string[];
+  avatarSelectors: string[];
 }
 
 /**

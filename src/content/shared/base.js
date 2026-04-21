@@ -274,216 +274,72 @@ export function bootstrapProvider(providerId) {
   }
 
   // ============================================================================
-  // 登录态检测
+  // 登录态检测 - 调用 inject 包的 auth.getInfo() API
   // ============================================================================
 
   /**
-   * 同步检测当前页面是否处于未登录状态（不等待，直接检查）
-   * @returns {{isLoggedOut: boolean, loginUrl?: string, isOnLoginPage?: boolean} | null}
+   * 通过 postMessage 调用 MAIN world 的 auth.getInfo()
    */
-  function checkLoginStatusSync() {
-    // 页面未加载完成时不检测，避免误判
-    if (document.readyState !== 'complete') {
-      return null;
-    }
+  async function getAuthInfoViaPostMessage() {
+    return new Promise((resolve) => {
+      const seq = Date.now();
+      const timeout = setTimeout(() => {
+        window.removeEventListener('message', handler);
+        resolve(null); // 超时返回 null
+      }, 3000);
 
-    const currentPath = window.location.pathname;
-    const currentHref = window.location.href;
+      const handler = (event) => {
+        if (!event.data || event.data.type !== '__aiclash_auth_result' || event.data.seq !== seq) {
+          return;
+        }
+        clearTimeout(timeout);
+        window.removeEventListener('message', handler);
+        resolve(event.data.result);
+      };
 
-    // 各平台的登录态检测选择器
-    const LOGIN_SELECTORS = {
-      deepseek: {
-        check: () => {
-          if (currentPath.includes('/sign_in') || currentPath.includes('/login') || currentPath.includes('/signup')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], button[class*="sign-in"], a[href*="/login"], a[href*="/signin"]');
-          const notLoggedInMsg = document.querySelector('*[class*="not-logged"], *[class*="please-login"]');
-          if (loginBtn || notLoggedInMsg) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://chat.deepseek.com/sign_in'
-      },
-      yuanbao: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginModal = document.querySelector('[class*="login"], [class*="auth"]');
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"]');
-          if (loginModal || loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://yuanbao.tencent.com/login'
-      },
-      longcat: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://longcat.chat/login'
-      },
-      xiaomi: {
-        check: () => {
-          // 小米登录页是 account.xiaomi.com 域名
-          if (window.location.hostname === 'account.xiaomi.com') {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          if (currentPath.includes('/login') || currentHref.includes('#/login')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://account.xiaomi.com/fe/service/login'
-      },
-      doubao: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://www.doubao.com/login'
-      },
-      qianwen: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://www.qianwen.com/login'
-      },
-      wenxin: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://yiyan.baidu.com/login'
+      window.addEventListener('message', handler, false);
+
+      // 发送请求到 MAIN world
+      window.postMessage({
+        type: '__aiclash_call',
+        seq,
+        capability: 'auth',
+        method: 'getInfo',
+        args: []
+      }, '*');
+    });
+  }
+
+  /**
+   * 调用 inject 包的 auth.getInfo() API 检测登录状态
+   * @returns {Promise<{isLoggedOut: boolean} | null>}
+   */
+  async function checkLoginStatus() {
+    try {
+      // 调用 inject 包的 auth.getInfo() API
+      const authInfo = await getAuthInfoViaPostMessage();
+      if (authInfo) {
+        logger.log(`[AI Clash ${PROVIDER}] auth.getInfo() 返回:`, authInfo);
+        if (!authInfo.loggedIn) {
+          logger.log(`[AI Clash ${PROVIDER}] 检测到未登录`);
+          return { isLoggedOut: true };
+        }
+        logger.log(`[AI Clash ${PROVIDER}] 已登录`);
+        return { isLoggedOut: false };
       }
-    };
 
-    const config = LOGIN_SELECTORS[PROVIDER];
-    if (!config) {
+      // inject 未响应时，返回 null 表示无法确定
+      logger.warn(`[AI Clash ${PROVIDER}] auth.getInfo() 调用失败，无法检测登录状态`);
+      return null;
+    } catch (err) {
+      logger.warn(`[AI Clash ${PROVIDER}] 登录检测失败:`, err.message);
       return null;
     }
-
-    const result = config.check();
-    if (result?.isLoggedOut && config.loginUrl) {
-      return { ...result, loginUrl: config.loginUrl };
-    }
-    return result;
   }
 
   // ============================================================================
   // 任务执行
   // ============================================================================
-
-  // 登录页轮询检测器 ID
-  let loginCheckIntervalId = null;
-  let beforeUnloadHandler = null;
-  let loginCheckStarted = false;
-
-  /**
-   * 启动登录页轮询检测
-   */
-  function startLoginCheck() {
-    if (loginCheckStarted) {
-      return;
-    }
-    loginCheckStarted = true;
-
-    // 清除之前的检测器（如果有）
-    stopLoginCheck();
-
-    // 监听页面卸载事件（检测跳转到登录页）
-    beforeUnloadHandler = () => {
-      const loginStatus = checkLoginStatusSync();
-      if (loginStatus?.isLoggedOut) {
-        safeSend({
-          type: MSG_TYPES.LOGIN_REQUIRED,
-          payload: {
-            provider: PROVIDER,
-            loginUrl: loginStatus.loginUrl
-          }
-        });
-        safeSend({
-          type: MSG_TYPES.TASK_COMPLETED,
-          payload: { provider: PROVIDER }
-        });
-        if (!messageSent) {
-          resolvePendingWithError();
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', beforeUnloadHandler);
-
-    // 每 500ms 检查一次 URL
-    loginCheckIntervalId = setInterval(() => {
-      const loginStatus = checkLoginStatusSync();
-      if (loginStatus?.isLoggedOut) {
-        stopLoginCheck();
-        const loginUrl = loginStatus.loginUrl;
-        safeSend({
-          type: MSG_TYPES.LOGIN_REQUIRED,
-          payload: {
-            provider: PROVIDER,
-            loginUrl: loginUrl
-          }
-        });
-        safeSend({
-          type: MSG_TYPES.TASK_COMPLETED,
-          payload: { provider: PROVIDER }
-        });
-        if (!messageSent) {
-          resolvePendingWithError();
-        }
-      }
-    }, 500);
-  }
-
-  /**
-   * 停止登录页轮询检测
-   */
-  function stopLoginCheck() {
-    if (loginCheckIntervalId) {
-      clearInterval(loginCheckIntervalId);
-      loginCheckIntervalId = null;
-    }
-    if (beforeUnloadHandler) {
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      beforeUnloadHandler = null;
-    }
-  }
 
   /**
    * 执行 AI 对话任务
@@ -502,8 +358,24 @@ export function bootstrapProvider(providerId) {
       throw new Error('注入器初始化失败');
     }
 
-    // 启动登录页轮询检测
-    startLoginCheck();
+    // 在调用 send API 前，先检测登录状态
+    const loginStatus = await checkLoginStatus();
+
+    // 只有当明确检测到未登录时才阻止发送
+    // 如果 loginStatus 为 null（inject 无法检测），则继续执行
+    if (loginStatus?.isLoggedOut) {
+      safeSend({
+        type: MSG_TYPES.LOGIN_REQUIRED,
+        payload: {
+          provider: PROVIDER
+        }
+      });
+      safeSend({
+        type: MSG_TYPES.TASK_COMPLETED,
+        payload: { provider: PROVIDER }
+      });
+      throw new Error('未登录或会话过期');
+    }
 
     safeSend({
       type: MSG_TYPES.CHUNK_RECEIVED,
@@ -534,8 +406,6 @@ export function bootstrapProvider(providerId) {
           });
         },
         onConversationId: (conversationId) => {
-          // 消息发送成功，但**不要**停止登录检测——因为页面可能会在发送后跳转到登录页
-          // stopLoginCheck();  // 移除这行，让登录检测继续运行
           // 发送完成，已获取会话 ID，进入等待回复阶段
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
@@ -543,14 +413,12 @@ export function bootstrapProvider(providerId) {
           });
         },
         onComplete: (fullText, conversationId) => {
-          stopLoginCheck();
           safeSend({
             type: MSG_TYPES.TASK_COMPLETED,
             payload: { provider: PROVIDER }
           });
         },
         onError: (error, conversationId) => {
-          stopLoginCheck();
           safeSend({
             type: MSG_TYPES.ERROR,
             payload: { provider: PROVIDER, message: error }
@@ -567,8 +435,6 @@ export function bootstrapProvider(providerId) {
       });
 
     } catch (err) {
-      // 发生错误时停止登录检测
-      stopLoginCheck();
       safeSend({
         type: MSG_TYPES.ERROR,
         payload: { provider: PROVIDER, message: err.message || '任务执行失败' }

@@ -239,8 +239,7 @@ export function createMessageListener(
       const prov = provider as ProviderId;
       if (!prov) return;
 
-      const { loginUrl } = request.payload;
-      setProviderError(prov, 'login_required', loginUrl || '', '未登录或会话过期');
+      setProviderError(prov, 'login_required', '', '未登录或会话过期');
       get().schedulePersist();
     } else if (request.type === MSG_TYPES.GET_RUNNING_PROVIDERS) {
       if (sendResponse) {
