@@ -187,6 +187,12 @@ const useStyles = createStyles(({ token, css }) => ({
     background: ${token.colorBgTextHover};
     margin-bottom: ${token.margin}px;
   `,
+  emptyStateContainer: css`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  `,
   chatSend: css`
     flex-shrink: 0;
     padding: ${token.padding}px;
@@ -1214,7 +1220,7 @@ const App = () => {
             role={role}
           />
         ) : (
-          <div style={{ overflow: 'auto', flex: 1 }}>
+          <div className={styles.emptyStateContainer}>
             <Welcome
               variant="borderless"
               title="👋 欢迎召唤「AI 对撞机」"

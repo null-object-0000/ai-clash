@@ -16,9 +16,25 @@ export const PROVIDER_META = PROVIDERS
     name: provider.name,
     supportsApi: !!provider.apiConfig?.enabled,
     requiresLogin: provider.requiresLogin ?? true, // 默认需要登录
+    region: provider.region ?? 'cn', // 地区：cn（中国）| global（海外）
     apiKeyLink: provider.apiConfig?.apiKeyLink || undefined,
     apiNote: provider.apiConfig?.apiNote || undefined,
   }));
+
+/**
+ * 按地区过滤的 Provider 元数据
+ */
+export function getProvidersByRegion(region) {
+  return PROVIDER_META.filter(p => p.region === region);
+}
+
+/**
+ * 获取所有可用的地区列表
+ */
+export function getAvailableRegions() {
+  const regions = new Set(PROVIDER_META.map(p => p.region));
+  return Array.from(regions);
+}
 
 /**
  * 获取模型选项列表 - 从 providers.js 动态生成
