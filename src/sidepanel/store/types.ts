@@ -1,6 +1,6 @@
 import type {
   ProviderId, ProviderMode, ProviderStatus, StageType,
-  ProviderStats, CompletedTurn, ChatHistoryItem,
+  ProviderStats, CompletedTurn, ChatHistoryItem, ErrorType,
 } from '../types';
 
 export type SidepanelSettings = {
@@ -44,6 +44,8 @@ export interface AppState {
   responses: Record<ProviderId, string>;
   thinkResponses: Record<ProviderId, string>;
   operationStatus: Record<ProviderId, string>;
+  errorTypeMap: Record<ProviderId, ErrorType>; // 错误类型映射
+  loginUrlMap: Record<ProviderId, string>; // 各平台登录链接
   rawUrlMap: Record<ProviderId, string>;
   statsMap: Record<ProviderId, ProviderStats | null>;
   collapseMap: Record<ProviderId | 'summary', boolean>; // false = 展开，true = 折叠
@@ -129,6 +131,10 @@ export interface AppActions {
 
   // ─── Summary Versions ───
   switchSummaryVersion: (index: number) => void;  // 切换查看的总结版本
+
+  // ─── Error State Management ───
+  setProviderError: (id: ProviderId, type: ErrorType, url?: string, opStatus?: string) => void;
+  clearProviderError: (id: ProviderId) => void;
 
   // ─── Derived getters ───
   getEnabledProviderIds: () => ProviderId[];

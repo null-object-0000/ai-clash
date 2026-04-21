@@ -8,7 +8,7 @@ import {
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
   type ProviderStats, type ProviderHistoryEntry, type SummaryHistoryEntry,
   type CompletedTurn, type ChatHistoryItem, type MultiChannelHistoryItem,
-  type SingleChannelHistoryItem,
+  type SingleChannelHistoryItem, type ErrorType,
 } from '../types';
 import {
   SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY,
@@ -125,11 +125,13 @@ export const useStore = create<AppStore>()((set, get) => {
     return Object.fromEntries(PROVIDER_IDS.map(id => [id, {
       enabled: s.enabledMap[id],
       mode: s.modeMap[id],
-      status: s.statusMap[id],
-      stage: 'connecting' as StageType,
+      // 保存稳定状态：有响应内容则是 completed，否则是 idle
+      status: (s.responses[id] || s.thinkResponses[id]) ? 'completed' : 'idle',
+      stage: (s.responses[id] || s.thinkResponses[id]) ? 'responding' : 'connecting',
       response: s.responses[id],
       thinkResponse: s.thinkResponses[id],
       operationStatus: s.operationStatus[id],
+      errorType: s.errorTypeMap[id],
       rawUrl: rawUrlOverrides[id] ?? s.rawUrlMap[id] ?? '',
       stats: s.statsMap[id] ?? null,
     }])) as Record<ProviderId, ProviderHistoryEntry>;
@@ -267,6 +269,32 @@ export const useStore = create<AppStore>()((set, get) => {
   const getProviderMeta = (id: ProviderId) => PROVIDER_META.find((p: any) => p.id === id);
   const supportsApi = (id: ProviderId) => getProviderMeta(id)?.supportsApi ?? false;
 
+  // ─── 错误状态管理助手 ───
+
+  /**
+   * 设置提供器的错误状态，确保 errorTypeMap、loginUrlMap、statusMap 保持一致
+   */
+  const setProviderError = (providerId: ProviderId, errorType: ErrorType, loginUrl = '', operationStatus = '') => {
+    set(prev => ({
+      statusMap: { ...prev.statusMap, [providerId]: 'error' },
+      errorTypeMap: { ...prev.errorTypeMap, [providerId]: errorType },
+      loginUrlMap: { ...prev.loginUrlMap, [providerId]: errorType === 'login_required' ? loginUrl : '' },
+      operationStatus: { ...prev.operationStatus, [providerId]: operationStatus },
+    }));
+  };
+
+  /**
+   * 清除提供器的错误状态
+   */
+  const clearProviderError = (providerId: ProviderId) => {
+    set(prev => ({
+      statusMap: { ...prev.statusMap, [providerId]: 'idle' },
+      errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'none' },
+      loginUrlMap: { ...prev.loginUrlMap, [providerId]: '' },
+      operationStatus: { ...prev.operationStatus, [providerId]: '' },
+    }));
+  };
+
   // ════════════════════════════════════════════════════════════════
   // Return the store definition
   // ════════════════════════════════════════════════════════════════
@@ -299,6 +327,8 @@ export const useStore = create<AppStore>()((set, get) => {
     responses: createDefaultRecord(''),
     thinkResponses: createDefaultRecord(''),
     operationStatus: createDefaultRecord(''),
+    errorTypeMap: createDefaultRecord<ErrorType>('none'),
+    loginUrlMap: createDefaultRecord(''),
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
     collapseMap: { ...createDefaultRecord(false), summary: false }, // false = 展开，true = 折叠
@@ -443,7 +473,10 @@ export const useStore = create<AppStore>()((set, get) => {
       const prompt = s.inputStr.trim();
       if (!prompt) return;
       const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
-      if (!enabledIds.length) { set({ showNoChannelTip: true }); return; }
+      if (!enabledIds.length) {
+        set({ showNoChannelTip: true });
+        return;
+      }
 
       buffers.userHasScrolled = false;
       const isSingleChannel = enabledIds.length === 1;
@@ -513,8 +546,8 @@ export const useStore = create<AppStore>()((set, get) => {
 
       // 串行执行：每个提供者提交成功后再执行下一个
       for (const id of enabledIds) {
-        await new Promise<void>((resolve) => {
-          chrome.runtime?.sendMessage({
+        await new Promise<void>((resolve, reject) => {
+          const msg = {
             type: MSG_TYPES.DISPATCH_TASK,
             payload: {
               provider: id, prompt,
@@ -526,10 +559,25 @@ export const useStore = create<AppStore>()((set, get) => {
                 isNewConversation,
               },
             },
-          }, (response) => {
-            logger.log(`[${id}] 任务提交完成:`, response);
+          };
+
+          if (!chrome.runtime?.sendMessage) {
+            reject(new Error('chrome.runtime.sendMessage 不可用'));
+            return;
+          }
+
+          chrome.runtime.sendMessage(msg, (response) => {
+            const lastError = chrome.runtime.lastError;
+            if (lastError) {
+              reject(new Error(lastError.message));
+              return;
+            }
             resolve();
           });
+
+          setTimeout(() => {
+            reject(new Error('等待响应超时'));
+          }, 5000);
         });
       }
     },
@@ -597,18 +645,21 @@ export const useStore = create<AppStore>()((set, get) => {
         const newOp = createDefaultRecord('');
         const newRaw = createDefaultRecord('');
         const newStats = createDefaultRecord<ProviderStats | null>(null);
+        const newErrorType = createDefaultRecord<ErrorType>('none');
         // 多通道历史：默认折叠所有通道，折叠深度思考
         const newCollapse: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
         const newThinkExpanded: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: true };
 
         for (const id of PROVIDER_IDS) {
-          const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', rawUrl: '', stats: null };
+          const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', errorType: 'none' as ErrorType, rawUrl: '', stats: null };
           newEnabled[id] = ps.enabled;
-          newStatus[id] = ps.status;
-          newStage[id] = ps.stage;
+          // 根据是否有响应内容来设置状态，而不是使用保存的运行时状态
+          newStatus[id] = (ps.response || ps.thinkResponse) ? 'completed' : 'idle';
+          newStage[id] = (ps.response || ps.thinkResponse) ? 'responding' : 'connecting';
           newResp[id] = ps.response;
           newThink[id] = ps.thinkResponse;
           newOp[id] = ps.operationStatus;
+          newErrorType[id] = ps.errorType || (ps.operationStatus?.includes('未登录') ? 'login_required' : 'none');
           newRaw[id] = ps.rawUrl;
           newStats[id] = ps.stats ?? null;
           newCollapse[id] = true; // 多通道历史默认全部折叠
@@ -625,7 +676,7 @@ export const useStore = create<AppStore>()((set, get) => {
           isMultiTurnSession: false,
           enabledMap: newEnabled, statusMap: newStatus, stageMap: newStage,
           responses: newResp, thinkResponses: newThink, operationStatus: newOp,
-          rawUrlMap: newRaw, statsMap: newStats, collapseMap: newCollapse,
+          errorTypeMap: newErrorType, rawUrlMap: newRaw, statsMap: newStats, collapseMap: newCollapse,
           thinkExpandedMap: newThinkExpanded,
         });
       }
@@ -874,6 +925,9 @@ export const useStore = create<AppStore>()((set, get) => {
       }
     },
 
+    setProviderError,
+    clearProviderError,
+
     // ─── Derived Getters ───
 
     getEnabledProviderIds: () => PROVIDER_IDS.filter(id => get().enabledMap[id]),
@@ -979,6 +1033,7 @@ export const useStore = create<AppStore>()((set, get) => {
                   response: typeof prov.response === 'string' ? prov.response : '',
                   thinkResponse: typeof prov.thinkResponse === 'string' ? prov.thinkResponse : '',
                   operationStatus: prov.operationStatus || '',
+                  errorType: prov.errorType || 'none',
                   rawUrl: prov.rawUrl || '',
                   stats: prov.stats || null,
                   ...prov,
@@ -1045,7 +1100,7 @@ export const useStore = create<AppStore>()((set, get) => {
         },
       );
 
-      const listener = createMessageListener(get, set, syncProviderRawUrls);
+      const listener = createMessageListener(get, set, syncProviderRawUrls, setProviderError, clearProviderError);
       chrome.runtime?.onMessage.addListener(listener);
       return () => { chrome.runtime?.onMessage.removeListener(listener); };
     },

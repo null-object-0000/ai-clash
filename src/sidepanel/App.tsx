@@ -547,6 +547,8 @@ const App = () => {
   const statsMap = useStore(s => s.statsMap);
   const summaryStats = useStore(s => s.summaryStats);
   const operationStatus = useStore(s => s.operationStatus);
+  const errorTypeMap = useStore(s => s.errorTypeMap);
+  const loginUrlMap = useStore(s => s.loginUrlMap);
   const summaryOperationStatus = useStore(s => s.summaryOperationStatus);
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
@@ -670,8 +672,48 @@ const App = () => {
   const {
     setInputStr, submit, createNewChat,
     toggleDeepThinking, toggleWebSearch, toggleSummary, toggleFocusFollow,
-    toggleProvider,
+    toggleProvider, goToProvider, clearProviderError,
   } = useStore.getState();
+
+  // 处理「去登录」按钮点击
+  const handleGoToLogin = async (providerId: ProviderId) => {
+    const loginUrl = loginUrlMap[providerId];
+    if (loginUrl) {
+      window.open(loginUrl, '_blank');
+    } else {
+      // 如果没有记录的登录链接，使用 goToProvider 打开默认页面
+      await goToProvider(providerId, true);
+    }
+  };
+
+  // 处理「重新提问」按钮点击
+  const handleRetryTask = async (providerId: ProviderId) => {
+    const s = useStore.getState();
+    const prompt = currentQuestion;
+    if (!prompt) return;
+
+    // 清除之前的错误状态
+    clearProviderError(providerId);
+    useStore.setState({
+      stageMap: { ...s.stageMap, [providerId]: 'waiting' },
+      responses: { ...s.responses, [providerId]: '' },
+      thinkResponses: { ...s.thinkResponses, [providerId]: '' },
+    });
+
+    // 发送重试请求到 background
+    chrome.runtime?.sendMessage({
+      type: MSG_TYPES.RETRY_TASK,
+      payload: {
+        provider: providerId,
+        prompt,
+        settings: {
+          isNewConversation: true,
+          isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+          isWebSearchEnabled: s.isWebSearchEnabled,
+        }
+      }
+    });
+  };
 
   // ==================== Init ====================
   useEffect(() => {
@@ -798,7 +840,11 @@ const App = () => {
         const thinkExpanded = thinkExpandedMap[id];
 
         // 如果通道已完成/出错但没有内容，跳过不渲染，避免显示空气泡
-        if (isCompletedOrError && !hasContent) return;
+        // 但登录错误是例外，需要显示登录引导
+        const isLoginError = errorTypeMap[id] === 'login_required';
+        if (isCompletedOrError && !hasContent && !isLoginError) {
+          return;
+        }
 
         // 构建 contentRender：折叠时返回 null，否则根据是否有 think 来决定渲染方式
         let contentRenderFn = undefined;
@@ -808,6 +854,35 @@ const App = () => {
           contentRenderFn = makeContentRender(think, isRunning, thinkExpanded, (expanded) => {
             setThinkExpanded(id, expanded);
           });
+        } else if (isLoginError && !hasContent) {
+          // 登录错误且没有内容时，显示友好的登录引导提示
+          contentRenderFn = () => (
+            <div style={{ padding: '12px 0', color: 'var(--ant-color-text-secondary)' }}>
+              <p style={{ margin: '0 0 12px 0', fontSize: '13px' }}>
+                该通道需要登录后才能使用
+              </p>
+              <Flex gap={8}>
+                <Button
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleGoToLogin(id);
+                  }}
+                >
+                  👉 去登录
+                </Button>
+                <Button
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRetryTask(id);
+                  }}
+                >
+                  🔄 已登录，重新提问
+                </Button>
+              </Flex>
+            </div>
+          );
         }
 
         items.push({
@@ -855,8 +930,9 @@ const App = () => {
 
       // 添加手动触发按钮：总结尚未生成且有足够的通道完成时显示
       // 注意：这里只检查状态，不检查内容，因为 TASK_COMPLETED 发送时内容应该已经完整
+      // 只统计正常完成的通道（status=completed 且 errorType=none），登录错误的通道不算
       const completedCount = enabledProviderIds.filter(id =>
-        statusMap[id] === 'completed' || statusMap[id] === 'error'
+        statusMap[id] === 'completed' && errorTypeMap[id] === 'none'
       ).length;
       const isAnyLocalRunning = enabledProviderIds.some(id => statusMap[id] === 'running');
 
