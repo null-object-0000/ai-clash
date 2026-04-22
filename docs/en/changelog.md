@@ -1,31 +1,45 @@
 # Changelog
 
+## [1.2.0] - Unreleased
+
+### 🎉 Major
+
+- **New Channel - Xiaomi MIMO**: Xiaomi MIMO is now supported and can be added directly to multi-channel comparisons.
+- **Add Channels Mid-Conversation**: No need to restart your prompt. You can add another AI channel at any point during the same turn.
+
+### ✨ Features
+
+### 🛠️ Fixes & Improvements
+
+- **Channel List UX Improvements**: Supports select all / deselect all, groups channels by domestic / overseas, and adapts to sidebar space automatically.
+- **Removed Manual Yuanbao Search Toggle**: Tencent Yuanbao now decides web search automatically based on your prompt, so you no longer need to toggle it manually.
+
 ## [1.1.0] - 2026-04-17
 
 ### 🎉 Major
 
-- **New Channel — Wenxin Yiyan**: Baidu's flagship LLM officially joins the arena! Fully adapted to the native computing power of the Wenxin Yiyan web interface, completing the lineup of China's top-tier foundation models.
-- **"Focus Follow" Director Mode**: Breaks through browser performance throttling on inactive background tabs. Background detection automatically awakens updating AI webpages to ensure full-speed concurrency, delivering a seamless and immersive viewing experience.
+- **New Channel - Wenxin Yiyan**: Wenxin Yiyan is now supported and can join multi-channel comparisons directly.
+- **"Focus Follow" Director Mode**: When an AI is actively generating, focus is moved to that page automatically to reduce browser throttling on background tabs.
 
 ### ✨ Features
 
-- **Customizable AI Judge**: Support for customizing the "AI Judge" System Prompt in global settings, allowing you to tailor the summarization style to your exact needs.
-- **Revamped Summary Interaction**: Support for triggering the "Generate Summary" on-demand, along with a "Regenerate" feature, returning full control to the user.
-- **Official Website**: Launched a dedicated official website offering a complete version history and offline ZIP package developer mode installation guide.
+- **Custom Summary Prompt**: You can edit the "AI Judge" prompt in global settings to make summary style fit your preference.
+- **Summary Flow Reworked**: Summary is now manually triggered, and "Regenerate" is available when you want another version.
+- **Official Site & Distribution Hub**: The official site is live with version history, offline ZIP packages, and developer mode install docs.
 
 ### 🛠️ Fixes & Improvements
 
-- **Follow-up Question Interception**: New anti-accidental-trigger confirmation modal in multi-channel mode to prevent unintended clearing of in-progress responses.
+- **Follow-up Protection**: Added an anti-mistap confirmation popup in multi-channel mode to avoid clearing unfinished responses.
 
 ## [1.0.0] - 2026-04-15
 
 ### 🎉 MVP Release
 
-- **Pioneering Concurrent UI**: Launched an independent sidebar workspace. One prompt awakens multiple AI webpages simultaneously for the ultimate LLM arena experience.
-- **Zero API Cost Architecture**: Utilizes breakthrough pure frontend DOM Hook injection to directly hijack and reuse the native computing power of logged-in AI web platforms.
-- **Four Initial Top Models**: Natively integrated with top-tier foundation models, perfectly adapting to DeepSeek, Doubao, Qwen, and Tencent Yuanbao.
+- **Concurrent Multi-Channel Comparison**: Added a dedicated sidebar workspace so one prompt can trigger multiple AI webpages at once.
+- **Zero API Cost Architecture**: No API key setup required. It directly reuses capabilities from each platform's official web interface.
+- **Four Launch Channels**: The first release supports DeepSeek, Doubao, Qwen, and Tencent Yuanbao.
 
 ### ✨ Core Features
 
-- **Built-in AI Judge**: After all AI channels finish answering, automatically triggers a global summary to instantly distill core consensus and differences.
-- **Native Mode Mapping**: Seamlessly syncs advanced toggles from each platform, fully supporting real-time status capture for "Deep Think (e.g., DeepSeek R1)" and "Web Search".
+- **Built-in AI Judge**: After channels finish responding, it automatically generates a summary to help you quickly see consensus and differences.
+- **Native Mode Mapping**: Syncs common platform toggles, such as "Deep Thinking" and "Web Search" status.
