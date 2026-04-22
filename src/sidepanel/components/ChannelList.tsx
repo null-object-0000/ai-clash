@@ -1,4 +1,4 @@
-import { CheckOutlined, CloseOutlined, SettingOutlined } from '@ant-design/icons';
+import { BorderOutlined, CheckSquareOutlined, SettingOutlined, SwapOutlined } from '@ant-design/icons';
 import { Button, Switch, Tag } from 'antd';
 import { createStyles } from 'antd-style';
 import { getProvidersByRegion } from '../../shared/config.js';
@@ -201,7 +201,7 @@ export default function ChannelList() {
             onClick={selectAllProviders}
             style={{ fontSize: '12px', color: '#666' }}
           >
-            {allEnabled ? <><CloseOutlined /> 全不选</> : <><CheckOutlined /> 全选</>}
+            {allEnabled ? <><BorderOutlined /> 全不选</> : <><CheckSquareOutlined /> 全选</>}
           </Button>
           <Button
             size="small"
@@ -209,7 +209,7 @@ export default function ChannelList() {
             onClick={invertProviderSelection}
             style={{ fontSize: '12px', color: '#666' }}
           >
-            反选
+            <><SwapOutlined /> 反选</>
           </Button>
         </div>
       </div>
