@@ -133,10 +133,6 @@ export interface AppActions {
   // ─── Summary Versions ───
   switchSummaryVersion: (index: number) => void;  // 切换查看的总结版本
 
-  // ─── Error State Management ───
-  setProviderError: (id: ProviderId, type: ErrorType, url?: string, opStatus?: string) => void;
-  clearProviderError: (id: ProviderId) => void;
-
   // ─── Derived getters ───
   getEnabledProviderIds: () => ProviderId[];
   isSummaryConfigValid: () => boolean;

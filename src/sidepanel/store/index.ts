@@ -269,30 +269,6 @@ export const useStore = create<AppStore>()((set, get) => {
   const getProviderMeta = (id: ProviderId) => PROVIDER_META.find((p: any) => p.id === id);
   const supportsApi = (id: ProviderId) => getProviderMeta(id)?.supportsApi ?? false;
 
-  // ─── 错误状态管理助手 ───
-
-  /**
-   * 设置提供器的错误状态，确保 errorTypeMap、statusMap 保持一致
-   */
-  const setProviderError = (providerId: ProviderId, errorType: ErrorType, operationStatus = '') => {
-    set(prev => ({
-      statusMap: { ...prev.statusMap, [providerId]: 'error' },
-      errorTypeMap: { ...prev.errorTypeMap, [providerId]: errorType },
-      operationStatus: { ...prev.operationStatus, [providerId]: operationStatus },
-    }));
-  };
-
-  /**
-   * 清除提供器的错误状态
-   */
-  const clearProviderError = (providerId: ProviderId) => {
-    set(prev => ({
-      statusMap: { ...prev.statusMap, [providerId]: 'idle' },
-      errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'none' },
-      operationStatus: { ...prev.operationStatus, [providerId]: '' },
-    }));
-  };
-
   // ════════════════════════════════════════════════════════════════
   // Return the store definition
   // ════════════════════════════════════════════════════════════════
@@ -568,9 +544,9 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
-      // 串行执行：每个提供者提交成功后再执行下一个
-      for (const id of enabledIds) {
-        await new Promise<void>((resolve, reject) => {
+      // 并行执行：同时向所有启用的提供者发送任务
+      const taskPromises = enabledIds.map(id => {
+        return new Promise<void>((resolve, reject) => {
           const msg = {
             type: MSG_TYPES.DISPATCH_TASK,
             payload: {
@@ -603,7 +579,10 @@ export const useStore = create<AppStore>()((set, get) => {
             reject(new Error('等待响应超时'));
           }, 5000);
         });
-      }
+      });
+
+      // 等待所有任务发送完成（但不管结果，让后台继续执行）
+      await Promise.allSettled(taskPromises);
     },
 
     createNewChat: () => {
@@ -683,7 +662,7 @@ export const useStore = create<AppStore>()((set, get) => {
           newResp[id] = ps.response;
           newThink[id] = ps.thinkResponse;
           newOp[id] = ps.operationStatus;
-          newErrorType[id] = ps.errorType || (ps.operationStatus?.includes('未登录') ? 'login_required' : 'none');
+          newErrorType[id] = ps.errorType || 'none';
           newRaw[id] = ps.rawUrl;
           newStats[id] = ps.stats ?? null;
           newCollapse[id] = true; // 多通道历史默认全部折叠
@@ -949,9 +928,6 @@ export const useStore = create<AppStore>()((set, get) => {
       }
     },
 
-    setProviderError,
-    clearProviderError,
-
     // ─── Derived Getters ───
 
     getEnabledProviderIds: () => PROVIDER_IDS.filter(id => get().enabledMap[id]),
@@ -1124,7 +1100,7 @@ export const useStore = create<AppStore>()((set, get) => {
         },
       );
 
-      const listener = createMessageListener(get, set, syncProviderRawUrls, setProviderError, clearProviderError);
+      const listener = createMessageListener(get, set, syncProviderRawUrls);
       chrome.runtime?.onMessage.addListener(listener);
       return () => { chrome.runtime?.onMessage.removeListener(listener); };
     },

@@ -48,6 +48,26 @@ function endRequest() {
   }
 }
 
+// Web 模式任务串行队列：避免多个 provider 同时抢占 tab 激活与页面就绪流程
+let webTaskQueue = Promise.resolve();
+
+function enqueueWebTask(task, label) {
+  const run = webTaskQueue.catch(() => {}).then(async () => {
+    beginRequest();
+    try {
+      await task();
+    } finally {
+      endRequest();
+    }
+  });
+
+  webTaskQueue = run.catch((error) => {
+    logger.error(`[AI Clash] Web 队列任务失败: ${label}`, error);
+  });
+
+  return run;
+}
+
 // 注册保活 alarm 监听器 - 空回调即可，仅用于保持 SW 活跃
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === KEEPALIVE_ALARM_NAME) {
@@ -436,16 +456,25 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { provider: providerId, prompt, settings, mode } = request.payload;
         const provider = getProvider(providerId);
         if (!provider) {
+            logger.log(`[AI Clash] DISPATCH_TASK: provider ${providerId} 不存在`);
             sendResponse({ status: 'error', error: 'provider 不存在' });
             return true;
         }
 
+        logger.log(`[AI Clash] DISPATCH_TASK: 收到任务派发请求 provider=${providerId}`);
+
+        // 立即返回响应，避免 sidepanel 超时（5 秒）
+        sendResponse({ status: 'routed' });
+
         // 异步处理任务派发
         (async () => {
             try {
+                logger.log(`[AI Clash] DISPATCH_TASK: 开始处理 ${providerId}`);
                 const userConfig = await loadApiConfig();
                 const providerConfig = userConfig[providerId] || {};
                 const effectiveMode = mode ?? providerConfig.mode ?? 'web';
+
+                logger.log(`[AI Clash] DISPATCH_TASK: ${providerId} effectiveMode=${effectiveMode}`);
 
                 if (effectiveMode === 'api') {
                     if (!provider.apiConfig?.enabled) {
@@ -463,39 +492,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
 
                 // Web 模式：等待任务成功提交到 tab 后再返回
-                await routeToTab(provider, prompt, settings);
+                await enqueueWebTask(async () => {
+                    logger.log(`[AI Clash] DISPATCH_TASK: ${providerId} 开始 routeToTab`);
+                    await routeToTab(provider, prompt, settings);
+                    logger.log(`[AI Clash] DISPATCH_TASK: ${providerId} routeToTab 完成`);
+                }, `dispatch:${providerId}`);
             } catch (error) {
+                logger.error(`[AI Clash] DISPATCH_TASK: ${providerId} 失败:`, error);
                 sendProviderError(providerId, error.message || '任务派发失败');
-            } finally {
-                sendResponse({ status: 'routed' });
             }
         })();
 
-        // 返回 true 表示我们会异步调用 sendResponse
-        return true;
-    }
-
-    // ---- 重试单个通道（用户登录后点击「重新提问」） ----
-    if (request.type === MSG_TYPES.RETRY_TASK) {
-        const { provider: providerId, prompt, settings } = request.payload;
-        const provider = getProvider(providerId);
-        if (!provider) {
-            sendResponse({ status: 'error', error: 'provider 不存在' });
-            return true;
-        }
-
-        // 异步处理重试
-        (async () => {
-            try {
-                // 重试时总是使用 Web 模式（用户已经在网页登录了）
-                await routeToTab(provider, prompt, settings);
-            } catch (error) {
-                sendProviderError(providerId, error.message || '重试失败');
-            } finally {
-                sendResponse({ status: 'routed' });
-            }
-        })();
-
+        // 返回 true 表示我们会异步调用 sendResponse（已经同步返回过了）
         return true;
     }
 
@@ -779,10 +787,13 @@ async function waitForPageReady(tabId, provider, maxWaitTime = 30000) {
 
 // 打开或激活 provider 对应的 tab，并返回 tab id
 async function openAndActivateTab(provider) {
+    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} start`);
     const rememberedTabId = providerTabMap[provider.id];
+    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} rememberedTabId=${rememberedTabId}`);
 
     // 检查我们记住的 tab 是否有效
     if (rememberedTabId && await isTabValid(rememberedTabId, provider)) {
+        logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 使用已存在的 tab ${rememberedTabId}`);
         // 激活 tab 并聚焦窗口
         await chrome.tabs.update(rememberedTabId, { active: true });
         const tab = await chrome.tabs.get(rememberedTabId);
@@ -791,7 +802,9 @@ async function openAndActivateTab(provider) {
     }
 
     // 没有有效绑定的 tab，新建一个
+    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 创建新 tab`);
     const newTab = await chrome.tabs.create({ url: provider.startUrl, active: true });
+    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 新 tab id=${newTab.id}, url=${newTab.url}`);
     if (newTab.id) {
         providerTabMap[provider.id] = newTab.id;
         await saveProviderTabMap();
@@ -874,6 +887,8 @@ function getTabPromise(tabId) {
 async function routeToTab(provider, prompt, settings) {
     const msg = { type: MSG_TYPES.EXECUTE_PROMPT, payload: { prompt, settings } };
 
+    logger.log(`[AI Clash] ${provider.id} routeToTab 开始执行`);
+
     // 0. 任务开始，先显示等待启动状态（logo 会在此时展示）
     chrome.runtime.sendMessage({
         type: MSG_TYPES.TASK_STATUS_UPDATE,
@@ -885,6 +900,7 @@ async function routeToTab(provider, prompt, settings) {
     }).catch(() => {});
 
     // 1. 先打开或激活 tab（总是激活，确保 standalone 注入和通信正常）
+    logger.log(`[AI Clash] ${provider.id} 正在打开/激活 tab`);
     chrome.runtime.sendMessage({
         type: MSG_TYPES.TASK_STATUS_UPDATE,
         payload: {
@@ -895,6 +911,7 @@ async function routeToTab(provider, prompt, settings) {
     }).catch(() => {});
 
     const tabResult = await openAndActivateTab(provider);
+    logger.log(`[AI Clash] ${provider.id} openAndActivateTab 完成：`, tabResult);
     if (!tabResult.success || !tabResult.tabId) {
         sendProviderError(provider.id, `无法打开${provider.name}页面`);
         return;
@@ -903,7 +920,9 @@ async function routeToTab(provider, prompt, settings) {
     const tabId = tabResult.tabId;
 
     // 2. 等待页面加载完成
+    logger.log(`[AI Clash] ${provider.id} 等待页面加载完成 (tabId: ${tabId})`);
     await waitForTabComplete(tabId);
+    logger.log(`[AI Clash] ${provider.id} 页面加载完成`);
 
     // 3. 发送状态更新
     chrome.runtime.sendMessage({
@@ -916,7 +935,9 @@ async function routeToTab(provider, prompt, settings) {
     });
 
     // 4. 等待页面真正准备就绪（content script 注入完成）
+    logger.log(`[AI Clash] ${provider.id} 等待 content script 就绪`);
     const readyResult = await waitForPageReady(tabId, provider);
+    logger.log(`[AI Clash] ${provider.id} waitForPageReady 结果：`, readyResult);
     if (!readyResult.success) {
         throw new Error(readyResult.error || 'content script 未就绪');
     }
@@ -932,7 +953,9 @@ async function routeToTab(provider, prompt, settings) {
     }).catch(() => {});
 
     // 6. 发送消息执行任务（登录检测由 Content Script 负责）
+    logger.log(`[AI Clash] ${provider.id} 开始注入 content script 并发送消息`);
     await injectContentScriptAndSendMessage(tabId, provider, msg);
+    logger.log(`[AI Clash] ${provider.id} routeToTab 执行完成`);
 }
 
 // 打开或激活provider对应的tab（处理"前往"按钮请求）

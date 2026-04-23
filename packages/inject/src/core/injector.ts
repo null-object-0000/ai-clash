@@ -861,38 +861,81 @@ function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
     return undefined;
   }
 
+  const isElementVisible = (el: Element | null | undefined): el is Element => {
+    if (!el) return false;
+    const htmlEl = el as HTMLElement;
+    const style = window.getComputedStyle(htmlEl);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') {
+      return false;
+    }
+    const rect = htmlEl.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
+  };
+
+  const findVisibleElement = (selectors: string[]): Element | null => {
+    for (const selector of selectors) {
+      const el = findAnyElement([selector]);
+      if (isElementVisible(el)) return el;
+    }
+    return null;
+  };
+
+  const extractUsername = (selectors: string[]): string | undefined => {
+    const el = findVisibleElement(selectors);
+    const text = el?.textContent?.trim();
+    return text || undefined;
+  };
+
+  const extractAvatarUrl = (selectors: string[]): string | undefined => {
+    const el = findVisibleElement(selectors);
+    if (!el) return undefined;
+
+    if (el.tagName === 'IMG') {
+      const img = el as HTMLImageElement;
+      return img.currentSrc || img.src || img.dataset.src || undefined;
+    }
+
+    const innerImg = el.querySelector('img');
+    if (innerImg) {
+      const img = innerImg as HTMLImageElement;
+      return img.currentSrc || img.src || img.dataset.src || undefined;
+    }
+
+    return undefined;
+  };
+
   return {
     async getInfo(): Promise<AuthInfo> {
       // 1. 优先检查未登录特征元素（如"立即登录"按钮）
       if (auth.loggedOutSelectors) {
-        const loggedOutEl = findAnyElement(auth.loggedOutSelectors);
+        const loggedOutEl = findVisibleElement(auth.loggedOutSelectors);
         if (loggedOutEl) {
           return { loggedIn: false };
         }
       }
 
-      // 2. 检查是否已登录：只要 loggedInSelectors 中任意一个元素存在即视为已登录
-      const loggedInEl = findAnyElement(auth.loggedInSelectors);
+      // 2. 先要求存在可见的已登录特征元素
+      const loggedInEl = findVisibleElement(auth.loggedInSelectors);
       if (!loggedInEl) {
         return { loggedIn: false };
       }
 
-      // 3. 提取用户名
-      let username: string | undefined;
-      if (auth.usernameSelectors) {
-        const usernameEl = findAnyElement(auth.usernameSelectors);
-        if (usernameEl) {
-          username = usernameEl.textContent?.trim() || undefined;
-        }
-      }
+      // 3. 提取稳定账号证据
+      const username = extractUsername(auth.usernameSelectors);
+      const avatarUrl = extractAvatarUrl(auth.avatarSelectors);
 
-      // 4. 提取头像 URL
-      let avatarUrl: string | undefined;
-      if (auth.avatarSelectors) {
-        const avatarEl = findAnyElement(auth.avatarSelectors);
-        if (avatarEl && avatarEl.tagName === 'IMG') {
-          avatarUrl = (avatarEl as HTMLImageElement).src || (avatarEl as HTMLImageElement).dataset.src || undefined;
-        }
+      // 4. 仅靠“某个已登录区域存在”太容易误判，至少要拿到用户名或头像中的一个
+      const fallbackText = loggedInEl.textContent?.trim();
+      const fallbackAvatarUrl = extractAvatarUrl(auth.loggedInSelectors);
+      const hasAccountEvidence = Boolean(
+        username ||
+        avatarUrl ||
+        fallbackText ||
+        fallbackAvatarUrl
+      );
+
+      if (!hasAccountEvidence) {
+        return { loggedIn: false };
       }
 
       return {

@@ -35,32 +35,6 @@ export function bootstrapProvider(providerId) {
   const pendingResolves = new Map();
 
   /**
-   * 当检测到登录页时，resolve 所有 pending 的 Promise，让串行流程继续
-   * 只在消息发送前（未获取到会话 ID）时调用
-   */
-  function resolvePendingWithError() {
-    logger.log(`[AI Clash ${PROVIDER}] 检测到登录页，resolve pending Promise`);
-    // 找到所有 pendingResolves 中的条目，resolve 它们
-    for (const [seq, entry] of pendingResolves.entries()) {
-      if (entry.timeoutId) clearTimeout(entry.timeoutId);
-      if (entry.resolve) {
-        entry.resolve({ success: false, error: 'login_required' });
-      }
-      pendingResolves.delete(seq);
-    }
-    // 同时清理 pendingCallbacks，避免重复触发
-    pendingCallbacks.clear();
-  }
-
-  /**
-   * 标记消息已发送（获取到会话 ID），之后不再调用 resolvePendingWithError
-   */
-  let messageSent = false;
-  function markMessageSent() {
-    messageSent = true;
-  }
-
-  /**
    * 初始化注入器
    * 优先使用 MAIN 世界注入的 standalone（因为它能正确拦截 fetch）
    * fallback 到本地 extension 注入器
@@ -116,8 +90,6 @@ export function bootstrapProvider(providerId) {
         if (callbacks?.onConversationId) {
           callbacks.onConversationId(conversationId);
         }
-        // 标记消息已发送，之后检测到登录页不再 resolve pending
-        markMessageSent();
         // resolve Promise，让串行流程继续执行下一个 provider
         const entry = pendingResolves.get(seq);
         if (entry?.resolve) {
@@ -274,70 +246,6 @@ export function bootstrapProvider(providerId) {
   }
 
   // ============================================================================
-  // 登录态检测 - 调用 inject 包的 auth.getInfo() API
-  // ============================================================================
-
-  /**
-   * 通过 postMessage 调用 MAIN world 的 auth.getInfo()
-   */
-  async function getAuthInfoViaPostMessage() {
-    return new Promise((resolve) => {
-      const seq = Date.now();
-      const timeout = setTimeout(() => {
-        window.removeEventListener('message', handler);
-        resolve(null); // 超时返回 null
-      }, 3000);
-
-      const handler = (event) => {
-        if (!event.data || event.data.type !== '__aiclash_auth_result' || event.data.seq !== seq) {
-          return;
-        }
-        clearTimeout(timeout);
-        window.removeEventListener('message', handler);
-        resolve(event.data.result);
-      };
-
-      window.addEventListener('message', handler, false);
-
-      // 发送请求到 MAIN world
-      window.postMessage({
-        type: '__aiclash_call',
-        seq,
-        capability: 'auth',
-        method: 'getInfo',
-        args: []
-      }, '*');
-    });
-  }
-
-  /**
-   * 调用 inject 包的 auth.getInfo() API 检测登录状态
-   * @returns {Promise<{isLoggedOut: boolean} | null>}
-   */
-  async function checkLoginStatus() {
-    try {
-      // 调用 inject 包的 auth.getInfo() API
-      const authInfo = await getAuthInfoViaPostMessage();
-      if (authInfo) {
-        logger.log(`[AI Clash ${PROVIDER}] auth.getInfo() 返回:`, authInfo);
-        if (!authInfo.loggedIn) {
-          logger.log(`[AI Clash ${PROVIDER}] 检测到未登录`);
-          return { isLoggedOut: true };
-        }
-        logger.log(`[AI Clash ${PROVIDER}] 已登录`);
-        return { isLoggedOut: false };
-      }
-
-      // inject 未响应时，返回 null 表示无法确定
-      logger.warn(`[AI Clash ${PROVIDER}] auth.getInfo() 调用失败，无法检测登录状态`);
-      return null;
-    } catch (err) {
-      logger.warn(`[AI Clash ${PROVIDER}] 登录检测失败:`, err.message);
-      return null;
-    }
-  }
-
-  // ============================================================================
   // 任务执行
   // ============================================================================
 
@@ -356,25 +264,6 @@ export function bootstrapProvider(providerId) {
         payload: { provider: PROVIDER, message: '注入器初始化失败' }
       });
       throw new Error('注入器初始化失败');
-    }
-
-    // 在调用 send API 前，先检测登录状态
-    const loginStatus = await checkLoginStatus();
-
-    // 只有当明确检测到未登录时才阻止发送
-    // 如果 loginStatus 为 null（inject 无法检测），则继续执行
-    if (loginStatus?.isLoggedOut) {
-      safeSend({
-        type: MSG_TYPES.LOGIN_REQUIRED,
-        payload: {
-          provider: PROVIDER
-        }
-      });
-      safeSend({
-        type: MSG_TYPES.TASK_COMPLETED,
-        payload: { provider: PROVIDER }
-      });
-      throw new Error('未登录或会话过期');
     }
 
     safeSend({
