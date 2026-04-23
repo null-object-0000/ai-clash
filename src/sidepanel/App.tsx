@@ -37,7 +37,7 @@ import ChannelList from './components/ChannelList';
 import ChannelSettingsDrawer from './components/ChannelSettingsDrawer';
 import GlobalSettingsModal from './components/GlobalSettingsModal';
 import HistoryDrawer from './components/HistoryDrawer';
-import { getProviderIcon } from './utils/providerIcons';
+import { getProviderIcon } from './config/providerIcons';
 
 // ════════════════════════════════════════════════════════════════════
 // Styles

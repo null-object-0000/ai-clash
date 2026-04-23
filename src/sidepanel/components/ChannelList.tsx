@@ -3,7 +3,7 @@ import { Button, Switch, Tag } from 'antd';
 import { createStyles } from 'antd-style';
 import { getProvidersByRegion } from '../../shared/config.js';
 import { useStore } from '../store';
-import { getProviderIcon } from '../utils/providerIcons.js';
+import { getProviderIcon } from '../config/providerIcons.js';
 import type { ProviderId } from '../types';
 import React from 'react';
 
