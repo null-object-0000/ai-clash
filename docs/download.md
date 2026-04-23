@@ -12,7 +12,7 @@
 
 ### 1. 下载最新版 ZIP 包
 
-👉 **[点击下载 AI 对撞机 v1.2.0 离线包](https://github.com/null-object-0000/ai-clash/releases/latest)** (跳转后下载 `ai-clash-v1.2.0.zip`)
+👉 **[点击下载 AI 对撞机 v1.2.0 离线包](https://github.com/null-object-0000/ai-clash/releases/latest)** (跳转后下载 `crx-ai-clash-1.2.0.zip`)
 
 ### 2. 解压文件
 将下载的 ZIP 文件解压到电脑上的一个常用文件夹中（请不要删除该文件夹）。

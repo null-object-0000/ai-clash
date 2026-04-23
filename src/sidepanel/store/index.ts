@@ -714,6 +714,13 @@ export const useStore = create<AppStore>()((set, get) => {
           // 旧版本数据结构：兼容处理
           const response = (se as any).response || '';
           const thinkResponse = (se as any).thinkResponse || '';
+          const stats = (se as any).stats ?? null;
+          const normalizedVersions = [{
+            response,
+            thinkResponse,
+            stats,
+            createdAt: item.createdAt || Date.now(),
+          }];
           // 只有当有实际内容时才恢复，避免显示空气泡
           if ((response || '').trim() || (thinkResponse || '').trim()) {
             buffers.summaryFull = response;
@@ -726,8 +733,8 @@ export const useStore = create<AppStore>()((set, get) => {
               summaryStage: 'responding',
               summaryResponse: response,
               summaryThinkResponse: thinkResponse,
-              summaryStats: (se as any).stats ?? null,
-              summaryVersions: [],
+              summaryStats: stats,
+              summaryVersions: normalizedVersions,
               summaryCurrentVersion: 0,
             });
           }
