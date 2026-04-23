@@ -75,6 +75,7 @@ export const useStore = create<AppStore>()((set, get) => {
         isFocusFollowEnabled: s.isFocusFollowEnabled,
         hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
         hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+        isChannelListExpanded: s.isChannelListExpanded,
       },
     });
   };
@@ -364,6 +365,7 @@ export const useStore = create<AppStore>()((set, get) => {
     isFocusFollowEnabled: false,
     hasCustomizedSummaryEnabled: false,
     hasCustomizedFocusFollowEnabled: false,
+    isChannelListExpanded: false,
     summaryProviderId: 'summarizer',
     summaryModel: 'summarizer-v1',
 
@@ -467,6 +469,10 @@ export const useStore = create<AppStore>()((set, get) => {
     setSummaryModel: (v) => { set({ summaryModel: v }); saveSummaryConfig(); },
     setSummaryCustomPrompt: (v) => { set({ summaryCustomPrompt: v }); saveSummaryPrompt(); },
     resetSummaryPrompt: () => { set({ summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT }); saveSummaryPrompt(); },
+    setChannelListExpanded: (expanded) => {
+      set({ isChannelListExpanded: expanded });
+      saveSettings();
+    },
 
     // ─── Provider Config Actions ───
 
@@ -1258,6 +1264,7 @@ export const useStore = create<AppStore>()((set, get) => {
             isDebugEnabled: debugVal,
             hasCustomizedSummaryEnabled,
             hasCustomizedFocusFollowEnabled,
+            isChannelListExpanded: saved.isChannelListExpanded ?? false,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',
             summaryCustomPrompt: customPrompt ?? DEFAULT_SUMMARY_PROMPT,
