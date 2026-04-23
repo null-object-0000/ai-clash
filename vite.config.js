@@ -7,7 +7,7 @@ import compression from 'vite-plugin-compression'
 import manifest from './manifest.config.js'
 import { name, version } from './package.json'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       '@': `${path.resolve(__dirname, 'src')}`,
@@ -16,7 +16,9 @@ export default defineConfig({
   plugins: [
     react(),
     crx({ manifest }),
-    zip({ outDir: 'release', outFileName: `crx-${name}-${version}.zip` }),
+    ...(command === 'build'
+      ? [zip({ outDir: 'release', outFileName: `crx-${name}-${version}.zip` })]
+      : []),
   ],
   server: {
     port: 5173,
@@ -32,4 +34,4 @@ export default defineConfig({
       port: 5173,
     },
   },
-})
+}))
