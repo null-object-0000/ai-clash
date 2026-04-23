@@ -849,22 +849,11 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
   };
 }
 
-/**
- * 创建 Auth 能力（获取登录信息）
- */
-function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
-  return undefined;
-}
-
-/**
- * 创建完整能力对象
- */
 function createCapabilities(provider: ProviderConfig): Capabilities {
   return {
     chat: createChatCapability(provider),
     thinking: createThinkingCapability(provider),
     search: createSearchCapability(provider),
-    auth: createAuthCapability(provider),
     // model: createModelCapability(provider), // TODO: 实现模型切换能力
   };
 }
@@ -909,7 +898,6 @@ function createWindowAdapter(
         chat: capabilities.chat,
         thinking: capabilities.thinking,
         search: capabilities.search,
-        auth: capabilities.auth,
         _isInjected: true,
       };
     },

@@ -5,24 +5,7 @@
  * 强制前置登录拦截：是
  */
 
-import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
-
-// Auth 登录信息配置
-const authAction: AuthAction = {
-  loggedInSelectors: [
-    '.bg-mimo-bg-body .pr-2.pl-2 .items-center button img',
-  ],
-  // 未登录特征：存在"立即登录"按钮
-  loggedOutSelectors: [
-    'button >> 立即登录',
-  ],
-  usernameSelectors: [
-    '.bg-mimo-bg-body .pr-2.pl-2 .items-center button span.text-sm',
-  ],
-  avatarSelectors: [
-    '.bg-mimo-bg-body .pr-2.pl-2 .items-center button img',
-  ],
-};
+import type { ProviderConfig } from '../core/types.js';
 
 // 小米 MiMo 发送按钮的 SVG Path 特征
 const MIMO_SEND_BUTTON_PATH = 'M.244 7.921 18.202.03c.254-.111.528.115.452.373L14.51 14.345a.33.33 0 0 1-.448.201l-4.337-1.852a.333.333 0 0 0-.44.178l-1.14 2.923c-.117.298-.565.262-.63-.049l-.851-4.089a.31.31 0 0 1 .09-.285l6.707-6.448c.061-.059-.025-.15-.092-.098L5.396 10.25a.99.99 0 0 1-.92.099L.244 8.65a.395.395 0 0 1 0-.73';
@@ -85,8 +68,6 @@ export const xiaomiProvider: ProviderConfig = {
         customFind: findMimoSendButton,
       },
     },
-    // 登录信息检测
-    auth: authAction,
   },
   // 会话 ID 提取配置
   // MiMo URL 格式：https://aistudio.xiaomimimo.com/#/chat/{sessionId}

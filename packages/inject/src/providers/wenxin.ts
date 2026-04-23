@@ -2,19 +2,7 @@
  * 百度文心一言 (Wenxin) Provider Configuration
  */
 
-import type { ProviderConfig, AuthAction } from '../core/types.js';
-
-const authAction: AuthAction = {
-  loggedInSelectors: [
-    '.avatar__* img'
-  ],
-  usernameSelectors: [
-    '.avatar__* p'
-  ],
-  avatarSelectors: [
-    '.avatar__* img'
-  ],
-};
+import type { ProviderConfig } from '../core/types.js';
 
 export const wenxinProvider: ProviderConfig = {
   id: 'wenxin',
@@ -38,7 +26,6 @@ export const wenxinProvider: ProviderConfig = {
         ],
       },
     },
-    auth: authAction,
   },
   conversation: {
     // 例如：https://yiyan.baidu.com/chat/[conversationId]
