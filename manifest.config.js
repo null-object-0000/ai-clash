@@ -34,6 +34,7 @@ const hostPermissions = [
   // API 模式通用权限
   'https://api.deepseek.com/*',
   'https://api.longcat.chat/*',
+  'https://api.xiaomimimo.com/*',
   'https://ark.cn-beijing.volces.com/*',
   'https://coding.dashscope.aliyuncs.com/*',
 ];

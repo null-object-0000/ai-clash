@@ -813,7 +813,7 @@ async function openAndActivateTab(provider) {
 }
 
 // 等待页面加载完成
-async function waitForTabComplete(tabId, timeout = 10000) {
+async function waitForTabComplete(tabId, timeout = 30000) {
     return new Promise((resolve, reject) => {
         let resolved = false;
 
