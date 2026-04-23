@@ -73,6 +73,8 @@ export const useStore = create<AppStore>()((set, get) => {
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
         isFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
       },
     });
   };
@@ -125,9 +127,13 @@ export const useStore = create<AppStore>()((set, get) => {
     return Object.fromEntries(PROVIDER_IDS.map(id => [id, {
       enabled: s.enabledMap[id],
       mode: s.modeMap[id],
-      // 保存稳定状态：有响应内容则是 completed，否则是 idle
-      status: (s.responses[id] || s.thinkResponses[id]) ? 'completed' : 'idle',
-      stage: (s.responses[id] || s.thinkResponses[id]) ? 'responding' : 'connecting',
+      // 保留错误态；其余有内容的视为 completed，没有内容的视为 idle
+      status: s.statusMap[id] === 'error'
+        ? 'error'
+        : (s.responses[id] || s.thinkResponses[id]) ? 'completed' : 'idle',
+      stage: s.statusMap[id] === 'error'
+        ? s.stageMap[id]
+        : (s.responses[id] || s.thinkResponses[id]) ? 'responding' : 'connecting',
       response: s.responses[id],
       thinkResponse: s.thinkResponses[id],
       operationStatus: s.operationStatus[id],
@@ -269,6 +275,82 @@ export const useStore = create<AppStore>()((set, get) => {
   const getProviderMeta = (id: ProviderId) => PROVIDER_META.find((p: any) => p.id === id);
   const supportsApi = (id: ProviderId) => getProviderMeta(id)?.supportsApi ?? false;
 
+  // 根据启用的通道数量和用户是否手动改过设置，计算总结/导播状态
+  const getAutoModeSettings = (
+    enabledMap: Record<ProviderId, boolean>,
+    options?: {
+      prevSummaryEnabled?: boolean;
+      prevFocusFollowEnabled?: boolean;
+      hasCustomizedSummaryEnabled?: boolean;
+      hasCustomizedFocusFollowEnabled?: boolean;
+    },
+  ) => {
+    const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+    const isMultiChannelMode = enabledCount > 1;
+    const prevSummaryEnabled = options?.prevSummaryEnabled ?? false;
+    const prevFocusFollowEnabled = options?.prevFocusFollowEnabled ?? false;
+    const hasCustomizedSummaryEnabled = options?.hasCustomizedSummaryEnabled ?? false;
+    const hasCustomizedFocusFollowEnabled = options?.hasCustomizedFocusFollowEnabled ?? false;
+
+    return {
+      isSummaryEnabled: isMultiChannelMode
+        ? (hasCustomizedSummaryEnabled ? prevSummaryEnabled : true)
+        : false,
+      isFocusFollowEnabled: isMultiChannelMode
+        ? (hasCustomizedFocusFollowEnabled ? prevFocusFollowEnabled : true)
+        : false,
+    };
+  };
+
+  const dispatchProviderTask = async (
+    providerId: ProviderId,
+    prompt: string,
+    s: AppStore,
+    conversationHistory: Array<{ question: string; response: string }>,
+    isNewConversation: boolean,
+  ) => {
+    await new Promise<void>((resolve, reject) => {
+      const msg = {
+        type: MSG_TYPES.DISPATCH_TASK,
+        payload: {
+          provider: providerId,
+          prompt,
+          mode: s.modeMap[providerId] === 'web' && (providerId === 'yuanbao' || providerId === 'wenxin') ? 'web' : s.modeMap[providerId],
+          settings: {
+            isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+            isWebSearchEnabled: s.isWebSearchEnabled,
+            conversationHistory,
+            isNewConversation,
+          },
+        },
+      };
+
+      if (!chrome.runtime?.sendMessage) {
+        reject(new Error('chrome.runtime.sendMessage 不可用'));
+        return;
+      }
+
+      let settled = false;
+      const timeoutId = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('等待响应超时'));
+      }, 5000);
+
+      chrome.runtime.sendMessage(msg, () => {
+        const lastError = chrome.runtime.lastError;
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+        resolve();
+      });
+    });
+  };
+
   // ════════════════════════════════════════════════════════════════
   // Return the store definition
   // ════════════════════════════════════════════════════════════════
@@ -280,6 +362,8 @@ export const useStore = create<AppStore>()((set, get) => {
     isDebugEnabled: false,
     isSummaryEnabled: false,
     isFocusFollowEnabled: false,
+    hasCustomizedSummaryEnabled: false,
+    hasCustomizedFocusFollowEnabled: false,
     summaryProviderId: 'summarizer',
     summaryModel: 'summarizer-v1',
 
@@ -364,12 +448,18 @@ export const useStore = create<AppStore>()((set, get) => {
       if (!s.isSummaryConfigValid()) { set({ isSummarySettingsOpen: true }); return; }
       const enabled = PROVIDER_IDS.filter(id => s.enabledMap[id]);
       if (enabled.length < 2) return;
-      set(prev => ({ isSummaryEnabled: !prev.isSummaryEnabled }));
+      set(prev => ({
+        isSummaryEnabled: !prev.isSummaryEnabled,
+        hasCustomizedSummaryEnabled: true,
+      }));
       saveSettings();
     },
 
     toggleFocusFollow: () => {
-      set(prev => ({ isFocusFollowEnabled: !prev.isFocusFollowEnabled }));
+      set(prev => ({
+        isFocusFollowEnabled: !prev.isFocusFollowEnabled,
+        hasCustomizedFocusFollowEnabled: true,
+      }));
       saveSettings();
     },
 
@@ -383,14 +473,21 @@ export const useStore = create<AppStore>()((set, get) => {
     toggleProvider: async (providerId) => {
       const id = providerId as ProviderId;
       const s = get();
-      if (s.enabledMap[id]) {
-        set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: false } }));
-      } else {
-        // 开启通道
-        set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
-      }
+      const nextEnabledMap = { ...s.enabledMap, [id]: !s.enabledMap[id] };
+      const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
+        prevSummaryEnabled: s.isSummaryEnabled,
+        prevFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+      });
+
+      set({
+        enabledMap: nextEnabledMap,
+        ...autoModeSettings,
+      });
       // 保存启用的通道列表
       saveEnabledProviders();
+      saveSettings();
     },
 
     selectAllProviders: async () => {
@@ -404,8 +501,18 @@ export const useStore = create<AppStore>()((set, get) => {
       visibleProviderIds.forEach(id => {
         nextEnabledMap[id] = newValue;
       });
-      set({ enabledMap: nextEnabledMap });
+      const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
+        prevSummaryEnabled: s.isSummaryEnabled,
+        prevFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+      });
+      set({
+        enabledMap: nextEnabledMap,
+        ...autoModeSettings,
+      });
       saveEnabledProviders();
+      saveSettings();
     },
 
     invertProviderSelection: async () => {
@@ -416,8 +523,18 @@ export const useStore = create<AppStore>()((set, get) => {
       visibleProviderIds.forEach(id => {
         nextEnabledMap[id] = !s.enabledMap[id];
       });
-      set({ enabledMap: nextEnabledMap });
+      const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
+        prevSummaryEnabled: s.isSummaryEnabled,
+        prevFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+      });
+      set({
+        enabledMap: nextEnabledMap,
+        ...autoModeSettings,
+      });
       saveEnabledProviders();
+      saveSettings();
     },
 
     setProviderMode: (id, mode) => {
@@ -461,6 +578,66 @@ export const useStore = create<AppStore>()((set, get) => {
         message.error('请求失败');
       } finally {
         set(prev => ({ testingApiKey: { ...prev.testingApiKey, [providerId]: false } }));
+      }
+    },
+
+    retryProvider: async (providerId) => {
+      const s = get();
+      if (!s.currentQuestion.trim() || !s.enabledMap[providerId] || s.statusMap[providerId] !== 'error') return;
+      if (s.summaryStatus === 'running') {
+        message.info('正在归纳总结中，请稍后再重试失败通道');
+        return;
+      }
+
+      const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+      const isSingleChannel = enabledIds.length === 1;
+      const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked && !s.isCurrentSessionFromHistory;
+      const conversationHistory = (isSingleChannel && s.conversationTurns.length > 0)
+        ? s.conversationTurns.map(t => ({ question: t.question, response: t.response }))
+        : [];
+      const isNewConversation = !isMultiTurnContinuation;
+
+      buffers.timing[providerId] = { startTime: Date.now(), firstContentTime: 0 };
+      buffers.fullText[providerId] = '';
+      buffers.thinkText[providerId] = '';
+      buffers.displayedLen[providerId] = 0;
+      buffers.thinkDisplayedLen[providerId] = 0;
+      buffers.visitedStages[providerId] = new Set();
+
+      buffers.summaryTriggered = false;
+      buffers.summaryFull = '';
+      buffers.summaryThink = '';
+      buffers.summaryDisplayedLen = 0;
+      buffers.summaryThinkDisplayedLen = 0;
+      buffers.summaryTiming = { startTime: 0, firstContentTime: 0 };
+
+      set(prev => ({
+        statusMap: { ...prev.statusMap, [providerId]: 'running' },
+        stageMap: { ...prev.stageMap, [providerId]: 'waiting' },
+        responses: { ...prev.responses, [providerId]: '' },
+        thinkResponses: { ...prev.thinkResponses, [providerId]: '' },
+        operationStatus: { ...prev.operationStatus, [providerId]: '' },
+        errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'none' },
+        statsMap: { ...prev.statsMap, [providerId]: null },
+        rawUrlMap: { ...prev.rawUrlMap, [providerId]: prev.modeMap[providerId] === 'api' ? 'api' : '' },
+        collapseMap: { ...prev.collapseMap, [providerId]: false, summary: false },
+        thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: true, summary: true },
+        summaryStatus: 'idle',
+        summaryStage: 'responding',
+        summaryResponse: '',
+        summaryThinkResponse: '',
+        summaryOperationStatus: '',
+        summaryStats: null,
+        summaryVersions: [],
+        summaryCurrentVersion: 0,
+      }));
+
+      get().schedulePersist(0, { [providerId]: s.modeMap[providerId] === 'api' ? 'api' : '' });
+
+      try {
+        await dispatchProviderTask(providerId, s.currentQuestion, s, conversationHistory, isNewConversation);
+      } catch (error) {
+        message.error(`${PROVIDER_NAME_MAP[providerId]} 重试派发失败：${error instanceof Error ? error.message : String(error)}`);
       }
     },
 
@@ -546,39 +723,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
       // 并行执行：同时向所有启用的提供者发送任务
       const taskPromises = enabledIds.map(id => {
-        return new Promise<void>((resolve, reject) => {
-          const msg = {
-            type: MSG_TYPES.DISPATCH_TASK,
-            payload: {
-              provider: id, prompt,
-              mode: s.modeMap[id] === 'web' && (id === 'yuanbao' || id === 'wenxin') ? 'web' : s.modeMap[id],
-              settings: {
-                isDeepThinkingEnabled: s.isDeepThinkingEnabled,
-                isWebSearchEnabled: s.isWebSearchEnabled,
-                conversationHistory,
-                isNewConversation,
-              },
-            },
-          };
-
-          if (!chrome.runtime?.sendMessage) {
-            reject(new Error('chrome.runtime.sendMessage 不可用'));
-            return;
-          }
-
-          chrome.runtime.sendMessage(msg, (response) => {
-            const lastError = chrome.runtime.lastError;
-            if (lastError) {
-              reject(new Error(lastError.message));
-              return;
-            }
-            resolve();
-          });
-
-          setTimeout(() => {
-            reject(new Error('等待响应超时'));
-          }, 5000);
-        });
+        return dispatchProviderTask(id, prompt, s, conversationHistory, isNewConversation);
       });
 
       // 等待所有任务发送完成（但不管结果，让后台继续执行）
@@ -656,9 +801,14 @@ export const useStore = create<AppStore>()((set, get) => {
         for (const id of PROVIDER_IDS) {
           const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', errorType: 'none' as ErrorType, rawUrl: '', stats: null };
           newEnabled[id] = ps.enabled;
-          // 根据是否有响应内容来设置状态，而不是使用保存的运行时状态
-          newStatus[id] = (ps.response || ps.thinkResponse) ? 'completed' : 'idle';
-          newStage[id] = (ps.response || ps.thinkResponse) ? 'responding' : 'connecting';
+          const hasErrorContent = typeof ps.response === 'string' && ps.response.startsWith('[系统报错]');
+          const isErrorState = ps.status === 'error' || (ps.errorType && ps.errorType !== 'none') || hasErrorContent;
+          newStatus[id] = isErrorState
+            ? 'error'
+            : (ps.response || ps.thinkResponse) ? 'completed' : 'idle';
+          newStage[id] = isErrorState
+            ? (ps.stage || 'responding')
+            : (ps.response || ps.thinkResponse) ? 'responding' : 'connecting';
           newResp[id] = ps.response;
           newThink[id] = ps.thinkResponse;
           newOp[id] = ps.operationStatus;
@@ -1092,12 +1242,22 @@ export const useStore = create<AppStore>()((set, get) => {
             })
             .slice(0, MAX_HISTORY_COUNT * 2);
 
+          const hasCustomizedSummaryEnabled = saved.hasCustomizedSummaryEnabled ?? false;
+          const hasCustomizedFocusFollowEnabled = saved.hasCustomizedFocusFollowEnabled ?? false;
+          const autoModeSettings = getAutoModeSettings(newEnabled, {
+            prevSummaryEnabled: saved.isSummaryEnabled ?? false,
+            prevFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
+            hasCustomizedSummaryEnabled,
+            hasCustomizedFocusFollowEnabled,
+          });
+
           set({
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
-            isSummaryEnabled: saved.isSummaryEnabled ?? false,
-            isFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
+            ...autoModeSettings,
             isDebugEnabled: debugVal,
+            hasCustomizedSummaryEnabled,
+            hasCustomizedFocusFollowEnabled,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',
             summaryCustomPrompt: customPrompt ?? DEFAULT_SUMMARY_PROMPT,

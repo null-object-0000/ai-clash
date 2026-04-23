@@ -192,13 +192,14 @@ window.addEventListener('message', async (event) => {
             conversationId,
           }, '*');
         },
-        onError: (error: string, conversationId?: string) => {
+        onError: (error: string, conversationId?: string, errorType?: 'system_error' | 'auth_required') => {
           console.error(`[AI Clash Inject] MAIN world onError: ${error}`);
           window.postMessage({
             type: '__aiclash_error',
             seq,
             error,
             conversationId,
+            errorType,
           }, '*');
         },
       };

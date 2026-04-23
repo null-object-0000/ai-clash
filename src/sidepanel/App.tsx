@@ -671,7 +671,7 @@ const App = () => {
   };
   const summaryVersions = useStore(s => s.summaryVersions);
   const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
-  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion } = useStore();
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -844,6 +844,20 @@ const App = () => {
               styles={styles}
             />
           ),
+          footer: statusMap[id] === 'error' && !isCollapsed ? (
+            <Flex justify="end" style={{ width: '100%' }}>
+              <Button
+                size="small"
+                type="default"
+                icon={<RedoOutlined />}
+                onClick={() => retryProvider(id)}
+                disabled={summaryStatus === 'running'}
+                style={{ borderRadius: 999 }}
+              >
+                重试
+              </Button>
+            </Flex>
+          ) : undefined,
           ...(isRunning && !hasContent && !isCollapsed ? {
             loadingRender: () => (
               <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} providerId={id} />
@@ -1071,7 +1085,7 @@ const App = () => {
     operationStatus, summaryOperationStatus,
     triggerSummary, regenerateSummary, switchSummaryVersion,
     summaryVersions, summaryCurrentVersion,
-    sidebarWidth,
+    sidebarWidth, retryProvider, isCurrentSessionFromHistory,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');

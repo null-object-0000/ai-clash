@@ -64,6 +64,10 @@ export const deepseekProvider: ProviderConfig = {
   id: 'deepseek',
   name: 'DeepSeek',
   domain: 'chat.deepseek.com',
+  auth: {
+    loginUrlPatterns: ['/sign_in'],
+    failureMessage: 'DeepSeek 当前未登录，已进入登录页，请先完成登录后再重试',
+  },
   actions: {
     // 基础对话能力
     chat: {

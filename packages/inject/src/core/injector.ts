@@ -467,6 +467,26 @@ function getConversationId(provider: ProviderConfig): string | undefined {
   return id;
 }
 
+function isCurrentPageAuthBlocked(provider: ProviderConfig): { blocked: boolean; message?: string } {
+  const auth = provider.auth;
+  if (!auth) return { blocked: false };
+
+  const href = window.location.href;
+  const pathname = window.location.pathname;
+  const matchesLoginUrl = (auth.loginUrlPatterns || []).some((pattern) =>
+    href.includes(pattern) || pathname.includes(pattern)
+  );
+
+  if (matchesLoginUrl) {
+    return {
+      blocked: true,
+      message: auth.failureMessage || `${provider.name} 当前未登录，请先完成登录后再重试`,
+    };
+  }
+
+  return { blocked: false };
+}
+
 /**
  * 等待会话 ID 出现（轮询 URL 变化）
  */
@@ -575,6 +595,13 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
 
       // === 封装模式：执行完整流程 ===
       if (isFullSend && message) {
+        const authState = isCurrentPageAuthBlocked(provider);
+        if (authState.blocked) {
+          console.warn(`[AI Clash Inject] ${provider.id}: 在完整发送流程开始前检测到登录阻塞，快速失败`, window.location.href);
+          callbacks?.onError?.(authState.message || '当前页面不可用', undefined, 'auth_required');
+          return { success: false, reason: 'auth-required', error: authState.message };
+        }
+
         // 1. 如果需要新对话，先开启新对话
         if (options?.newChat) {
           const newChatResult = await this.newChat();
@@ -625,9 +652,25 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
      * @internal
      */
     async _send(callbacks?: SendCallbacks) {
+      const authState = isCurrentPageAuthBlocked(provider);
+      if (authState.blocked) {
+        console.warn(`[AI Clash Inject] ${provider.id}: 检测到登录阻塞，快速失败`, window.location.href);
+        callbacks?.onError?.(authState.message || '当前页面不可用', undefined, 'auth_required');
+        return { success: false, reason: 'auth-required', error: authState.message };
+      }
+
       console.log(`[AI Clash Inject] ${provider.id}: _send 开始执行，等待输入框...`);
       const inputEl = await waitForAnyElement(chat.input.box, 8000);
       console.log(`[AI Clash Inject] ${provider.id}: 输入框${inputEl ? '找到' : '未找到'}`);
+
+      if (!inputEl) {
+        const latestAuthState = isCurrentPageAuthBlocked(provider);
+        if (latestAuthState.blocked) {
+          console.warn(`[AI Clash Inject] ${provider.id}: 等待输入框期间检测到登录阻塞，快速失败`, window.location.href);
+          callbacks?.onError?.(latestAuthState.message || '当前页面不可用', undefined, 'auth_required');
+          return { success: false, reason: 'auth-required', error: latestAuthState.message };
+        }
+      }
 
       // 查找发送按钮 - 优先使用 customFind 方法（用于需要特殊验证的场景如 MiMo）
       let sendBtn: Element | null = null;

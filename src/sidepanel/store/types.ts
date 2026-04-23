@@ -9,6 +9,8 @@ export type SidepanelSettings = {
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
   isFocusFollowEnabled?: boolean;
+  hasCustomizedSummaryEnabled?: boolean;
+  hasCustomizedFocusFollowEnabled?: boolean;
 };
 export type SummaryConfig = { providerId?: string; model?: string };
 export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
@@ -20,6 +22,8 @@ export interface AppState {
   isDebugEnabled: boolean;
   isSummaryEnabled: boolean;
   isFocusFollowEnabled: boolean;
+  hasCustomizedSummaryEnabled: boolean;
+  hasCustomizedFocusFollowEnabled: boolean;
   summaryProviderId: string;
   summaryModel: string;
 
@@ -95,6 +99,7 @@ export interface AppActions {
   setProviderApiKey: (id: ProviderId, value: string) => void;
   setProviderModel: (id: ProviderId, value: string) => void;
   testApiKey: (providerId: string, apiKey: string) => Promise<void>;
+  retryProvider: (providerId: ProviderId) => Promise<void>;
 
   // ─── Session ───
   setInputStr: (v: string) => void;

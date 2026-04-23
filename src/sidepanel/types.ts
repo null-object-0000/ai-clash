@@ -11,7 +11,7 @@ export type ProviderMode = 'web' | 'api';
 export type ProviderStatus = 'idle' | 'running' | 'completed' | 'error';
 export type StageType = 'idle' | 'waiting' | 'opening' | 'loading' | 'connecting' | 'sending' | 'thinking' | 'responding' | 'summarizing' | 'completed';
 export type ThemeColor = 'blue' | 'amber' | 'emerald' | 'violet' | 'teal';
-export type ErrorType = 'none' | 'system_error'; // 错误类型
+export type ErrorType = 'none' | 'system_error' | 'auth_required'; // 错误类型
 
 export interface ApiConfig {
   mode?: ProviderMode;

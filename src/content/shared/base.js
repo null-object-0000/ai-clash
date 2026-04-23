@@ -120,16 +120,24 @@ export function bootstrapProvider(providerId) {
 
       // 错误 → 通知 background
       if (event.data.type === '__aiclash_error') {
-        const { error, seq } = event.data;
+        const { error, seq, errorType } = event.data;
         logger.error(`[AI Clash ${PROVIDER}] 收到 MAIN 世界错误:`, error);
         const callbacks = pendingCallbacks.get(seq);
         if (callbacks?.onError) {
-          callbacks.onError(error);
+          callbacks.onError(error, undefined, errorType || 'system_error');
         }
+        const entry = pendingResolves.get(seq);
+        if (entry?.timeoutId) {
+          clearTimeout(entry.timeoutId);
+        }
+        if (entry?.reject) {
+          entry.reject(new Error(error || '任务执行失败'));
+        }
+        pendingResolves.delete(seq);
         pendingCallbacks.delete(seq);
         safeSend({
           type: MSG_TYPES.ERROR,
-          payload: { provider: PROVIDER, message: error }
+          payload: { provider: PROVIDER, message: error, errorType: errorType || 'system_error' }
         });
         return;
       }
@@ -167,7 +175,7 @@ export function bootstrapProvider(providerId) {
               pendingResolves.delete(seq);
               reject(new Error('等待会话 ID 超时'));
             }, 20000);
-            pendingResolves.set(seq, { resolve, timeoutId });
+            pendingResolves.set(seq, { resolve, reject, timeoutId });
           });
         } else {
           // 其他方法直接发送
@@ -287,7 +295,7 @@ export function bootstrapProvider(providerId) {
 
       // 等待消息成功发送（获取到会话 ID）后返回
       // SSE 流式响应由回调继续处理，不阻塞返回
-      await caps.chat('send', prompt, options, {
+      const sendResult = await caps.chat('send', prompt, options, {
         onSseChunk: (text, isThink, stage, conversationId) => {
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
@@ -307,13 +315,17 @@ export function bootstrapProvider(providerId) {
             payload: { provider: PROVIDER }
           });
         },
-        onError: (error, conversationId) => {
+        onError: (error, conversationId, errorType) => {
           safeSend({
             type: MSG_TYPES.ERROR,
-            payload: { provider: PROVIDER, message: error }
+            payload: { provider: PROVIDER, message: error, errorType: errorType || 'system_error' }
           });
         }
       });
+
+      if (!sendResult?.success) {
+        throw new Error(sendResult?.error || sendResult?.reason || '消息发送失败');
+      }
 
       // 等待到这里表示消息已经成功发送（获取到会话 ID）
 

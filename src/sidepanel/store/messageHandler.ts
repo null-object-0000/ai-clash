@@ -201,7 +201,7 @@ export function createMessageListener(
         statusMap: { ...prev.statusMap, [prov]: 'error' },
         operationStatus: { ...prev.operationStatus, [prov]: '' },
         responses: { ...prev.responses, [prov]: errText },
-        errorTypeMap: { ...prev.errorTypeMap, [prov]: 'system_error' },
+        errorTypeMap: { ...prev.errorTypeMap, [prov]: errorType },
       }));
 
       syncProviderRawUrls([prov]);

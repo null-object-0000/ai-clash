@@ -248,7 +248,13 @@ export interface ProviderConfig {
   domain: string;
   actions: ProviderActions;
   conversation?: ConversationConfig;
+  auth?: AuthConfig;
   sse?: SSEConfig;
+}
+
+export interface AuthConfig {
+  loginUrlPatterns?: string[];
+  failureMessage?: string;
 }
 
 /**
@@ -304,7 +310,11 @@ export interface SendCallbacks {
 
   onComplete?: (fullText: string, conversationId: string | undefined) => void;
 
-  onError?: (error: string, conversationId?: string) => void;
+  onError?: (
+    error: string,
+    conversationId?: string,
+    errorType?: 'system_error' | 'auth_required'
+  ) => void;
 }
 
 /**
