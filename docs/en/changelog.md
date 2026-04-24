@@ -1,21 +1,23 @@
 # Changelog
 
-## [1.2.0] - 2026-04-23
+## [1.2.0] - 2026-04-24
 
 ### 🎉 Major
 
 - **New Channel - Xiaomi MIMO**: Xiaomi MIMO is now supported and can be added directly to multi-channel comparisons.
 - **Add Channels Mid-Conversation**: No need to restart your prompt. You can add another AI channel at any point during the same turn.
 
+### ✨ Features
+
+- **DeepSeek API Mode Upgraded to V4**: API mode now supports `deepseek-v4-flash` and `deepseek-v4-pro`, with the old `deepseek-chat` / `deepseek-reasoner` model options removed.
+
 ### 🛠️ Fixes & Improvements
 
-- **Channel List UX Improvements**: Supports select all / deselect all, groups channels by domestic / overseas, and adapts to sidebar space automatically.
-- **Improved Multi-Channel Dispatch Stability**: Refactored task scheduling and error handling to reduce failures during web-mode channel wake-up, page readiness, and message dispatch.
-- **Better Multi-Channel Defaults**: When 2 or more channels are enabled, `Auto Summary` and `Director Mode` now turn on by default; once you change them manually, your preference is remembered and respected.
-- **Retry Failed Channels Individually**: Each answer channel can now be retried on its own after failure, without restarting the whole turn. Failed channels restored from history can also be retried directly.
-- **Fixed Error-State Restoration in History**: Failed channels are no longer restored as if they had completed successfully. Reopened history sessions now keep the correct failed state and actions.
-- **DeepSeek Fast-Fails on Login Page**: When DeepSeek clearly lands on its sign-in page, it now fails immediately and lets later channels continue instead of hanging in a waiting state.
-- **Removed Manual Yuanbao Search Toggle**: Tencent Yuanbao now decides web search automatically based on your prompt, so you no longer need to toggle it manually.
+- **Better Channel List**: Select all / invert selection are now available, channels are grouped by region, and the list expands to fit the sidebar. The expand/collapse button is hidden when everything is already visible.
+- **Quieter Settings**: Switching between Web/API mode now only saves the setting and no longer opens the target webpage automatically. Yuanbao also no longer needs a manual web-search toggle.
+- **More Stable Multi-Channel Runs**: Channel wake-up, page readiness, and message dispatch are more reliable. DeepSeek now fails fast on the login page and lets other channels continue.
+- **Smarter Defaults**: When 2 or more channels are enabled, `Auto Summary` and `Director Mode` turn on by default. If you change them manually, your choice is remembered.
+- **Easier Recovery After Failure**: Failed channels can be retried individually without restarting the whole turn, and failed states are restored correctly from history.
 
 ## [1.1.0] - 2026-04-17
 
