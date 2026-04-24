@@ -3,6 +3,7 @@ import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
 import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions, getNoLoginRequiredProviders } from '../../shared/config.js';
+import { SUMMARY_SYSTEM_PROMPT } from '../../shared/summaryPrompt.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
@@ -19,37 +20,6 @@ import {
 } from './helpers';
 import type { AppStore, SidepanelSettings, SummaryConfig, ApiConfig } from './types';
 import { createMessageListener } from './messageHandler';
-
-// 默认的归纳总结系统提示词
-const DEFAULT_SUMMARY_PROMPT = `# Role
-你是一个搭载在「AI 对撞机」上的高级仲裁与决策引擎。你的任务是深度分析多位顶尖 AI 专家针对同一问题给出的独立回答，去伪存真、提炼共识、保留分歧，最终为用户生成一份集大成的终极回复。
-
-# Core Directives (核心准则)
-1. 交叉核实 (Fact-Checking)：剔除明显的幻觉和事实性错误。
-2. 视角碰撞 (Collision)：敏锐捕捉不同模型之间的【观点分歧】。不要掩盖分歧，而是客观展现它们在主观判断、代码实现或策略选择上的差异。
-3. 降噪重构 (De-noising)：拒绝简单的复制拼接，消除各回答中的冗余废话（如"好的，我来为您解答"）。
-
-# Output Workflow (输出自适应路由)
-请严格根据用户输入的问题类型，选择对应的输出框架：
-
-### 🟢 场景 A：明确任务类（如：写代码、翻译、食谱、公文写作、数学题）
-*用户需要的是一个直接可用的最终成品。*
-直接输出一份整合了各方优点的【终极最优解】。在最优解下方，用简短的 \`### 💡 对撞机点评\` 补充说明各模型的贡献或差异即可，无需长篇大论。
-
-### 🔴 场景 B：开放决策/深度探讨类（如：行业分析、人生建议、技术选型、哲理探讨）
-*用户需要的是深度视角的碰撞与决策支持。请严格按照以下 Markdown 结构输出：*
-
-### 核心共识
-> 一针见血地提炼所有专家都认同的核心事实和底层逻辑。
-
-### 观点对撞
-> 梳理专家们存在的分歧点。列出具体的争议，客观剖析各自的底层论据及合理性。
-
-### 综合解析
-> 打破单一视角，将信息重新编排，多维度（如长短期/微观宏观等）将各专家的独到见解融入其中。
-
-### 终极建议
-> 基于对撞分析，给出具有极高可操作性的结论或 \`If-Then\` 情景化建议。`;
 
 export { buffers } from './helpers';
 export type { AppStore } from './types';
@@ -398,7 +368,7 @@ export const useStore = create<AppStore>()((set, get) => {
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
     collapseMap: { ...createDefaultRecord(false), summary: false }, // false = 展开，true = 折叠
-    thinkExpandedMap: { ...createDefaultRecord(false), summary: true }, // true = 展开思考，false = 折叠思考
+    thinkExpandedMap: { ...createDefaultRecord(false), summary: false }, // true = 展开思考，false = 折叠思考
 
     summaryStatus: 'idle',
     summaryStage: 'responding',
@@ -406,7 +376,7 @@ export const useStore = create<AppStore>()((set, get) => {
     summaryThinkResponse: '',
     summaryOperationStatus: '',
     summaryStats: null,
-    summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT,  // 自定义总结提示词
+    summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT,  // 自定义总结提示词
     summaryVersions: [],  // 历史版本数组
     summaryCurrentVersion: 0,  // 当前查看的版本索引
 
@@ -475,7 +445,7 @@ export const useStore = create<AppStore>()((set, get) => {
     setSummaryProviderId: (v) => { set({ summaryProviderId: v }); saveSummaryConfig(); },
     setSummaryModel: (v) => { set({ summaryModel: v }); saveSummaryConfig(); },
     setSummaryCustomPrompt: (v) => { set({ summaryCustomPrompt: v }); saveSummaryPrompt(); },
-    resetSummaryPrompt: () => { set({ summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT }); saveSummaryPrompt(); },
+    resetSummaryPrompt: () => { set({ summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT }); saveSummaryPrompt(); },
     setChannelListExpanded: (expanded) => {
       set({ isChannelListExpanded: expanded });
       saveSettings();
@@ -626,7 +596,7 @@ export const useStore = create<AppStore>()((set, get) => {
         statsMap: { ...prev.statsMap, [providerId]: null },
         rawUrlMap: { ...prev.rawUrlMap, [providerId]: prev.modeMap[providerId] === 'api' ? 'api' : '' },
         collapseMap: { ...prev.collapseMap, [providerId]: false, summary: false },
-        thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: true, summary: true },
+        thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: true, summary: false },
         summaryStatus: 'idle',
         summaryStage: 'responding',
         summaryResponse: '',
@@ -685,7 +655,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
       // 重置折叠状态：所有启用的通道默认展开，深度思考默认展开
       const newCollapseMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
-      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: true };
+      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
       for (const id of PROVIDER_IDS) {
         newCollapseMap[id] = !s.enabledMap[id];
         newThinkExpandedMap[id] = true;
@@ -739,7 +709,7 @@ export const useStore = create<AppStore>()((set, get) => {
       get().resetTaskState();
       const s = get();
       const newCollapseMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
-      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: true };
+      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
       for (const id of PROVIDER_IDS) {
         newCollapseMap[id] = !s.enabledMap[id];
         newThinkExpandedMap[id] = true;
@@ -801,7 +771,7 @@ export const useStore = create<AppStore>()((set, get) => {
         const newErrorType = createDefaultRecord<ErrorType>('none');
         // 多通道历史：默认折叠所有通道，折叠深度思考
         const newCollapse: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
-        const newThinkExpanded: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: true };
+        const newThinkExpanded: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
 
         for (const id of PROVIDER_IDS) {
           const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', errorType: 'none' as ErrorType, rawUrl: '', stats: null };
@@ -1267,7 +1237,7 @@ export const useStore = create<AppStore>()((set, get) => {
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer',
             summaryModel: normalizeStoredModel(sc.providerId || 'summarizer', sc.model) || getDefaultModel(sc.providerId || 'summarizer'),
-            summaryCustomPrompt: customPrompt ?? DEFAULT_SUMMARY_PROMPT,
+            summaryCustomPrompt: customPrompt ?? SUMMARY_SYSTEM_PROMPT,
             enabledMap: newEnabled,
             historyList: allHistory,
           });

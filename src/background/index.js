@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import { MSG_TYPES } from '../shared/messages.js';
+import { SUMMARY_SYSTEM_PROMPT } from '../shared/summaryPrompt.js';
 import { PROVIDERS, getProvider, deriveProviderConfig } from './providers.js';
 import logger from '../shared/logger.js';
 
@@ -271,36 +272,75 @@ async function testApiKey(providerId, apiKey) {
   }
 }
 
-// 归纳总结的系统提示词
-const SUMMARY_SYSTEM_PROMPT = `# Role
-你是一个搭载在「AI对撞机」上的高级仲裁与决策引擎。你的任务是深度分析多位顶尖AI专家针对同一问题给出的独立回答，去伪存真、提炼共识、保留分歧，最终为用户生成一份集大成的终极回复。
+function createSummaryThinkTagRouter() {
+  const OPEN_TAG = '<think>';
+  const CLOSE_TAG = '</think>';
+  let buffer = '';
+  let insideThink = false;
 
-# Core Directives (核心准则)
-1. 交叉核实 (Fact-Checking)：剔除明显的幻觉和事实性错误。
-2. 视角碰撞 (Collision)：敏锐捕捉不同模型之间的【观点分歧】。不要掩盖分歧，而是客观展现它们在主观判断、代码实现或策略选择上的差异。
-3. 降噪重构 (De-noising)：拒绝简单的复制拼接，消除各回答中的冗余废话（如“好的，我来为您解答”）。
+  const emit = (text, isThink) => {
+    if (!text) return;
+    chrome.runtime.sendMessage({
+      type: MSG_TYPES.CHUNK_RECEIVED,
+      payload: {
+        provider: '_summary',
+        text,
+        stage: isThink ? 'thinking' : 'responding',
+        isThink,
+      }
+    });
+  };
 
-# Output Workflow (输出自适应路由)
-请严格根据用户输入的问题类型，选择对应的输出框架：
+  const getHeldTagPrefixLength = (text, tag) => {
+    const lowerText = text.toLowerCase();
+    let held = 0;
+    for (let len = 1; len < tag.length; len++) {
+      if (lowerText.endsWith(tag.slice(0, len))) {
+        held = len;
+      }
+    }
+    return held;
+  };
 
-### 🟢 场景 A：明确任务类（如：写代码、翻译、食谱、公文写作、数学题）
-*用户需要的是一个直接可用的最终成品。*
-直接输出一份整合了各方优点的【终极最优解】。在最优解下方，用简短的 \`### 💡 对撞机点评\` 补充说明各模型的贡献或差异即可，无需长篇大论。
+  const drain = (flush = false) => {
+    while (buffer) {
+      const tag = insideThink ? CLOSE_TAG : OPEN_TAG;
+      const lowerBuffer = buffer.toLowerCase();
+      const tagIndex = lowerBuffer.indexOf(tag);
 
-### 🔴 场景 B：开放决策/深度探讨类（如：行业分析、人生建议、技术选型、哲理探讨）
-*用户需要的是深度视角的碰撞与决策支持。请严格按照以下 Markdown 结构输出：*
+      if (tagIndex >= 0) {
+        emit(buffer.slice(0, tagIndex), insideThink);
+        buffer = buffer.slice(tagIndex + tag.length);
+        insideThink = !insideThink;
+        continue;
+      }
 
-### 核心共识
-> 一针见血地提炼所有专家都认同的核心事实和底层逻辑。
+      if (flush) {
+        emit(buffer, insideThink);
+        buffer = '';
+        return;
+      }
 
-### 观点对撞
-> 梳理专家们存在的分歧点。列出具体的争议，客观剖析各自的底层论据及合理性。
+      const held = getHeldTagPrefixLength(buffer, tag);
+      const emitLength = buffer.length - held;
+      if (emitLength <= 0) return;
 
-### 综合解析
-> 打破单一视角，将信息重新编排，多维度（如长短期/微观宏观等）将各专家的独到见解融入其中。
+      emit(buffer.slice(0, emitLength), insideThink);
+      buffer = buffer.slice(emitLength);
+      return;
+    }
+  };
 
-### 终极建议
-> 基于对撞分析，给出具有极高可操作性的结论或 \`If-Then\` 情景化建议。`;
+  return {
+    push(text) {
+      buffer += text;
+      drain(false);
+    },
+    flush() {
+      drain(true);
+    },
+  };
+}
 
 /**
  * 处理归纳总结请求：收集各通道回答，调用指定 API 进行汇总分析
@@ -356,6 +396,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
   beginRequest();
 
   try {
+    const summaryThinkTagRouter = createSummaryThinkTagRouter();
     const stream = await client.chat.completions.create({
       model: effectiveModel,
       messages: [
@@ -378,12 +419,10 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
       }
 
       if (delta.content) {
-        chrome.runtime.sendMessage({
-          type: MSG_TYPES.CHUNK_RECEIVED,
-          payload: { provider: '_summary', text: delta.content, stage: 'responding', isThink: false }
-        });
+        summaryThinkTagRouter.push(delta.content);
       }
     }
+    summaryThinkTagRouter.flush();
 
     chrome.runtime.sendMessage({
       type: MSG_TYPES.TASK_COMPLETED,

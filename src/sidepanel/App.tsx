@@ -298,7 +298,24 @@ function renderMarkdown(content: any) {
   return <XMarkdown className="x-markdown-light" content={contentStr} />;
 }
 
-function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+type ThinkTitles = {
+  loading: string;
+  done: string;
+};
+
+const DEFAULT_THINK_TITLES: ThinkTitles = {
+  loading: '深度思考中...',
+  done: '深度思考完成',
+};
+
+function renderThinkAndMarkdown(
+  thinkContent: any,
+  content: any,
+  isStreaming: boolean,
+  expanded: boolean,
+  onToggle?: (expanded: boolean) => void,
+  titles: ThinkTitles = DEFAULT_THINK_TITLES,
+) {
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   const contentIsString = typeof content === 'string';
   const contentStr = contentIsString ? content : '';
@@ -306,7 +323,7 @@ function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: bo
   return (
     <>
       <Think
-        title={thinkDone ? '深度思考完成' : '深度思考中...'}
+        title={thinkDone ? titles.done : titles.loading}
         loading={!thinkDone}
         expanded={expanded}
         onExpand={onToggle}
@@ -318,10 +335,16 @@ function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: bo
   );
 }
 
-function makeContentRender(thinkContent: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+function makeContentRender(
+  thinkContent: any,
+  isStreaming: boolean,
+  expanded: boolean,
+  onToggle?: (expanded: boolean) => void,
+  titles?: ThinkTitles,
+) {
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   return (content: any) => {
-    return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle);
+    return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle, titles);
   };
 }
 
@@ -1023,6 +1046,9 @@ const App = () => {
           } : (summaryThink ? {
             contentRender: makeContentRender(summaryThink, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
               setThinkExpanded('summary', expanded);
+            }, {
+              loading: '裁判多维解析中...',
+              done: '多维解析与比对完成',
             }),
           } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
