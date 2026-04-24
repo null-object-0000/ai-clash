@@ -6,6 +6,7 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)](https://github.com/null-object-0000/ai-clash/releases)
 [![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge)](https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai)
+[![Edge Add-ons Version](https://img.shields.io/badge/dynamic/json?label=Edge%20Add-ons&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Fkhjmihaeihajagobgbdhlbjeobdpmfkm&style=for-the-badge&logo=microsoftedge)](https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm)
 
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
