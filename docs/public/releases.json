@@ -14,11 +14,11 @@
     },
     "edge": {
       "label": "Edge Add-ons",
-      "version": "1.1.0",
-      "pendingVersion": "1.2.0",
+      "version": "1.0.0",
+      "pendingVersion": "1.1.0",
       "status": "reviewing",
       "url": "https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm",
-      "note": "v1.2.0 已发布到 GitHub，Edge 商店版本等待审核通过。"
+      "note": "v1.1.0 已发布到 GitHub，Edge 商店版本等待审核通过。"
     },
     "github": {
       "label": "官网先行版",
