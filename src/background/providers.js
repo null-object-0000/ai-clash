@@ -41,19 +41,20 @@ export const PROVIDERS = [
     // API 模式配置
     apiConfig: {
       enabled: true,
-      baseURL: 'https://api.deepseek.com/v1',
-      defaultModel: 'deepseek-chat',
+      baseURL: 'https://api.deepseek.com',
+      defaultModel: 'deepseek-v4-flash',
       apiKeyLink: 'https://platform.deepseek.com/api_keys',
       models: [
         {
-          id: 'deepseek-chat',
-          desc: 'DeepSeek-V3.2',
-          maxTokens: 8192,
+          id: 'deepseek-v4-flash',
+          desc: 'DeepSeek-V4-Flash',
+          maxTokens: 393216,
+          supportThinking: true,
         },
         {
-          id: 'deepseek-reasoner',
-          desc: 'DeepSeek-V3.2 思考',
-          maxTokens: 65536,
+          id: 'deepseek-v4-pro',
+          desc: 'DeepSeek-V4-Pro',
+          maxTokens: 393216,
           supportThinking: true,
         },
       ],

@@ -164,7 +164,9 @@ async function handleApiRequest(provider, prompt, settings = {}) {
   const userConfig = await loadApiConfig();
   const providerConfig = userConfig[provider.id] || {};
   const apiKey = providerConfig.apiKey;
-  const model = providerConfig.model || apiConfig.defaultModel;
+  const configuredModel = providerConfig.model || apiConfig.defaultModel;
+  const configuredModelExists = apiConfig.models?.some(m => m.id === configuredModel);
+  const model = configuredModelExists ? configuredModel : apiConfig.defaultModel;
 
   if (!apiKey) {
     throw new Error(`请先配置 ${provider.name} 的API Key`);
@@ -178,10 +180,10 @@ async function handleApiRequest(provider, prompt, settings = {}) {
   const defaultMaxTokens = modelConfig?.maxTokens ?? 4096;
   const maxTokens = settings.max_tokens ?? defaultMaxTokens;
 
-  // 深度思考开关：当 UI 开启且该模型支持通过 extra_body 注入思考参数时生效
+  // 深度思考开关：模型默认开启思考时，关闭状态也需要显式传 disabled
   const supportsThinkingExtraBody = modelConfig?.supportThinking ?? false;
-  const extraBody = (settings.isDeepThinkingEnabled && supportsThinkingExtraBody)
-    ? { thinking: { type: 'enabled' } }
+  const extraBody = supportsThinkingExtraBody
+    ? { thinking: { type: settings.isDeepThinkingEnabled ? 'enabled' : 'disabled' } }
     : undefined;
 
   // 构建消息数组：若有多轮历史则拼接，否则单条
