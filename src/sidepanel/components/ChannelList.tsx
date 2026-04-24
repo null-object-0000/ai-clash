@@ -132,8 +132,12 @@ const useStyles = createStyles(({ token, css }) => ({
 
 export default function ChannelList() {
   const { styles } = useStyles();
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const contentInnerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
+  const [autoContentHeight, setAutoContentHeight] = useState(COLLAPSED_CONTENT_HEIGHT);
   const enabledMap = useStore(s => s.enabledMap);
   const modeMap = useStore(s => s.modeMap);
   const apiKeyMap = useStore(s => s.apiKeyMap);
@@ -148,22 +152,62 @@ export default function ChannelList() {
   const allEnabled = allProviders.length > 0 && enabledCount === allProviders.length;
 
   useEffect(() => {
-    const checkOverflow = () => {
-      const el = contentRef.current;
-      if (!el) return;
-      setHasOverflow(el.scrollHeight > COLLAPSED_CONTENT_HEIGHT + 4);
+    let frameId = 0;
+
+    const getFollowingSiblingsHeight = (el: HTMLElement) => {
+      let total = 0;
+      let sibling = el.nextElementSibling as HTMLElement | null;
+      while (sibling) {
+        const style = window.getComputedStyle(sibling);
+        total += sibling.offsetHeight + parseFloat(style.marginTop || '0') + parseFloat(style.marginBottom || '0');
+        sibling = sibling.nextElementSibling as HTMLElement | null;
+      }
+      return total;
     };
 
-    checkOverflow();
-    const resizeObserver = new ResizeObserver(checkOverflow);
-    if (contentRef.current) {
-      resizeObserver.observe(contentRef.current);
-    }
-    window.addEventListener('resize', checkOverflow);
+    const measureLayout = () => {
+      frameId = 0;
+      const wrapper = wrapperRef.current;
+      const content = contentRef.current;
+      const contentInner = contentInnerRef.current;
+      const header = headerRef.current;
+      const scrollParent = wrapper?.parentElement;
+      if (!wrapper || !content || !contentInner || !header || !scrollParent) return;
+
+      const wrapperStyle = window.getComputedStyle(wrapper);
+      const wrapperBottomMargin = parseFloat(wrapperStyle.marginBottom || '0');
+      const followingHeight = getFollowingSiblingsHeight(wrapper);
+      const parentRect = scrollParent.getBoundingClientRect();
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const visibleHeightFromWrapper = parentRect.bottom - wrapperRect.top;
+      const availableWrapperHeight = visibleHeightFromWrapper - followingHeight - wrapperBottomMargin;
+      const availableContentHeight = Math.max(
+        COLLAPSED_CONTENT_HEIGHT,
+        availableWrapperHeight - header.offsetHeight,
+      );
+      const naturalContentHeight = contentInner.scrollHeight;
+      const nextContentHeight = Math.min(naturalContentHeight, availableContentHeight);
+
+      setAutoContentHeight(nextContentHeight);
+      setHasOverflow(naturalContentHeight > nextContentHeight + 4);
+    };
+
+    const scheduleMeasure = () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(measureLayout);
+    };
+
+    scheduleMeasure();
+    const resizeObserver = new ResizeObserver(scheduleMeasure);
+    [wrapperRef.current, contentRef.current, contentInnerRef.current, wrapperRef.current?.parentElement].forEach((el) => {
+      if (el) resizeObserver.observe(el);
+    });
+    window.addEventListener('resize', scheduleMeasure);
 
     return () => {
+      if (frameId) cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
-      window.removeEventListener('resize', checkOverflow);
+      window.removeEventListener('resize', scheduleMeasure);
     };
   }, [enabledMap, modeMap, apiKeyMap, testingApiKey, cnProviders.length, globalProviders.length]);
 
@@ -227,9 +271,9 @@ export default function ChannelList() {
   };
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} ref={wrapperRef}>
       <div className={styles.card}>
-        <div className={styles.header}>
+        <div className={styles.header} ref={headerRef}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className={styles.headerTitle}>通道列表</span>
             <Tag bordered={false} color="blue">{enabledCount} 已启用</Tag>
@@ -257,26 +301,28 @@ export default function ChannelList() {
         <div
           ref={contentRef}
           className={styles.contentWrapper}
-          style={expanded ? undefined : { minHeight: COLLAPSED_CONTENT_HEIGHT, maxHeight: COLLAPSED_CONTENT_HEIGHT }}
+          style={expanded ? undefined : { minHeight: autoContentHeight, maxHeight: autoContentHeight }}
         >
-          {cnProviders.length > 0 && (
-            <>
-              <div className={styles.sectionHeader}>🇨🇳 国内原生大模型</div>
-              {renderListItems(cnProviders)}
-            </>
-          )}
+          <div ref={contentInnerRef}>
+            {cnProviders.length > 0 && (
+              <>
+                <div className={styles.sectionHeader}>🇨🇳 国内原生大模型</div>
+                {renderListItems(cnProviders)}
+              </>
+            )}
 
-          <div className={styles.sectionHeader}>🌍 海外原生大模型</div>
-          {globalProviders.length > 0 ? (
-            renderListItems(globalProviders)
-          ) : (
-            <div style={{ padding: '24px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.25)', fontSize: '13px' }}>
-              暂无海外 AI 通道，敬请期待
-              <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.75 }}>
-                ChatGPT、Gemini 等即将上线
+            <div className={styles.sectionHeader}>🌍 海外原生大模型</div>
+            {globalProviders.length > 0 ? (
+              renderListItems(globalProviders)
+            ) : (
+              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.25)', fontSize: '13px' }}>
+                暂无海外 AI 通道，敬请期待
+                <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.75 }}>
+                  ChatGPT、Gemini 等即将上线
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

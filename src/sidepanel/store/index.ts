@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
-import { PROVIDER_META, getModelOptions, getNoLoginRequiredProviders } from '../../shared/config.js';
+import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions, getNoLoginRequiredProviders } from '../../shared/config.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
@@ -110,6 +110,13 @@ export const useStore = create<AppStore>()((set, get) => {
     chrome.storage?.local.set({
       [SUMMARY_PROMPT_KEY]: s.summaryCustomPrompt,
     });
+  };
+
+  const normalizeStoredModel = (providerId: string, model?: string) => {
+    if (!model) return '';
+    const modelIds = getModelIds(providerId);
+    if (!modelIds.length) return '';
+    return modelIds.includes(model) ? model : getDefaultModel(providerId);
   };
 
   const saveHistory = (list: ChatHistoryItem[]) => {
@@ -547,14 +554,6 @@ export const useStore = create<AppStore>()((set, get) => {
       if (mode === 'api' && !get().apiKeyMap[id]?.trim()) return;
       set(prev => ({ modeMap: { ...prev.modeMap, [id]: mode } }));
       saveApiConfig(id, { mode });
-      if (mode === 'web' && get().enabledMap[id]) {
-        get().goToProvider(id, false).then(result => {
-          if (!result?.success) {
-            set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: false } }));
-            window.alert(`${PROVIDER_NAME_MAP[id]}切换到网页模式失败：${result?.error || '无法创建页面'}`);
-          }
-        });
-      }
     },
 
     setProviderApiKey: (id, value) => {
@@ -1144,7 +1143,7 @@ export const useStore = create<AppStore>()((set, get) => {
           for (const id of PROVIDER_IDS) {
             newModes[id] = (apiConfig[id]?.mode as ProviderMode) || 'web';
             newKeys[id] = apiConfig[id]?.apiKey || '';
-            newModels[id] = apiConfig[id]?.model || '';
+            newModels[id] = normalizeStoredModel(id, apiConfig[id]?.model);
           }
           newModes.yuanbao = 'web';
           newModes.wenxin = 'web';
@@ -1266,7 +1265,8 @@ export const useStore = create<AppStore>()((set, get) => {
             hasCustomizedFocusFollowEnabled,
             isChannelListExpanded: saved.isChannelListExpanded ?? false,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
-            summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',
+            summaryProviderId: sc.providerId || 'summarizer',
+            summaryModel: normalizeStoredModel(sc.providerId || 'summarizer', sc.model) || getDefaultModel(sc.providerId || 'summarizer'),
             summaryCustomPrompt: customPrompt ?? DEFAULT_SUMMARY_PROMPT,
             enabledMap: newEnabled,
             historyList: allHistory,
