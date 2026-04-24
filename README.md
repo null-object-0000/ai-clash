@@ -11,8 +11,6 @@
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
 > 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言 | Xiaomi MIMO
->
-> 当前版本：**v1.2.0**，支持中途加通道、失败单独重试、焦点跟随导播、内置总结服务和本地 API 接入。
 
 <p align="center">
   <img src="docs/public/动画.gif" width="100%" alt="演示动画">
