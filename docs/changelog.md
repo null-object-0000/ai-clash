@@ -10,6 +10,7 @@
 ### ✨ 新增特性
 
 - **DeepSeek API 模式升级至 V4**：API 模式已兼容 `deepseek-v4-flash` 与 `deepseek-v4-pro`，并移除旧的 `deepseek-chat` / `deepseek-reasoner` 模型选项。
+- **版本更新状态页**：全局设置中新增「关于 / 版本更新」，可查看当前安装版本、Chrome/Edge 商店版本、官网先行版和商店审核状态。
 
 ### 🛠️ 优化与修复
 

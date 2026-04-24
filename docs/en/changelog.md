@@ -10,6 +10,7 @@
 ### ✨ Features
 
 - **DeepSeek API Mode Upgraded to V4**: API mode now supports `deepseek-v4-flash` and `deepseek-v4-pro`, with the old `deepseek-chat` / `deepseek-reasoner` model options removed.
+- **Version Update Status**: Added "About / Version Updates" to global settings, showing the installed version, Chrome/Edge store versions, website preview version, and store review status.
 
 ### 🛠️ Fixes & Improvements
 

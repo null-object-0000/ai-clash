@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-04-24",
+  "recommended": "store",
+  "changelogUrl": "https://ai-clash.snewbie.site/changelog.html",
+  "channels": {
+    "chrome": {
+      "label": "Chrome Web Store",
+      "version": "1.1.0",
+      "pendingVersion": "1.2.0",
+      "status": "reviewing",
+      "url": "https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai",
+      "note": "v1.2.0 已发布到 GitHub，Chrome 商店版本等待审核通过。"
+    },
+    "edge": {
+      "label": "Edge Add-ons",
+      "version": "1.1.0",
+      "pendingVersion": "1.2.0",
+      "status": "reviewing",
+      "url": "https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm",
+      "note": "v1.2.0 已发布到 GitHub，Edge 商店版本等待审核通过。"
+    },
+    "github": {
+      "label": "官网先行版",
+      "version": "1.2.0",
+      "status": "preview",
+      "url": "https://github.com/null-object-0000/ai-clash/releases/latest",
+      "note": "适合手动安装或想提前体验新功能的用户。"
+    }
+  }
+}
