@@ -143,6 +143,36 @@ export function bootstrapProvider(providerId) {
       }
     });
 
+    function callMainWorld(capability, method, args = [], timeoutMs = 8000) {
+      const seq = Math.random().toString(36).slice(2);
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          window.removeEventListener('message', onResult);
+          reject(new Error(`${capability}.${method} 调用超时`));
+        }, timeoutMs);
+
+        function onResult(event) {
+          if (event.data?.type !== '__aiclash_result' || event.data.seq !== seq) return;
+          window.removeEventListener('message', onResult);
+          clearTimeout(timeoutId);
+          if (event.data.error) {
+            reject(new Error(event.data.error));
+          } else {
+            resolve(event.data.result);
+          }
+        }
+
+        window.addEventListener('message', onResult);
+        window.postMessage({
+          type: '__aiclash_call',
+          seq,
+          capability,
+          method,
+          args,
+        }, '*');
+      });
+    }
+
     // 创建代理 capabilities，符合原来的调用约定：caps.chat('send', ...args)
     const rpcCapabilities = {
       chat: async (method, ...args) => {
@@ -187,7 +217,11 @@ export function bootstrapProvider(providerId) {
             args: args
           }, '*');
         }
-      }
+      },
+      auth: async (method, ...args) => {
+        logger.log(`[AI Clash ${PROVIDER}] RPC 调用 MAIN 世界 __AI_CLASH.auth.${method}`);
+        return callMainWorld('auth', method, args);
+      },
     };
 
     // 检查 standalone 是否真的注入成功
@@ -248,6 +282,15 @@ export function bootstrapProvider(providerId) {
           .then(() => sendResponse({ ok: true }))
           .catch((err) => sendResponse({ ok: false, error: err.message }));
         return true; // 表示异步返回
+      }
+      if (request.type === MSG_TYPES.GET_PROVIDER_LOGIN_STATE) {
+        getLoginState()
+          .then((state) => sendResponse({ ok: true, state }))
+          .catch((err) => sendResponse({
+            ok: false,
+            state: { status: 'unknown', message: err.message || '无法确认登录状态' },
+          }));
+        return true;
       }
       return false;
     });
@@ -346,6 +389,14 @@ export function bootstrapProvider(providerId) {
       });
       throw err; // 重新抛出错误，让调用者知道失败了
     }
+  }
+
+  async function getLoginState() {
+    const caps = await initInjector();
+    if (!caps?.auth) {
+      return { status: 'unknown', message: '登录态检测不可用' };
+    }
+    return caps.auth('getLoginState');
   }
 
   // ============================================================================

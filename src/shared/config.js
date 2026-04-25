@@ -15,7 +15,6 @@ export const PROVIDER_META = PROVIDERS
     id: provider.id,
     name: provider.name,
     supportsApi: !!provider.apiConfig?.enabled,
-    requiresLogin: provider.requiresLogin ?? true, // 默认需要登录
     region: provider.region ?? 'cn', // 地区：cn（中国）| global（海外）
     apiKeyLink: provider.apiConfig?.apiKeyLink || undefined,
     apiNote: provider.apiConfig?.apiNote || undefined,
@@ -86,15 +85,6 @@ export function getProviderApiConfig(providerId) {
 export function getApiEnabledProviderIds() {
   return PROVIDERS
     .filter(p => p.apiConfig?.enabled)
-    .map(p => p.id);
-}
-
-/**
- * 获取不需要登录即可使用的通道 ID 列表
- */
-export function getNoLoginRequiredProviders() {
-  return PROVIDERS
-    .filter(p => p.requiresLogin === false)
     .map(p => p.id);
 }
 

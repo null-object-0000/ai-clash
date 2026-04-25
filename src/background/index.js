@@ -679,6 +679,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true;
     }
 
+    if (request.type === MSG_TYPES.GET_PROVIDER_LOGIN_STATE) {
+        const { providerId } = request.payload || {};
+        getProviderLoginState(providerId).then((state) => {
+            sendResponse({ success: true, state });
+        }).catch((err) => {
+            sendResponse({
+                success: false,
+                state: { status: 'unknown', message: err.message || '无法确认登录状态' },
+            });
+        });
+        return true;
+    }
+
     if (request.type === MSG_TYPES.TRY_FOCUS_FOLLOW) {
         const { completedProvider } = request.payload;
         const completedTabId = providerTabMap[completedProvider];
@@ -826,6 +839,71 @@ async function getProviderRawUrls(providerIds = []) {
     }
 
     return urlMap;
+}
+
+async function sendLoginStateRequest(tabId, provider) {
+    try {
+        const response = await chrome.tabs.sendMessage(tabId, {
+            type: MSG_TYPES.GET_PROVIDER_LOGIN_STATE,
+            payload: { providerId: provider.id },
+        });
+        if (response?.ok && response.state) {
+            return response.state;
+        }
+        return response?.state || { status: 'unknown', message: response?.error || '无法确认登录状态' };
+    } catch {
+        await new Promise((resolve, reject) => {
+            const timeoutId = setTimeout(() => {
+                chrome.tabs.onUpdated.removeListener(listener);
+                reject(new Error('页面重载超时'));
+            }, 30000);
+
+            function listener(updatedTabId, info) {
+                if (updatedTabId === tabId && info.status === 'complete') {
+                    chrome.tabs.onUpdated.removeListener(listener);
+                    clearTimeout(timeoutId);
+                    resolve();
+                }
+            }
+
+            chrome.tabs.onUpdated.addListener(listener);
+            chrome.tabs.reload(tabId);
+        });
+
+        const readyResult = await waitForPageReady(tabId, provider);
+        if (!readyResult.success) {
+            return { status: 'unknown', message: readyResult.error || 'content script 未就绪' };
+        }
+
+        const response = await chrome.tabs.sendMessage(tabId, {
+            type: MSG_TYPES.GET_PROVIDER_LOGIN_STATE,
+            payload: { providerId: provider.id },
+        });
+        if (response?.ok && response.state) {
+            return response.state;
+        }
+        return response?.state || { status: 'unknown', message: response?.error || '无法确认登录状态' };
+    }
+}
+
+async function getProviderLoginState(providerId) {
+    const provider = getProvider(providerId);
+    if (!provider) {
+        return { status: 'unknown', message: 'provider 不存在' };
+    }
+
+    const tabResult = await openOrActivateProviderTab(providerId, false);
+    if (!tabResult.success || !tabResult.tabId) {
+        return { status: 'unknown', message: `无法打开${provider.name}页面` };
+    }
+
+    await waitForTabComplete(tabResult.tabId);
+    const readyResult = await waitForPageReady(tabResult.tabId, provider);
+    if (!readyResult.success) {
+        return { status: 'unknown', message: readyResult.error || 'content script 未就绪' };
+    }
+
+    return sendLoginStateRequest(tabResult.tabId, provider);
 }
 
 // 等待页面准备就绪的辅助函数
@@ -1032,7 +1110,7 @@ async function routeToTab(provider, prompt, settings) {
         }
     }).catch(() => {});
 
-    // 6. 发送消息执行任务（登录检测由 Content Script 负责）
+    // 6. 发送消息执行任务（登录前置检查由侧边栏负责）
     logger.log(`[AI Clash] ${provider.id} 开始注入 content script 并发送消息`);
     await injectContentScriptAndSendMessage(tabId, provider, msg);
     logger.log(`[AI Clash] ${provider.id} routeToTab 执行完成`);

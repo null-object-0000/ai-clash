@@ -2,7 +2,7 @@
  * 小米 MiMo (Xiaomi MiMo) Provider Configuration
  *
  * 官方网址：https://aistudio.xiaomimimo.com/#/c
- * 强制前置登录拦截：是
+ * 登录态由侧边栏在发送前统一检查
  */
 
 import type { ProviderConfig } from '../core/types.js';
@@ -44,6 +44,25 @@ export const xiaomiProvider: ProviderConfig = {
   id: 'xiaomi',
   name: '小米 MiMo',
   domain: 'aistudio.xiaomimimo.com',
+  auth: {
+    failureMessage: '小米 MiMo 当前未登录，请先完成登录后再重试',
+    async getLoginState() {
+      const response = await fetch('https://aistudio.xiaomimimo.com/open-apis/user/mi/get', {
+        headers: {
+          'content-type': 'application/json',
+        },
+        method: 'GET',
+      });
+      const data = await response.json();
+      if (data?.code === 0 && data?.data?.userId) {
+        return { status: 'logged_in' };
+      }
+      if (data?.code === 401 || response.status === 401) {
+        return { status: 'logged_out', message: '小米 MiMo 当前未登录，请先完成登录后再重试' };
+      }
+      return { status: 'unknown', message: data?.msg || '无法确认小米 MiMo 登录状态' };
+    },
+  },
   actions: {
     // 基础对话能力
     chat: {

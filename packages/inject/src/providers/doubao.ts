@@ -64,6 +64,22 @@ export const doubaoProvider: ProviderConfig = {
   id: 'doubao',
   name: '豆包',
   domain: 'doubao.com',
+  auth: {
+    failureMessage: '豆包当前未登录，请先完成登录后再重试',
+    getLoginState() {
+      const accountInfo = (window as any)._ROUTER_DATA?.loaderData?.chat_layout?.chat_layout?.accountInfo;
+      if (!accountInfo) {
+        return { status: 'unknown', message: '无法确认豆包登录状态' };
+      }
+      if (accountInfo?.message === 'success' && accountInfo?.data?.user_id) {
+        return { status: 'logged_in' };
+      }
+      if (accountInfo?.data?.error_code === 13 || accountInfo?.message === 'error') {
+        return { status: 'logged_out', message: accountInfo?.data?.description || '豆包当前未登录，请先完成登录后再重试' };
+      }
+      return { status: 'unknown', message: '无法确认豆包登录状态' };
+    },
+  },
   actions: {
     // 基础对话能力
     chat: {

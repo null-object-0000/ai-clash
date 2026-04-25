@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
-import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions, getNoLoginRequiredProviders } from '../../shared/config.js';
+import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions } from '../../shared/config.js';
 import { SUMMARY_SYSTEM_PROMPT } from '../../shared/summaryPrompt.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
@@ -25,6 +25,11 @@ export { buffers } from './helpers';
 export type { AppStore } from './types';
 export { PROVIDER_META } from '../../shared/config.js';
 export { MSG_TYPES } from '../../shared/messages.js';
+
+type LoginState = {
+  status: 'logged_in' | 'logged_out' | 'unknown';
+  message?: string;
+};
 
 // ════════════════════════════════════════════════════════════════════
 // Store
@@ -254,6 +259,52 @@ export const useStore = create<AppStore>()((set, get) => {
 
   const getProviderMeta = (id: ProviderId) => PROVIDER_META.find((p: any) => p.id === id);
   const supportsApi = (id: ProviderId) => getProviderMeta(id)?.supportsApi ?? false;
+
+  const checkProviderLoginState = async (providerId: ProviderId): Promise<LoginState> => {
+    if (get().modeMap[providerId] === 'api') {
+      return { status: 'logged_in' };
+    }
+    try {
+      const r = await chrome.runtime?.sendMessage({
+        type: MSG_TYPES.GET_PROVIDER_LOGIN_STATE,
+        payload: { providerId },
+      });
+      return r?.state || { status: 'unknown', message: '无法确认登录状态' };
+    } catch (err) {
+      return {
+        status: 'unknown',
+        message: err instanceof Error ? err.message : '无法确认登录状态',
+      };
+    }
+  };
+
+  const getAuthRequiredText = (providerId: ProviderId, state?: LoginState) => {
+    const providerName = PROVIDER_NAME_MAP[providerId] || providerId;
+    if (state?.status === 'logged_out') {
+      return state.message || `${providerName} 当前未登录，请先登录后再发送消息`;
+    }
+    return state?.message || `无法确认 ${providerName} 登录状态，请先登录后再发送消息`;
+  };
+
+  const applyAuthRequiredState = (providerId: ProviderId, text: string) => {
+    const errText = `[需要登录] ${text}`;
+    buffers.fullText[providerId] = errText;
+    buffers.thinkText[providerId] = '';
+    buffers.displayedLen[providerId] = errText.length;
+    buffers.thinkDisplayedLen[providerId] = 0;
+    buffers.visitedStages[providerId] = new Set();
+    set(prev => ({
+      statusMap: { ...prev.statusMap, [providerId]: 'error' },
+      stageMap: { ...prev.stageMap, [providerId]: 'waiting' },
+      responses: { ...prev.responses, [providerId]: errText },
+      thinkResponses: { ...prev.thinkResponses, [providerId]: '' },
+      operationStatus: { ...prev.operationStatus, [providerId]: '' },
+      errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'auth_required' },
+      statsMap: { ...prev.statsMap, [providerId]: null },
+      rawUrlMap: { ...prev.rawUrlMap, [providerId]: prev.modeMap[providerId] === 'api' ? 'api' : '' },
+    }));
+    get().schedulePersist(0, { [providerId]: get().modeMap[providerId] === 'api' ? 'api' : '' });
+  };
 
   // 根据启用的通道数量和用户是否手动改过设置，计算总结/导播状态
   const getAutoModeSettings = (
@@ -576,6 +627,15 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
+      const loginState = await checkProviderLoginState(providerId);
+      if (loginState.status !== 'logged_in') {
+        const text = getAuthRequiredText(providerId, loginState);
+        applyAuthRequiredState(providerId, text);
+        message.error(text);
+        get().schedulePersist(0);
+        return;
+      }
+
       buffers.timing[providerId] = { startTime: Date.now(), firstContentTime: 0 };
       buffers.fullText[providerId] = '';
       buffers.thinkText[providerId] = '';
@@ -704,8 +764,13 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
-      // 并行执行：同时向所有启用的提供者发送任务
-      const taskPromises = enabledIds.map(id => {
+      // 并行执行：每个通道先检查自己的网页登录态，再决定是否派发任务
+      const taskPromises = enabledIds.map(async (id) => {
+        const loginState = await checkProviderLoginState(id);
+        if (loginState.status !== 'logged_in') {
+          applyAuthRequiredState(id, getAuthRequiredText(id, loginState));
+          return;
+        }
         return dispatchProviderTask(id, prompt, s, conversationHistory, isNewConversation);
       });
 
@@ -1157,8 +1222,8 @@ export const useStore = create<AppStore>()((set, get) => {
           const sc = (result?.[SUMMARY_CONFIG_KEY] || {}) as SummaryConfig;
           const customPrompt = result?.[SUMMARY_PROMPT_KEY] as string | undefined;
 
-          // 从存储中读取用户上次开启的通道，不再检查 tab 有效性
-          // 首次使用时，默认开启所有不需要登录的通道
+          // 从存储中读取用户上次开启的通道，不再检查 tab 有效性。
+          // 首次使用不自动开启通道。
           const savedEnabled = (result?.[ENABLED_PROVIDERS_KEY] || {}) as Record<ProviderId, boolean>;
           const hasSavedEnabled = Object.keys(savedEnabled).length > 0;
           const newEnabled = createDefaultRecord(false);
@@ -1167,12 +1232,6 @@ export const useStore = create<AppStore>()((set, get) => {
             // 有保存的配置，使用用户上次的选择
             PROVIDER_IDS.forEach(id => {
               newEnabled[id] = !!savedEnabled[id];
-            });
-          } else {
-            // 首次使用，默认开启所有不需要登录的通道
-            const noLoginRequired = getNoLoginRequiredProviders() as ProviderId[];
-            noLoginRequired.forEach(id => {
-              newEnabled[id] = true;
             });
           }
 

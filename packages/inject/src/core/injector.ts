@@ -7,6 +7,7 @@ import type {
   InjectorOptions,
   Capabilities,
   ChatCapability,
+  LoginState,
   ProviderConfig,
   SendCallbacks,
   SendOptions,
@@ -487,6 +488,17 @@ function isCurrentPageAuthBlocked(provider: ProviderConfig): { blocked: boolean;
   return { blocked: false };
 }
 
+function getCurrentPageLoginState(provider: ProviderConfig): LoginState {
+  const authState = isCurrentPageAuthBlocked(provider);
+  if (authState.blocked) {
+    return {
+      status: 'logged_out',
+      message: authState.message || `${provider.name} 当前未登录，请先完成登录后再重试`,
+    };
+  }
+  return { status: 'unknown', message: `${provider.name} 暂未配置登录态检测` };
+}
+
 /**
  * 等待会话 ID 出现（轮询 URL 变化）
  */
@@ -595,13 +607,6 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
 
       // === 封装模式：执行完整流程 ===
       if (isFullSend && message) {
-        const authState = isCurrentPageAuthBlocked(provider);
-        if (authState.blocked) {
-          console.warn(`[AI Clash Inject] ${provider.id}: 在完整发送流程开始前检测到登录阻塞，快速失败`, window.location.href);
-          callbacks?.onError?.(authState.message || '当前页面不可用', undefined, 'auth_required');
-          return { success: false, reason: 'auth-required', error: authState.message };
-        }
-
         // 1. 如果需要新对话，先开启新对话
         if (options?.newChat) {
           const newChatResult = await this.newChat();
@@ -652,25 +657,9 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
      * @internal
      */
     async _send(callbacks?: SendCallbacks) {
-      const authState = isCurrentPageAuthBlocked(provider);
-      if (authState.blocked) {
-        console.warn(`[AI Clash Inject] ${provider.id}: 检测到登录阻塞，快速失败`, window.location.href);
-        callbacks?.onError?.(authState.message || '当前页面不可用', undefined, 'auth_required');
-        return { success: false, reason: 'auth-required', error: authState.message };
-      }
-
       console.log(`[AI Clash Inject] ${provider.id}: _send 开始执行，等待输入框...`);
       const inputEl = await waitForAnyElement(chat.input.box, 8000);
       console.log(`[AI Clash Inject] ${provider.id}: 输入框${inputEl ? '找到' : '未找到'}`);
-
-      if (!inputEl) {
-        const latestAuthState = isCurrentPageAuthBlocked(provider);
-        if (latestAuthState.blocked) {
-          console.warn(`[AI Clash Inject] ${provider.id}: 等待输入框期间检测到登录阻塞，快速失败`, window.location.href);
-          callbacks?.onError?.(latestAuthState.message || '当前页面不可用', undefined, 'auth_required');
-          return { success: false, reason: 'auth-required', error: latestAuthState.message };
-        }
-      }
 
       // 查找发送按钮 - 优先使用 customFind 方法（用于需要特殊验证的场景如 MiMo）
       let sendBtn: Element | null = null;
@@ -748,6 +737,25 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
         method: sendBtn ? 'button' : 'enter',
         conversationId,
       };
+    },
+  };
+}
+
+function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
+  return {
+    async getLoginState() {
+      try {
+        if (provider.auth?.getLoginState) {
+          const state = await provider.auth.getLoginState();
+          if (state?.status) return state;
+        }
+        return getCurrentPageLoginState(provider);
+      } catch (err) {
+        return {
+          status: 'unknown',
+          message: err instanceof Error ? err.message : String(err),
+        };
+      }
     },
   };
 }
@@ -895,6 +903,7 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
 function createCapabilities(provider: ProviderConfig): Capabilities {
   return {
     chat: createChatCapability(provider),
+    auth: createAuthCapability(provider),
     thinking: createThinkingCapability(provider),
     search: createSearchCapability(provider),
     // model: createModelCapability(provider), // TODO: 实现模型切换能力
@@ -939,6 +948,7 @@ function createWindowAdapter(
       window.addEventListener(`${globalName}_call`, callHandler as EventListener);
       (window as any)[globalName] = {
         chat: capabilities.chat,
+        auth: capabilities.auth,
         thinking: capabilities.thinking,
         search: capabilities.search,
         _isInjected: true,

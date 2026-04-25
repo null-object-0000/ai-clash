@@ -41,6 +41,19 @@ export const qianwenProvider: ProviderConfig = {
   id: 'qianwen',
   name: '通义千问',
   domain: 'qianwen.com',  // 支持 www.qianwen.com / chat2.qianwen.com
+  auth: {
+    failureMessage: '通义千问当前未登录，请先完成登录后再重试',
+    getLoginState() {
+      const user = (window as any)._USER_;
+      if (!user) {
+        return { status: 'unknown', message: '无法确认通义千问登录状态' };
+      }
+      if (user.userId || user.aliyunUid) {
+        return { status: 'logged_in' };
+      }
+      return { status: 'logged_out', message: '通义千问当前未登录，请先完成登录后再重试' };
+    },
+  },
   actions: {
     // 基础对话能力
     chat: {

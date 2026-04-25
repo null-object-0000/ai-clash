@@ -13,6 +13,7 @@ export const MSG_TYPES = {
     OPEN_PROVIDER_TAB: 'OPEN_PROVIDER_TAB', // 请求打开或激活provider对应的tab
     CHECK_PROVIDER_TAB_VALID: 'CHECK_PROVIDER_TAB_VALID', // 查询provider是否有有效绑定的tab
     GET_PROVIDER_RAW_URLS: 'GET_PROVIDER_RAW_URLS', // 获取各通道当前原始链接
+    GET_PROVIDER_LOGIN_STATE: 'GET_PROVIDER_LOGIN_STATE', // 获取通道网页登录态
 
     // Focus Follow
     TRY_FOCUS_FOLLOW: 'TRY_FOCUS_FOLLOW',

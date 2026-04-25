@@ -67,6 +67,32 @@ export const deepseekProvider: ProviderConfig = {
   auth: {
     loginUrlPatterns: ['/sign_in'],
     failureMessage: 'DeepSeek 当前未登录，已进入登录页，请先完成登录后再重试',
+    async getLoginState() {
+      let token = '';
+      try {
+        const raw = localStorage.getItem('userToken');
+        token = raw ? JSON.parse(raw)?.value || '' : '';
+      } catch {
+        token = '';
+      }
+
+      if (!token) {
+        return { status: 'logged_out', message: 'DeepSeek 当前未登录，请先完成登录后再重试' };
+      }
+
+      const response = await fetch('https://chat.deepseek.com/api/v0/users/current', {
+        headers: { authorization: `Bearer ${token}` },
+        method: 'GET',
+      });
+      const data = await response.json();
+      if (data?.code === 0 && data?.data) {
+        return { status: 'logged_in' };
+      }
+      if (data?.code === 40003) {
+        return { status: 'logged_out', message: 'DeepSeek 登录已失效，请重新登录后再重试' };
+      }
+      return { status: 'unknown', message: data?.msg || '无法确认 DeepSeek 登录状态' };
+    },
   },
   actions: {
     // 基础对话能力

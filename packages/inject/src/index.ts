@@ -16,6 +16,7 @@ export type {
   Injector,
   InjectorOptions,
   Capabilities,
+  AuthCapability,
   ChatCapability,
   ThinkingCapability,
   SearchCapability,
@@ -25,6 +26,8 @@ export type {
   ProviderId,
   AdapterType,
   SendCallbacks,
+  LoginState,
+  LoginStatus,
   ConversationInfo,
 } from './core/types.js';
 export type {

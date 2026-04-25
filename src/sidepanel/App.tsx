@@ -6,6 +6,7 @@ import {
   GlobalOutlined,
   HeartOutlined,
   LeftOutlined,
+  LoginOutlined,
   MergeCellsOutlined,
   PlusOutlined,
   RedoOutlined,
@@ -728,6 +729,7 @@ const App = () => {
   const statsMap = useStore(s => s.statsMap);
   const summaryStats = useStore(s => s.summaryStats);
   const operationStatus = useStore(s => s.operationStatus);
+  const errorTypeMap = useStore(s => s.errorTypeMap);
   const summaryOperationStatus = useStore(s => s.summaryOperationStatus);
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
@@ -850,7 +852,7 @@ const App = () => {
   };
   const summaryVersions = useStore(s => s.summaryVersions);
   const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
-  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider } = useStore();
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider, goToProvider } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -1024,7 +1026,18 @@ const App = () => {
             />
           ),
           footer: statusMap[id] === 'error' && !isCollapsed ? (
-            <Flex justify="end" style={{ width: '100%' }}>
+            <Flex justify="end" gap={8} style={{ width: '100%' }}>
+              {errorTypeMap[id] === 'auth_required' ? (
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<LoginOutlined />}
+                  onClick={() => goToProvider(id, true)}
+                  style={{ borderRadius: 999 }}
+                >
+                  前往登录
+                </Button>
+              ) : null}
               <Button
                 size="small"
                 type="default"
@@ -1261,12 +1274,12 @@ const App = () => {
     return items;
   }, [
     conversationTurns, currentQuestion, enabledMap, statusMap, stageMap, collapseMap, thinkExpandedMap,
-    responses, thinkResponses, isSummaryEnabled, summaryStatus,
+    responses, thinkResponses, isSummaryEnabled, summaryStatus, errorTypeMap,
     summaryResponse, summaryThinkResponse, summaryAnalysisResponse, summaryAnalysisExpanded, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,
     triggerSummary, regenerateSummary, switchSummaryVersion,
     summaryVersions, summaryCurrentVersion,
-    sidebarWidth, retryProvider, isCurrentSessionFromHistory,
+    sidebarWidth, retryProvider, goToProvider, isCurrentSessionFromHistory,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');

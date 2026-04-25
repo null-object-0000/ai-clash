@@ -93,9 +93,21 @@ export interface Injector {
  */
 export interface Capabilities {
   chat: ChatCapability;
+  auth?: AuthCapability;
   thinking?: ThinkingCapability;
   search?: SearchCapability;
   model?: ModelCapability;
+}
+
+export type LoginStatus = 'logged_in' | 'logged_out' | 'unknown';
+
+export interface LoginState {
+  status: LoginStatus;
+  message?: string;
+}
+
+export interface AuthCapability {
+  getLoginState(): Promise<LoginState>;
 }
 
 /**
@@ -255,6 +267,7 @@ export interface ProviderConfig {
 export interface AuthConfig {
   loginUrlPatterns?: string[];
   failureMessage?: string;
+  getLoginState?: () => Promise<LoginState> | LoginState;
 }
 
 /**

@@ -8,6 +8,28 @@ export const wenxinProvider: ProviderConfig = {
   id: 'wenxin',
   name: '文心一言',
   domain: 'yiyan.baidu.com',
+  auth: {
+    failureMessage: '文心一言当前未登录，请先完成登录后再重试',
+    async getLoginState() {
+      const response = await fetch('https://yiyan.baidu.com/eb/user/info', {
+        headers: {
+          'content-type': 'application/json',
+          'device-type': 'pc',
+        },
+        referrer: 'https://yiyan.baidu.com/',
+        body: JSON.stringify({ timestamp: Date.now(), deviceType: 'pc' }),
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (data?.ret === 0 && data?.content?.isLogin === true) {
+        return { status: 'logged_in' };
+      }
+      if (data?.ret === 0 && data?.content?.isLogin === false) {
+        return { status: 'logged_out', message: '文心一言当前未登录，请先完成登录后再重试' };
+      }
+      return { status: 'unknown', message: '无法确认文心一言登录状态' };
+    },
+  },
   actions: {
     chat: {
       newChat: {

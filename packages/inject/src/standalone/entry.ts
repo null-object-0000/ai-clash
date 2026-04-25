@@ -225,7 +225,7 @@ window.addEventListener('message', async (event) => {
 
     // 通用调用
     try {
-      const result = waitingInjector.call(capability, method, ...args);
+      const result = await waitingInjector.call(capability, method, ...args);
       window.postMessage({
         type: '__aiclash_result',
         seq,

@@ -18,6 +18,7 @@
 - **Better Channel List**: Select all / invert selection are now available, channels are grouped by region, and the list expands to fit the sidebar. The expand/collapse button is hidden when everything is already visible.
 - **Quieter Settings**: Switching between Web/API mode now only saves the setting and no longer opens the target webpage automatically. Yuanbao also no longer needs a manual web-search toggle.
 - **More Stable Multi-Channel Runs**: Channel wake-up, page readiness, and message dispatch are more reliable. DeepSeek now fails fast on the login page and lets other channels continue.
+- **Web Login Checks**: Before sending in Web mode, the sidebar checks login state per channel. Logged-out channels show an in-channel prompt with a "Go to Login" entry, while logged-in channels keep running, and history preserves the login-required message.
 - **Smarter Defaults**: When 2 or more channels are enabled, `Auto Summary` and `Director Mode` turn on by default. If you change them manually, your choice is remembered.
 - **Easier Recovery After Failure**: Failed channels can be retried individually without restarting the whole turn, and failed states are restored correctly from history.
 
