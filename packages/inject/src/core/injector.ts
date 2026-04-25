@@ -496,7 +496,7 @@ function getCurrentPageLoginState(provider: ProviderConfig): LoginState {
       message: authState.message || `${provider.name} 当前未登录，请先完成登录后再重试`,
     };
   }
-  return { status: 'unknown', message: `${provider.name} 暂未配置登录态检测` };
+  return { status: 'logged_in' };
 }
 
 /**
