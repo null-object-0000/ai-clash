@@ -308,6 +308,65 @@ const DEFAULT_THINK_TITLES: ThinkTitles = {
   done: '深度思考完成',
 };
 
+type SummaryAnalysisSection = {
+  key: string;
+  title: string;
+  content: string;
+};
+
+const SUMMARY_ANALYSIS_SECTION_TITLES = ['核心共识', '观点对撞', '裁判取舍'];
+const SUMMARY_FINAL_TITLE_RE = /^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议)\s*\n+/;
+const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
+  综合解析: '裁判取舍',
+  综合分析: '裁判取舍',
+};
+
+function splitSummaryAnalysisSections(markdown: string): SummaryAnalysisSection[] {
+  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析)\s*$/gm;
+  const matches = Array.from(markdown.matchAll(headingRe));
+  if (!matches.length) return [];
+
+  return matches
+    .map((match, index) => {
+      const title = SUMMARY_ANALYSIS_TITLE_ALIASES[match[1]] ?? match[1];
+      const start = (match.index ?? 0) + match[0].length;
+      const end = matches[index + 1]?.index ?? markdown.length;
+      return {
+        key: title,
+        title,
+        content: markdown.slice(start, end).trim(),
+      };
+    })
+    .filter(section => SUMMARY_ANALYSIS_SECTION_TITLES.includes(section.title));
+}
+
+function stripSummaryFinalTitle(markdown: string) {
+  return markdown.replace(SUMMARY_FINAL_TITLE_RE, '').trimStart();
+}
+
+function SummaryAnalysisThink({
+  title,
+  loading,
+  content,
+}: {
+  title: string;
+  loading: boolean;
+  content: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Think
+      title={title}
+      loading={loading}
+      expanded={expanded}
+      onExpand={setExpanded}
+    >
+      <XMarkdown className="x-markdown-light" content={content} />
+    </Think>
+  );
+}
+
 function renderThinkAndMarkdown(
   thinkContent: any,
   content: any,
@@ -345,6 +404,97 @@ function makeContentRender(
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   return (content: any) => {
     return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle, titles);
+  };
+}
+
+function renderSummaryThinkAndMarkdown({
+  thinkContent,
+  analysisContent,
+  content,
+  isStreaming,
+  thinkExpanded,
+  analysisExpanded,
+  onThinkToggle,
+  onAnalysisToggle,
+}: {
+  thinkContent: any;
+  analysisContent: any;
+  content: any;
+  isStreaming: boolean;
+  thinkExpanded: boolean;
+  analysisExpanded: boolean;
+  onThinkToggle?: (expanded: boolean) => void;
+  onAnalysisToggle?: (expanded: boolean) => void;
+}) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  const analysisStr = typeof analysisContent === 'string' ? analysisContent : '';
+  const rawContentStr = typeof content === 'string' ? content : '';
+  const contentStr = stripSummaryFinalTitle(rawContentStr);
+  const analysisSections = splitSummaryAnalysisSections(analysisStr);
+  const thinkDone = !isStreaming || !!analysisStr || !!contentStr;
+  const analysisDone = !isStreaming || !!contentStr;
+
+  return (
+    <>
+      {thinkStr ? (
+        <Think
+          title={thinkDone ? '深度思考完成' : '深度思考中...'}
+          loading={!thinkDone}
+          expanded={thinkExpanded}
+          onExpand={onThinkToggle}
+        >
+          <XMarkdown className="x-markdown-light" content={thinkStr} />
+        </Think>
+      ) : null}
+      {analysisSections.length ? (
+        analysisSections.map((section, index) => {
+          const sectionDone = !isStreaming || !!contentStr || index < analysisSections.length - 1;
+          return (
+            <SummaryAnalysisThink
+              key={section.key}
+              title={sectionDone ? section.title : `${section.title}生成中...`}
+              loading={!sectionDone}
+              content={section.content}
+            />
+          );
+        })
+      ) : analysisStr ? (
+        <Think
+          title={analysisDone ? '归纳总结过程完成' : '归纳总结过程中...'}
+          loading={!analysisDone}
+          expanded={analysisExpanded}
+          onExpand={onAnalysisToggle}
+        >
+          <XMarkdown className="x-markdown-light" content={analysisStr} />
+        </Think>
+      ) : null}
+      {React.isValidElement(content) ? content : (contentStr ? <XMarkdown className="x-markdown-light" content={contentStr} /> : null)}
+    </>
+  );
+}
+
+function makeSummaryContentRender(
+  thinkContent: any,
+  analysisContent: any,
+  isStreaming: boolean,
+  thinkExpanded: boolean,
+  analysisExpanded: boolean,
+  onThinkToggle?: (expanded: boolean) => void,
+  onAnalysisToggle?: (expanded: boolean) => void,
+) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  const analysisStr = typeof analysisContent === 'string' ? analysisContent : '';
+  return (content: any) => {
+    return renderSummaryThinkAndMarkdown({
+      thinkContent: thinkStr,
+      analysisContent: analysisStr,
+      content,
+      isStreaming,
+      thinkExpanded,
+      analysisExpanded,
+      onThinkToggle,
+      onAnalysisToggle,
+    });
   };
 }
 
@@ -573,6 +723,8 @@ const App = () => {
   const summaryStatus = useStore(s => s.summaryStatus);
   const summaryResponse = useStore(s => s.summaryResponse);
   const summaryThinkResponse = useStore(s => s.summaryThinkResponse);
+  const summaryAnalysisResponse = useStore(s => s.summaryAnalysisResponse);
+  const summaryAnalysisExpanded = useStore(s => s.summaryAnalysisExpanded);
   const statsMap = useStore(s => s.statsMap);
   const summaryStats = useStore(s => s.summaryStats);
   const operationStatus = useStore(s => s.operationStatus);
@@ -665,13 +817,17 @@ const App = () => {
     buffers.summaryTriggered = false;
     buffers.summaryFull = '';
     buffers.summaryThink = '';
+    buffers.summaryAnalysis = '';
     buffers.summaryDisplayedLen = 0;
     buffers.summaryThinkDisplayedLen = 0;
+    buffers.summaryAnalysisDisplayedLen = 0;
     useStore.setState({
       summaryVersions: [],
       summaryCurrentVersion: 0,
       summaryResponse: '',
       summaryThinkResponse: '',
+      summaryAnalysisResponse: '',
+      summaryAnalysisExpanded: false,
       summaryStats: null,
       summaryStatus: 'idle',
     });
@@ -893,7 +1049,8 @@ const App = () => {
       // 确保 summaryResponse 和 summaryThinkResponse 是字符串，避免 object 导致的问题
       const summaryResp = typeof summaryResponse === 'string' ? summaryResponse : '';
       const summaryThink = typeof summaryThinkResponse === 'string' ? summaryThinkResponse : '';
-      const hasSummaryContent = !!(summaryThink.trim() || summaryResp.trim());
+      const summaryAnalysis = typeof summaryAnalysisResponse === 'string' ? summaryAnalysisResponse : '';
+      const hasSummaryContent = !!(summaryThink.trim() || summaryAnalysis.trim() || summaryResp.trim());
       const hasSummaryRunning = summaryStatus === 'running';
       // 只有在总结完成/出错且有内容时才显示，避免空气泡
       const hasSummaryCompleted = (summaryStatus === 'completed' || summaryStatus === 'error') && hasSummaryContent;
@@ -918,6 +1075,7 @@ const App = () => {
         const summaryStage = useStore.getState().summaryStage;
         const isSummaryCollapsed = collapseMap['summary'];
         const summaryThinkExpanded = thinkExpandedMap['summary'];
+        const setSummaryAnalysisExpanded = useStore.getState().setSummaryAnalysisExpanded;
         const isSummaryCompleted = summaryStatus === 'completed' || summaryStatus === 'error';
 
         // 根据侧边栏宽度决定是否只显示图标
@@ -1043,13 +1201,10 @@ const App = () => {
           ...(isSummaryCollapsed ? {
             className: styles.bubbleContentHidden,
             contentRender: () => null,
-          } : (summaryThink ? {
-            contentRender: makeContentRender(summaryThink, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
+          } : (summaryThink || summaryAnalysis ? {
+            contentRender: makeSummaryContentRender(summaryThink, summaryAnalysis, summaryStatus === 'running', summaryThinkExpanded, summaryAnalysisExpanded, (expanded) => {
               setThinkExpanded('summary', expanded);
-            }, {
-              loading: '裁判多维解析中...',
-              done: '多维解析与比对完成',
-            }),
+            }, setSummaryAnalysisExpanded),
           } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
           footer: summaryFooter,
@@ -1107,7 +1262,7 @@ const App = () => {
   }, [
     conversationTurns, currentQuestion, enabledMap, statusMap, stageMap, collapseMap, thinkExpandedMap,
     responses, thinkResponses, isSummaryEnabled, summaryStatus,
-    summaryResponse, summaryThinkResponse, statsMap, summaryStats,
+    summaryResponse, summaryThinkResponse, summaryAnalysisResponse, summaryAnalysisExpanded, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,
     triggerSummary, regenerateSummary, switchSummaryVersion,
     summaryVersions, summaryCurrentVersion,

@@ -130,7 +130,9 @@ export const useStore = create<AppStore>()((set, get) => {
     if (s.summaryVersions.length === 0) return null;
 
     // 检查是否有至少一个版本有实际内容，避免保存空的总结
-    const hasContent = s.summaryVersions.some(v => (v.response || '').trim() || (v.thinkResponse || '').trim());
+    const hasContent = s.summaryVersions.some(v =>
+      (v.response || '').trim() || (v.thinkResponse || '').trim() || (v.analysisResponse || '').trim()
+    );
     if (!hasContent) return null;
 
     return {
@@ -374,6 +376,8 @@ export const useStore = create<AppStore>()((set, get) => {
     summaryStage: 'responding',
     summaryResponse: '',
     summaryThinkResponse: '',
+    summaryAnalysisResponse: '',
+    summaryAnalysisExpanded: false,
     summaryOperationStatus: '',
     summaryStats: null,
     summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT,  // 自定义总结提示词
@@ -582,8 +586,10 @@ export const useStore = create<AppStore>()((set, get) => {
       buffers.summaryTriggered = false;
       buffers.summaryFull = '';
       buffers.summaryThink = '';
+      buffers.summaryAnalysis = '';
       buffers.summaryDisplayedLen = 0;
       buffers.summaryThinkDisplayedLen = 0;
+      buffers.summaryAnalysisDisplayedLen = 0;
       buffers.summaryTiming = { startTime: 0, firstContentTime: 0 };
 
       set(prev => ({
@@ -601,6 +607,8 @@ export const useStore = create<AppStore>()((set, get) => {
         summaryStage: 'responding',
         summaryResponse: '',
         summaryThinkResponse: '',
+        summaryAnalysisResponse: '',
+        summaryAnalysisExpanded: false,
         summaryOperationStatus: '',
         summaryStats: null,
         summaryVersions: [],
@@ -818,18 +826,23 @@ export const useStore = create<AppStore>()((set, get) => {
         if (versions.length > 0) {
           // 有历史版本：恢复到当前选中的版本
           const currentVersion = versions[currentIdx] || versions[versions.length - 1];
+          const analysisResponse = currentVersion.analysisResponse || '';
           // 只有当版本有实际内容时才恢复，避免显示空气泡
-          if ((currentVersion.response || '').trim() || (currentVersion.thinkResponse || '').trim()) {
+          if ((currentVersion.response || '').trim() || (currentVersion.thinkResponse || '').trim() || analysisResponse.trim()) {
             buffers.summaryFull = currentVersion.response;
             buffers.summaryThink = currentVersion.thinkResponse;
+            buffers.summaryAnalysis = analysisResponse;
             buffers.summaryDisplayedLen = currentVersion.response.length;
             buffers.summaryThinkDisplayedLen = currentVersion.thinkResponse.length;
+            buffers.summaryAnalysisDisplayedLen = analysisResponse.length;
             buffers.summaryTriggered = true;
             set({
               summaryStatus: se.status,
               summaryStage: 'responding',
               summaryResponse: currentVersion.response,
               summaryThinkResponse: currentVersion.thinkResponse,
+              summaryAnalysisResponse: analysisResponse,
+              summaryAnalysisExpanded: false,
               summaryStats: currentVersion.stats ?? null,
               summaryVersions: versions,
               summaryCurrentVersion: currentIdx,
@@ -839,25 +852,31 @@ export const useStore = create<AppStore>()((set, get) => {
           // 旧版本数据结构：兼容处理
           const response = (se as any).response || '';
           const thinkResponse = (se as any).thinkResponse || '';
+          const analysisResponse = (se as any).analysisResponse || '';
           const stats = (se as any).stats ?? null;
           const normalizedVersions = [{
             response,
             thinkResponse,
+            analysisResponse,
             stats,
             createdAt: item.createdAt || Date.now(),
           }];
           // 只有当有实际内容时才恢复，避免显示空气泡
-          if ((response || '').trim() || (thinkResponse || '').trim()) {
+          if ((response || '').trim() || (thinkResponse || '').trim() || analysisResponse.trim()) {
             buffers.summaryFull = response;
             buffers.summaryThink = thinkResponse;
+            buffers.summaryAnalysis = analysisResponse;
             buffers.summaryDisplayedLen = response.length;
             buffers.summaryThinkDisplayedLen = thinkResponse.length;
+            buffers.summaryAnalysisDisplayedLen = analysisResponse.length;
             buffers.summaryTriggered = true;
             set({
               summaryStatus: se.status,
               summaryStage: 'responding',
               summaryResponse: response,
               summaryThinkResponse: thinkResponse,
+              summaryAnalysisResponse: analysisResponse,
+              summaryAnalysisExpanded: false,
               summaryStats: stats,
               summaryVersions: normalizedVersions,
               summaryCurrentVersion: 0,
@@ -892,6 +911,10 @@ export const useStore = create<AppStore>()((set, get) => {
 
     setThinkExpanded: (providerId, expanded) => {
       set(prev => ({ thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: expanded } }));
+    },
+
+    setSummaryAnalysisExpanded: (expanded) => {
+      set({ summaryAnalysisExpanded: expanded });
     },
 
     // ─── History Actions ───
@@ -935,6 +958,8 @@ export const useStore = create<AppStore>()((set, get) => {
         summaryStage: 'responding',
         summaryResponse: '',
         summaryThinkResponse: '',
+        summaryAnalysisResponse: '',
+        summaryAnalysisExpanded: false,
         summaryOperationStatus: '',
         summaryStats: null,
         summaryVersions: [],
@@ -962,6 +987,9 @@ export const useStore = create<AppStore>()((set, get) => {
       const stf = buffers.summaryThink;
       let stl = buffers.summaryThinkDisplayedLen;
       if (stl < stf.length) { stl = Math.min(stl + CHARS_PER_FRAME, stf.length); buffers.summaryThinkDisplayedLen = stl; set({ summaryThinkResponse: stf.slice(0, stl) }); anyPending = true; }
+      const saf = buffers.summaryAnalysis;
+      let sal = buffers.summaryAnalysisDisplayedLen;
+      if (sal < saf.length) { sal = Math.min(sal + CHARS_PER_FRAME, saf.length); buffers.summaryAnalysisDisplayedLen = sal; set({ summaryAnalysisResponse: saf.slice(0, sal) }); anyPending = true; }
       const sf = buffers.summaryFull;
       let sl = buffers.summaryDisplayedLen;
       if (sl < sf.length) { sl = Math.min(sl + CHARS_PER_FRAME, sf.length); buffers.summaryDisplayedLen = sl; set({ summaryResponse: sf.slice(0, sl) }); anyPending = true; }
@@ -996,14 +1024,18 @@ export const useStore = create<AppStore>()((set, get) => {
 
       // 如果是重新生成（已有总结内容），只清空当前显示内容
       // 新生成的版本会在 messageHandler 中添加到 summaryVersions
-      if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink)) {
+      if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink || buffers.summaryAnalysis)) {
         buffers.summaryFull = '';
         buffers.summaryThink = '';
+        buffers.summaryAnalysis = '';
         buffers.summaryDisplayedLen = 0;
         buffers.summaryThinkDisplayedLen = 0;
+        buffers.summaryAnalysisDisplayedLen = 0;
         set({
           summaryResponse: '',
           summaryThinkResponse: '',
+          summaryAnalysisResponse: '',
+          summaryAnalysisExpanded: false,
           summaryStats: null,
         });
       }
@@ -1040,12 +1072,16 @@ export const useStore = create<AppStore>()((set, get) => {
       // 更新 buffers 和 store 状态
       buffers.summaryFull = version.response;
       buffers.summaryThink = version.thinkResponse;
+      buffers.summaryAnalysis = version.analysisResponse || '';
       buffers.summaryDisplayedLen = version.response.length;
       buffers.summaryThinkDisplayedLen = version.thinkResponse.length;
+      buffers.summaryAnalysisDisplayedLen = buffers.summaryAnalysis.length;
 
       set({
         summaryResponse: version.response,
         summaryThinkResponse: version.thinkResponse,
+        summaryAnalysisResponse: version.analysisResponse || '',
+        summaryAnalysisExpanded: false,
         summaryStats: version.stats,
         summaryCurrentVersion: index,
       });

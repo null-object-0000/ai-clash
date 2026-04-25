@@ -272,67 +272,104 @@ async function testApiKey(providerId, apiKey) {
   }
 }
 
-function createSummaryThinkTagRouter() {
-  const OPEN_TAG = '<think>';
-  const CLOSE_TAG = '</think>';
+function createSummaryAnalysisRouter() {
+  const ANALYSIS_TAGS = [
+    {
+      open: '[[AI_CLASH_SUMMARY_ANALYSIS_BEGIN]]',
+      close: '[[AI_CLASH_SUMMARY_ANALYSIS_END]]',
+    },
+    {
+      open: '<think>',
+      close: '</think>',
+    },
+  ];
   let buffer = '';
-  let insideThink = false;
+  let insideAnalysis = false;
+  let hasClosedAnalysis = false;
+  let bufferPart = 'final';
+  let activeCloseTag = ANALYSIS_TAGS[0].close;
 
-  const emit = (text, isThink) => {
+  const emit = (text, summaryPart) => {
     if (!text) return;
     chrome.runtime.sendMessage({
       type: MSG_TYPES.CHUNK_RECEIVED,
       payload: {
         provider: '_summary',
         text,
-        stage: isThink ? 'thinking' : 'responding',
-        isThink,
+        stage: summaryPart === 'analysis' ? 'thinking' : 'responding',
+        isThink: summaryPart !== 'final',
+        summaryPart,
       }
     });
   };
 
-  const getHeldTagPrefixLength = (text, tag) => {
+  const getHeldTagPrefixLength = (text, tags) => {
     const lowerText = text.toLowerCase();
     let held = 0;
-    for (let len = 1; len < tag.length; len++) {
-      if (lowerText.endsWith(tag.slice(0, len))) {
-        held = len;
+    for (const tag of tags) {
+      const lowerTag = tag.toLowerCase();
+      for (let len = 1; len < lowerTag.length; len++) {
+        if (lowerText.endsWith(lowerTag.slice(0, len))) {
+          held = Math.max(held, len);
+        }
       }
     }
     return held;
   };
 
+  const findTag = (text, tags) => {
+    const lowerText = text.toLowerCase();
+    let best = null;
+    for (const tag of tags) {
+      const lowerTag = tag.toLowerCase();
+      const index = lowerText.indexOf(lowerTag);
+      if (index >= 0 && (!best || index < best.index)) {
+        best = { index, tag };
+      }
+    }
+    return best;
+  };
+
   const drain = (flush = false) => {
     while (buffer) {
-      const tag = insideThink ? CLOSE_TAG : OPEN_TAG;
-      const lowerBuffer = buffer.toLowerCase();
-      const tagIndex = lowerBuffer.indexOf(tag);
+      const tagCandidates = insideAnalysis
+        ? [activeCloseTag]
+        : ANALYSIS_TAGS.map(t => t.open);
+      const match = findTag(buffer, tagCandidates);
 
-      if (tagIndex >= 0) {
-        emit(buffer.slice(0, tagIndex), insideThink);
-        buffer = buffer.slice(tagIndex + tag.length);
-        insideThink = !insideThink;
+      if (match) {
+        emit(buffer.slice(0, match.index), insideAnalysis ? 'analysis' : (hasClosedAnalysis ? 'final' : bufferPart));
+        buffer = buffer.slice(match.index + match.tag.length);
+        if (insideAnalysis) {
+          insideAnalysis = false;
+          hasClosedAnalysis = true;
+          bufferPart = 'final';
+        } else {
+          insideAnalysis = true;
+          activeCloseTag = ANALYSIS_TAGS.find(t => t.open.toLowerCase() === match.tag.toLowerCase())?.close || ANALYSIS_TAGS[0].close;
+        }
         continue;
       }
 
       if (flush) {
-        emit(buffer, insideThink);
+        emit(buffer, insideAnalysis ? 'analysis' : (hasClosedAnalysis ? 'final' : bufferPart));
         buffer = '';
         return;
       }
 
-      const held = getHeldTagPrefixLength(buffer, tag);
+      const held = getHeldTagPrefixLength(buffer, tagCandidates);
       const emitLength = buffer.length - held;
       if (emitLength <= 0) return;
 
-      emit(buffer.slice(0, emitLength), insideThink);
+      emit(buffer.slice(0, emitLength), insideAnalysis ? 'analysis' : (hasClosedAnalysis ? 'final' : bufferPart));
       buffer = buffer.slice(emitLength);
       return;
     }
   };
 
   return {
-    push(text) {
+    push(text, defaultPart = 'final') {
+      if (!buffer) bufferPart = hasClosedAnalysis ? 'final' : defaultPart;
       buffer += text;
       drain(false);
     },
@@ -382,6 +419,10 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
   // 从 models 数组中查找模型的 maxTokens 配置
   const modelConfig = provider.apiConfig.models?.find(m => m.id === effectiveModel);
   const maxTokens = modelConfig?.maxTokens ?? 8192;
+  const supportsThinkingExtraBody = modelConfig?.supportThinking ?? false;
+  const extraBody = supportsThinkingExtraBody
+    ? { thinking: { type: 'enabled' } }
+    : undefined;
 
   const responseParts = validResponses
     .map(r => `【${r.name} 的回答】\n${r.text}`)
@@ -396,7 +437,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
   beginRequest();
 
   try {
-    const summaryThinkTagRouter = createSummaryThinkTagRouter();
+    const summaryAnalysisRouter = createSummaryAnalysisRouter();
     const stream = await client.chat.completions.create({
       model: effectiveModel,
       messages: [
@@ -406,23 +447,21 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
       stream: true,
       temperature: 0.3,
       max_tokens: maxTokens,
+      ...(extraBody ? { extra_body: extraBody } : {}),
     });
 
     for await (const chunk of stream) {
       const delta = chunk.choices[0]?.delta ?? {};
 
       if (delta.reasoning_content) {
-        chrome.runtime.sendMessage({
-          type: MSG_TYPES.CHUNK_RECEIVED,
-          payload: { provider: '_summary', text: delta.reasoning_content, stage: 'thinking', isThink: true }
-        });
+        summaryAnalysisRouter.push(delta.reasoning_content, 'think');
       }
 
       if (delta.content) {
-        summaryThinkTagRouter.push(delta.content);
+        summaryAnalysisRouter.push(delta.content, 'final');
       }
     }
-    summaryThinkTagRouter.flush();
+    summaryAnalysisRouter.flush();
 
     chrome.runtime.sendMessage({
       type: MSG_TYPES.TASK_COMPLETED,

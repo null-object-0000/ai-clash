@@ -61,11 +61,13 @@ export interface AppState {
   summaryStage: 'thinking' | 'responding';
   summaryResponse: string;
   summaryThinkResponse: string;
+  summaryAnalysisResponse: string;
+  summaryAnalysisExpanded: boolean;
   summaryOperationStatus: string;
   summaryStats: ProviderStats | null;
   summaryCustomPrompt: string;  // 自定义总结提示词
   // 总结历史版本（运行时状态，非持久化）
-  summaryVersions: Array<{ response: string; thinkResponse: string; stats: ProviderStats | null; createdAt: number }>;
+  summaryVersions: Array<{ response: string; thinkResponse: string; analysisResponse?: string; stats: ProviderStats | null; createdAt: number }>;
   summaryCurrentVersion: number;  // 当前查看的版本索引
 
   // ─── UI Panels ───
@@ -123,6 +125,7 @@ export interface AppActions {
   collapseAll: () => void;
   expandAll: () => void;
   setThinkExpanded: (providerId: ProviderId | 'summary', expanded: boolean) => void;
+  setSummaryAnalysisExpanded: (expanded: boolean) => void;
 
   // ─── History ───
   deleteHistoryItem: (id: string) => void;

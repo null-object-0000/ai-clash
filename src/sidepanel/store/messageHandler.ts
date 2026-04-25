@@ -11,6 +11,65 @@ const STAGE_INDEX: Record<string, number> = {
   waiting: -1, opening: 0, loading: 1, connecting: 2, sending: 3, thinking: 4, responding: 5,
 };
 
+const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
+  综合解析: '裁判取舍',
+  综合分析: '裁判取舍',
+};
+
+const SUMMARY_HEADING_RE = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|最终建议|终极建议|最终结论|建议)\s*$/gm;
+const SUMMARY_ANALYSIS_TITLES = new Set(['核心共识', '观点对撞', '裁判取舍']);
+const SUMMARY_FINAL_TITLES = new Set(['最终建议', '终极建议', '最终结论', '建议']);
+const SUMMARY_MARKER_RE = /^\s*\[\[AI_CLASH_SUMMARY_ANALYSIS_(?:BEGIN|END)\]\]\s*$/gm;
+
+function normalizeSummaryHeading(title: string) {
+  const trimmed = title.trim();
+  return SUMMARY_ANALYSIS_TITLE_ALIASES[trimmed] || trimmed;
+}
+
+function splitSummaryOutputFallback(markdown: string): { analysis: string; final: string } | null {
+  const cleaned = markdown.replace(SUMMARY_MARKER_RE, '').trim();
+  const matches = Array.from(cleaned.matchAll(SUMMARY_HEADING_RE));
+  if (!matches.length) return null;
+
+  const sections = matches.map((match, index) => {
+    const headingStart = match.index ?? 0;
+    const contentStart = headingStart + match[0].length;
+    const nextStart = matches[index + 1]?.index ?? cleaned.length;
+    const title = normalizeSummaryHeading(match[1]);
+    return {
+      title,
+      content: cleaned.slice(contentStart, nextStart).trim(),
+    };
+  });
+
+  const analysisSections = sections.filter(section => SUMMARY_ANALYSIS_TITLES.has(section.title) && section.content);
+  const finalSections = sections.filter(section => SUMMARY_FINAL_TITLES.has(section.title) && section.content);
+  if (!analysisSections.length || !finalSections.length) return null;
+
+  return {
+    analysis: analysisSections
+      .map(section => `### ${section.title}\n${section.content}`)
+      .join('\n\n'),
+    final: finalSections.map(section => section.content).join('\n\n').trim(),
+  };
+}
+
+function salvageSummaryBuffers(set: StoreSet) {
+  if (buffers.summaryAnalysis.trim()) return;
+
+  const fallback = splitSummaryOutputFallback(buffers.summaryFull || '');
+  if (!fallback) return;
+
+  buffers.summaryAnalysis = fallback.analysis;
+  buffers.summaryFull = fallback.final;
+  buffers.summaryAnalysisDisplayedLen = fallback.analysis.length;
+  buffers.summaryDisplayedLen = fallback.final.length;
+  set({
+    summaryAnalysisResponse: fallback.analysis,
+    summaryResponse: fallback.final,
+  });
+}
+
 function trackStageTransition(prov: ProviderId, newStage: string, get: StoreGet) {
   const prevStage = get().stageMap[prov];
   const prevIdx = STAGE_INDEX[prevStage] ?? -1;
@@ -35,8 +94,9 @@ export function createMessageListener(
       if (provider === '_summary') {
         if (p.isStatus) { set({ summaryOperationStatus: p.text }); return; }
         if (p.stage) set({ summaryStage: p.stage });
-        if (!p.isThink && p.text && !buffers.summaryTiming.firstContentTime) buffers.summaryTiming.firstContentTime = Date.now();
-        if (p.isThink) buffers.summaryThink += p.text;
+        if (p.summaryPart === 'final' && p.text && !buffers.summaryTiming.firstContentTime) buffers.summaryTiming.firstContentTime = Date.now();
+        if (p.summaryPart === 'analysis') buffers.summaryAnalysis += p.text;
+        else if (p.isThink) buffers.summaryThink += p.text;
         else buffers.summaryFull += p.text;
         if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
         return;
@@ -99,12 +159,14 @@ export function createMessageListener(
 
     } else if (request.type === MSG_TYPES.TASK_COMPLETED) {
       if (provider === '_summary') {
+        salvageSummaryBuffers(set);
         const s = get();
 
         // 新生成的版本
         const newVersion = {
           response: buffers.summaryFull || '',
           thinkResponse: buffers.summaryThink || '',
+          analysisResponse: buffers.summaryAnalysis || '',
           stats: null,
           createdAt: Date.now(),
         };

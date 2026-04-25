@@ -66,6 +66,7 @@ export interface ProviderHistoryEntry {
 export interface SummaryVersionEntry {
   response: string;
   thinkResponse: string;
+  analysisResponse?: string;
   stats: ProviderStats | null;
   createdAt: number;  // 版本生成时间戳
 }

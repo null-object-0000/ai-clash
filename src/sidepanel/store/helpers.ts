@@ -44,8 +44,10 @@ export const buffers = {
 
   summaryFull: '',
   summaryThink: '',
+  summaryAnalysis: '',
   summaryDisplayedLen: 0,
   summaryThinkDisplayedLen: 0,
+  summaryAnalysisDisplayedLen: 0,
   summaryTriggered: false,
   summaryTiming: { startTime: 0, firstContentTime: 0 },
 
@@ -72,8 +74,10 @@ export function resetBuffers() {
   }
   buffers.summaryFull = '';
   buffers.summaryThink = '';
+  buffers.summaryAnalysis = '';
   buffers.summaryDisplayedLen = 0;
   buffers.summaryThinkDisplayedLen = 0;
+  buffers.summaryAnalysisDisplayedLen = 0;
   buffers.summaryTriggered = false;
   buffers.summaryTiming = { startTime: 0, firstContentTime: 0 };
   if (buffers.animationId != null) {
