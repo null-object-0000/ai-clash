@@ -680,8 +680,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.type === MSG_TYPES.GET_PROVIDER_LOGIN_STATE) {
-        const { providerId } = request.payload || {};
-        getProviderLoginState(providerId).then((state) => {
+        const { providerId, forceReloadBeforeCheck } = request.payload || {};
+        getProviderLoginState(providerId, !!forceReloadBeforeCheck).then((state) => {
             sendResponse({ success: true, state });
         }).catch((err) => {
             sendResponse({
@@ -886,7 +886,27 @@ async function sendLoginStateRequest(tabId, provider) {
     }
 }
 
-async function getProviderLoginState(providerId) {
+async function reloadTabAndWait(tabId, timeout = 30000) {
+    await new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+            chrome.tabs.onUpdated.removeListener(listener);
+            reject(new Error('页面重载超时'));
+        }, timeout);
+
+        function listener(updatedTabId, info) {
+            if (updatedTabId === tabId && info.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener);
+                clearTimeout(timeoutId);
+                resolve();
+            }
+        }
+
+        chrome.tabs.onUpdated.addListener(listener);
+        chrome.tabs.reload(tabId);
+    });
+}
+
+async function getProviderLoginState(providerId, forceReloadBeforeCheck = false) {
     const provider = getProvider(providerId);
     if (!provider) {
         return { status: 'unknown', message: 'provider 不存在' };
@@ -898,6 +918,18 @@ async function getProviderLoginState(providerId) {
     }
 
     await waitForTabComplete(tabResult.tabId);
+    if (forceReloadBeforeCheck) {
+        chrome.runtime.sendMessage({
+            type: MSG_TYPES.TASK_STATUS_UPDATE,
+            payload: {
+                provider: provider.id,
+                stage: 'loading',
+                text: `正在刷新${provider.name}页面以重新注入...`,
+            },
+        }).catch(() => {});
+        await reloadTabAndWait(tabResult.tabId);
+    }
+
     const readyResult = await waitForPageReady(tabResult.tabId, provider);
     if (!readyResult.success) {
         return { status: 'unknown', message: readyResult.error || 'content script 未就绪' };

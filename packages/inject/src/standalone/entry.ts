@@ -74,9 +74,9 @@ function detectProviderFromDomain(): string | null {
 
   const providerByHost: Record<string, string> = {
     'chat.deepseek.com': 'deepseek',
-    'doubao.com': 'doubao',
+    'www.doubao.com': 'doubao',
     'www.qianwen.com': 'qianwen',
-    'tiangong.cn': 'longcat',
+    'longcat.chat': 'longcat',
     'yuanbao.tencent.com': 'yuanbao',
     'yiyan.baidu.com': 'wenxin',
     'aistudio.xiaomimimo.com': 'xiaomi',

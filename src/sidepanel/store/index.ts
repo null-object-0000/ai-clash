@@ -260,14 +260,17 @@ export const useStore = create<AppStore>()((set, get) => {
   const getProviderMeta = (id: ProviderId) => PROVIDER_META.find((p: any) => p.id === id);
   const supportsApi = (id: ProviderId) => getProviderMeta(id)?.supportsApi ?? false;
 
-  const checkProviderLoginState = async (providerId: ProviderId): Promise<LoginState> => {
+  const checkProviderLoginState = async (
+    providerId: ProviderId,
+    options: { forceReloadBeforeCheck?: boolean } = {},
+  ): Promise<LoginState> => {
     if (get().modeMap[providerId] === 'api') {
       return { status: 'logged_in' };
     }
     try {
       const r = await chrome.runtime?.sendMessage({
         type: MSG_TYPES.GET_PROVIDER_LOGIN_STATE,
-        payload: { providerId },
+        payload: { providerId, forceReloadBeforeCheck: options.forceReloadBeforeCheck },
       });
       return r?.state || { status: 'unknown', message: '无法确认登录状态' };
     } catch (err) {
@@ -627,7 +630,9 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
-      const loginState = await checkProviderLoginState(providerId);
+      const loginState = await checkProviderLoginState(providerId, {
+        forceReloadBeforeCheck: s.modeMap[providerId] === 'web',
+      });
       if (loginState.status !== 'logged_in') {
         const text = getAuthRequiredText(providerId, loginState);
         applyAuthRequiredState(providerId, text);
