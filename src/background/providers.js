@@ -149,6 +149,14 @@ export const PROVIDERS = [
     }
   },
   {
+    id: 'kimi',
+    name: 'Kimi',
+    matchPattern: 'https://www.kimi.com/*',
+    startUrl: 'https://www.kimi.com/',
+    region: 'cn', // 月之暗面 Kimi - 中国
+    // Kimi 本次优先集成网页端
+  },
+  {
     id: 'yuanbao',
     name: '元宝',
     matchPattern: 'https://yuanbao.tencent.com/*',

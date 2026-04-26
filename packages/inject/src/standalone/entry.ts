@@ -80,6 +80,8 @@ function detectProviderFromDomain(): string | null {
     'yuanbao.tencent.com': 'yuanbao',
     'yiyan.baidu.com': 'wenxin',
     'aistudio.xiaomimimo.com': 'xiaomi',
+    'www.kimi.com': 'kimi',
+    'kimi.com': 'kimi',
   };
 
   return providerByHost[hostname] ?? null;

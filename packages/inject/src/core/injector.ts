@@ -97,6 +97,19 @@ function parseSSELine(line: string) {
   if (!currentProvider?.sse?.parseLine) return;
 
   const result = currentProvider.sse.parseLine(line);
+  handleSSEResult(result);
+}
+
+function parseSSEChunk(chunk: string) {
+  if (!currentProvider?.sse?.parseChunk) return;
+
+  const results = currentProvider.sse.parseChunk(chunk);
+  for (const result of results) {
+    handleSSEResult(result);
+  }
+}
+
+function handleSSEResult(result: { text: string; isThink: boolean | null; done: boolean } | null) {
   if (!result) return;
 
   if (result.done) {
@@ -127,6 +140,27 @@ function parseSSELine(line: string) {
       sseCallbacks.onSseChunk(text, isThinkBool, stage, sseConversationId);
     }
   }
+}
+
+function processSSEText(text: string, buf: string): string {
+  if (currentProvider?.sse?.parseChunk) {
+    parseSSEChunk(text);
+    return '';
+  }
+
+  buf += text;
+  const lines = buf.split('\n');
+  const rest = lines.pop() || '';
+  for (let i = 0; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (t) parseSSELine(t);
+  }
+  return rest;
+}
+
+function flushSSEText(buf: string) {
+  if (currentProvider?.sse?.parseChunk) return;
+  if (buf.trim()) parseSSELine(buf.trim());
 }
 
 function emitSSEEnd() {
@@ -205,7 +239,7 @@ function setupSSEInterceptor() {
           pull: (controller) => {
             return (sourceReader.read() as any).then((result: any) => {
               if (result.done) {
-                try { if (buf.trim()) parseSSELine(buf.trim()); } catch (_: any) { }
+                try { flushSSEText(buf); } catch (_: any) { }
                 emitSSEEnd();
                 fetchIntercepted = false;
                 controller.close();
@@ -214,13 +248,7 @@ function setupSSEInterceptor() {
               controller.enqueue(result.value);
               try {
                 const chunk = rawDecode.call(dec, result.value, { stream: true });
-                buf += chunk;
-                const lines = buf.split('\n');
-                buf = lines.pop() || '';
-                for (let i = 0; i < lines.length; i++) {
-                  const t = lines[i].trim();
-                  if (t) parseSSELine(t);
-                }
+                buf = processSSEText(chunk, buf);
               } catch (_: any) { }
             }).catch((err: any) => {
               emitSSEEnd();
@@ -251,7 +279,7 @@ function setupSSEInterceptor() {
     const rtDesc = Object.getOwnPropertyDescriptor(XMLHttpRequest.prototype, 'responseText');
 
     XMLHttpRequest.prototype.open = function (method: string, url: any) {
-      (this as any)._ab = { url: typeof url === 'string' ? url : '', pos: 0, ended: false };
+      (this as any)._ab = { url: typeof url === 'string' ? url : '', pos: 0, ended: false, buf: '' };
       return origXhrOpen.apply(this, arguments as any);
     };
 
@@ -268,11 +296,7 @@ function setupSSEInterceptor() {
         if (typeof fullText !== 'string' || fullText.length <= ab.pos) return;
         const newData = fullText.substring(ab.pos);
         ab.pos = fullText.length;
-        const lines = newData.split('\n');
-        for (let i = 0; i < lines.length; i++) {
-          const t = lines[i].trim();
-          if (t) parseSSELine(t);
-        }
+        ab.buf = processSSEText(newData, ab.buf || '');
       };
 
       const poller = setInterval(() => {
@@ -289,6 +313,7 @@ function setupSSEInterceptor() {
           const txt = rtDesc && rtDesc.get ? rtDesc.get.call(xhr) : xhr.responseText;
           if (txt) processNew(txt);
         } catch (_) { }
+        try { flushSSEText(ab.buf || ''); } catch (_) { }
         if (!ab.ended) {
           ab.ended = true;
           emitSSEEnd();
@@ -318,13 +343,7 @@ function setupSSEInterceptor() {
         } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
       }
 
-      st.buf += result;
-      const lines = st.buf.split('\n');
-      st.buf = lines.pop() || '';
-      for (let i = 0; i < lines.length; i++) {
-        const t = lines[i].trim();
-        if (t) parseSSELine(t);
-      }
+      st.buf = processSSEText(result, st.buf);
       return result;
     };
 
@@ -339,7 +358,7 @@ function setupSSEInterceptor() {
         return (origRead as any)().then((result: any) => {
           if (st.rejected || fetchIntercepted) return result;
           if (result.done) {
-            if (st.tracked) { if (st.buf.trim()) parseSSELine(st.buf.trim()); emitSSEEnd(); }
+            if (st.tracked) { flushSSEText(st.buf); emitSSEEnd(); }
             return result;
           }
           if (!result.value) return result;
@@ -353,10 +372,7 @@ function setupSSEInterceptor() {
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
           }
 
-          st.buf += text;
-          const lines = st.buf.split('\n');
-          st.buf = lines.pop() || '';
-          for (let i = 0; i < lines.length; i++) { const t = lines[i].trim(); if (t) parseSSELine(t); }
+          st.buf = processSSEText(text, st.buf);
           return result;
         });
       };
