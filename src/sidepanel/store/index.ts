@@ -630,17 +630,6 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
-      const loginState = await checkProviderLoginState(providerId, {
-        forceReloadBeforeCheck: s.modeMap[providerId] === 'web',
-      });
-      if (loginState.status !== 'logged_in') {
-        const text = getAuthRequiredText(providerId, loginState);
-        applyAuthRequiredState(providerId, text);
-        message.error(text);
-        get().schedulePersist(0);
-        return;
-      }
-
       buffers.timing[providerId] = { startTime: Date.now(), firstContentTime: 0 };
       buffers.fullText[providerId] = '';
       buffers.thinkText[providerId] = '';
@@ -681,6 +670,17 @@ export const useStore = create<AppStore>()((set, get) => {
       }));
 
       get().schedulePersist(0, { [providerId]: s.modeMap[providerId] === 'api' ? 'api' : '' });
+
+      const loginState = await checkProviderLoginState(providerId, {
+        forceReloadBeforeCheck: s.modeMap[providerId] === 'web',
+      });
+      if (loginState.status !== 'logged_in') {
+        const text = getAuthRequiredText(providerId, loginState);
+        applyAuthRequiredState(providerId, text);
+        message.error(text);
+        get().schedulePersist(0);
+        return;
+      }
 
       try {
         await dispatchProviderTask(providerId, s.currentQuestion, s, conversationHistory, isNewConversation);
