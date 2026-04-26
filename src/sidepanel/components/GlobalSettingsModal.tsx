@@ -70,8 +70,15 @@ function getInstallChannel(): InstallChannel {
   if (runtimeId === 'ggngmgpjdklmkpoldbfahmeefpnfhhai') return 'chrome';
   if (runtimeId === 'khjmihaeihajagobgbdhlbjeobdpmfkm') return 'edge';
   const updateUrl = chrome.runtime?.getManifest?.().update_url || '';
-  if (updateUrl.includes('clients2.google.com')) return 'chrome';
-  if (updateUrl.includes('edge.microsoft.com')) return 'edge';
+  try {
+    const hostname = new URL(updateUrl).hostname.toLowerCase();
+    const isAllowedHost = (allowedHost: string) =>
+      hostname === allowedHost || hostname.endsWith(`.${allowedHost}`);
+    if (isAllowedHost('clients2.google.com')) return 'chrome';
+    if (isAllowedHost('edge.microsoft.com')) return 'edge';
+  } catch {
+    // Ignore invalid update_url and fall back to manual channel.
+  }
   return 'manual';
 }
 
