@@ -70,31 +70,19 @@ async function init() {
 // ============================================================================
 
 function detectProviderFromDomain(): string | null {
-  const hostname = location.hostname;
+  const hostname = location.hostname.toLowerCase();
 
-  if (hostname.includes('chat.deepseek.com')) {
-    return 'deepseek';
-  }
-  if (hostname.includes('doubao.com')) {
-    return 'doubao';
-  }
-  if (hostname.includes('www.qianwen.com')) {
-    return 'qianwen';
-  }
-  if (hostname.includes('tiangong.cn')) {
-    return 'longcat';
-  }
-  if (hostname.includes('yuanbao.tencent.com')) {
-    return 'yuanbao';
-  }
-  if (hostname.includes('yiyan.baidu.com')) {
-    return 'wenxin';
-  }
-  if (hostname.includes('aistudio.xiaomimimo.com')) {
-    return 'xiaomi';
-  }
+  const providerByHost: Record<string, string> = {
+    'chat.deepseek.com': 'deepseek',
+    'doubao.com': 'doubao',
+    'www.qianwen.com': 'qianwen',
+    'tiangong.cn': 'longcat',
+    'yuanbao.tencent.com': 'yuanbao',
+    'yiyan.baidu.com': 'wenxin',
+    'aistudio.xiaomimimo.com': 'xiaomi',
+  };
 
-  return null;
+  return providerByHost[hostname] ?? null;
 }
 
 // ============================================================================
