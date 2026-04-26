@@ -2,20 +2,44 @@
 
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+AI 对撞机当前只为最新发布版本提供安全修复。请先升级到最新版本后再确认问题是否仍然存在。
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| Version | Supported |
+| ------- | --------- |
+| Latest release | Yes |
+| Older releases | No |
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+如果你发现安全漏洞，请不要在公开 Issue、Discussion 或社交平台中披露可复现细节。请优先通过 GitHub 的私密漏洞报告功能提交：
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+<https://github.com/null-object-0000/ai-clash/security/advisories/new>
+
+如果该入口不可用，请创建一个不包含敏感细节的 Issue，说明你需要私下报告安全问题，维护者会再与你确认后续沟通方式。
+
+报告时请尽量包含以下信息：
+
+- 受影响的版本、浏览器和操作系统。
+- 漏洞类型和影响范围。
+- 可复现步骤或最小复现说明。
+- 相关截图、日志或扩展配置，但请移除账号、Cookie、Token、API Key 等敏感信息。
+- 你认为可行的修复建议，如果有的话。
+
+## Scope
+
+以下类型的问题通常会被视为安全漏洞：
+
+- 未授权读取、修改或泄露用户输入、会话信息、Cookie、Token、API Key 或浏览器存储数据。
+- 扩展权限、内容脚本、后台脚本或页面注入逻辑导致的越权访问。
+- 可被网页触发的跨站脚本、任意代码执行、恶意重定向或数据外传。
+- 构建、发布或自动更新流程可能导致用户安装被篡改版本的问题。
+
+以下问题通常不按安全漏洞处理，但仍欢迎通过普通 Issue 反馈：
+
+- 仅影响本地开发环境且无法影响用户发布版本的问题。
+- 需要用户主动安装恶意依赖、恶意扩展或运行不可信脚本的问题。
+- 无明确安全影响的崩溃、兼容性问题或功能缺陷。
+
+## Disclosure Process
+
+维护者会在收到报告后尽快确认，并在复现和评估影响后决定修复计划。修复发布前，请不要公开漏洞细节。漏洞修复完成并发布后，维护者会根据影响范围决定是否公开安全公告并致谢报告者。
