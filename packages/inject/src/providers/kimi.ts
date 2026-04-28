@@ -65,11 +65,11 @@ const thinkingAction: ToggleAction = {
 type ParseResult = { text: string; isThink: boolean | null; done: boolean };
 
 let kimiFrameBuffer = '';
-let seenEventOffsets = new Set<number>();
+let seenContentFrames = new Set<string>();
 
 function resetKimiSseState() {
   kimiFrameBuffer = '';
-  seenEventOffsets = new Set<number>();
+  seenContentFrames = new Set<string>();
 }
 
 function extractJsonObjects(input: string): { objects: any[]; rest: string } {
@@ -144,24 +144,40 @@ function isKimiDonePatch(data: any): boolean {
   return data?.message?.status === 'MESSAGE_STATUS_COMPLETED';
 }
 
+function isDuplicateContentFrame(data: any, content: string, kind: 'think' | 'text'): boolean {
+  const eventOffset = getKimiEventOffset(data);
+  if (eventOffset === undefined) return false;
+
+  const key = [
+    data?.chat?.id || '',
+    data?.message?.id || '',
+    data?.block?.id || '',
+    eventOffset,
+    kind,
+    content,
+  ].join('\u0000');
+
+  if (seenContentFrames.has(key)) {
+    return true;
+  }
+  seenContentFrames.add(key);
+  return false;
+}
+
 function parseKimiPatch(data: any): ParseResult | null {
   const eventOffset = getKimiEventOffset(data);
   if (eventOffset === 1 && data?.chat?.id) {
-    seenEventOffsets = new Set<number>();
-  }
-  if (eventOffset !== undefined) {
-    if (seenEventOffsets.has(eventOffset)) {
-      return null;
-    }
-    seenEventOffsets.add(eventOffset);
+    resetKimiSseState();
   }
 
   const mask = typeof data?.mask === 'string' ? data.mask : '';
   const block = data?.block;
   if (block?.think?.content && mask.includes('block.think')) {
+    if (isDuplicateContentFrame(data, block.think.content, 'think')) return null;
     return { text: block.think.content, isThink: true, done: false };
   }
   if (block?.text?.content && mask.includes('block.text')) {
+    if (isDuplicateContentFrame(data, block.text.content, 'text')) return null;
     return { text: block.text.content, isThink: false, done: false };
   }
 
