@@ -165,11 +165,16 @@ function flushSSEText(buf: string) {
 
 function emitSSEEnd() {
   if (sseState.endSent || sseState.completeCalled) return;
-  sseState.endSent = true;
 
   // 如果 SSE 已经累积了内容，优先用 SSE 数据触发 onComplete
-  if (sseState.chunkCount > 0 && currentCallbacks?.onComplete) {
-    const fullText = buildFullSSEText();
+  const fullText = buildFullSSEText();
+  if (!fullText && sseState.chunkCount === 0) {
+    return;
+  }
+
+  sseState.endSent = true;
+
+  if (currentCallbacks?.onComplete) {
     sseState.completeCalled = true;
     currentCallbacks.onComplete(fullText, sseConversationId);
   }

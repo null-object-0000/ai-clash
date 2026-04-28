@@ -67,6 +67,11 @@ type ParseResult = { text: string; isThink: boolean | null; done: boolean };
 let kimiFrameBuffer = '';
 let seenEventOffsets = new Set<number>();
 
+function resetKimiSseState() {
+  kimiFrameBuffer = '';
+  seenEventOffsets = new Set<number>();
+}
+
 function extractJsonObjects(input: string): { objects: any[]; rest: string } {
   const objects: any[] = [];
   let start = -1;
@@ -122,14 +127,25 @@ function extractJsonObjects(input: string): { objects: any[]; rest: string } {
   };
 }
 
-function parseKimiPatch(data: any): ParseResult | null {
-  if (data?.done) {
-    kimiFrameBuffer = '';
-    seenEventOffsets = new Set<number>();
-    return { text: '', isThink: null, done: true };
+function hasOwn(data: any, key: string): boolean {
+  return !!data && Object.prototype.hasOwnProperty.call(data, key);
+}
+
+function getKimiEventOffset(data: any): number | undefined {
+  const eventOffset = data?.eventOffset ?? data?.['eventOffset '];
+  return typeof eventOffset === 'number' ? eventOffset : undefined;
+}
+
+function isKimiDonePatch(data: any): boolean {
+  if (hasOwn(data, 'done')) {
+    return true;
   }
 
-  const eventOffset = typeof data?.eventOffset === 'number' ? data.eventOffset : undefined;
+  return data?.message?.status === 'MESSAGE_STATUS_COMPLETED';
+}
+
+function parseKimiPatch(data: any): ParseResult | null {
+  const eventOffset = getKimiEventOffset(data);
   if (eventOffset === 1 && data?.chat?.id) {
     seenEventOffsets = new Set<number>();
   }
@@ -149,7 +165,8 @@ function parseKimiPatch(data: any): ParseResult | null {
     return { text: block.text.content, isThink: false, done: false };
   }
 
-  if (data?.message?.status === 'MESSAGE_STATUS_COMPLETED') {
+  if (isKimiDonePatch(data)) {
+    resetKimiSseState();
     return { text: '', isThink: null, done: true };
   }
 
