@@ -1,24 +1,24 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-04-24",
+  "updatedAt": "2026-04-28",
   "recommended": "store",
   "changelogUrl": "https://ai-clash.snewbie.site/changelog.html",
   "channels": {
     "chrome": {
       "label": "Chrome Web Store",
-      "version": "1.1.0",
-      "pendingVersion": "1.2.0",
-      "status": "reviewing",
+      "version": "1.2.0",
+      "pendingVersion": "",
+      "status": "released",
       "url": "https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai",
-      "note": "v1.2.0 已发布到 GitHub，Chrome 商店版本等待审核通过。"
+      "note": "v1.2.0 已正式上架 Chrome 应用商店，可直接更新。"
     },
     "edge": {
       "label": "Edge Add-ons",
-      "version": "1.0.0",
-      "pendingVersion": "1.1.0",
+      "version": "1.1.0",
+      "pendingVersion": "1.2.0",
       "status": "reviewing",
       "url": "https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm",
-      "note": "v1.1.0 已发布到 GitHub，Edge 商店版本等待审核通过。"
+      "note": "当前商店最新版 v1.1.0，v1.2.0 正在微软商店审核中。"
     },
     "github": {
       "label": "官网先行版",
