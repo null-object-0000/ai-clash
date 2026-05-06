@@ -142,7 +142,18 @@ function handleSSEResult(result: { text: string; isThink: boolean | null; done: 
   }
 }
 
-function processSSEText(text: string, buf: string): string {
+function logKimiRawChunk(source: string, text: string) {
+  if (currentProvider?.id !== 'kimi' || !text) return;
+  console.log('[AI Clash Inject] kimi raw chunk:', { source, length: text.length, text });
+}
+
+function processSSEText(text: string, buf: string, source = 'unknown'): string {
+  logKimiRawChunk(source, text);
+
+  if (currentProvider?.id === 'kimi' && source !== 'decoder') {
+    return buf;
+  }
+
   if (currentProvider?.sse?.parseChunk) {
     parseSSEChunk(text);
     return '';
@@ -180,6 +191,11 @@ function emitSSEEnd() {
   }
 }
 
+function emitSSETransportEnd() {
+  if (currentProvider?.sse?.completeOnStreamEnd === false) return;
+  emitSSEEnd();
+}
+
 /**
  * 从 SSE 累积的内容构建完整回复文本
  */
@@ -202,9 +218,21 @@ function isCompletionUrl(url: string): boolean {
   }
 }
 
-let fetchIntercepted = false;
+let activeFetchInterceptions = 0;
 const rawGetReader = ReadableStream.prototype.getReader;
 const rawDecode = TextDecoder.prototype.decode;
+
+function beginFetchInterception() {
+  activeFetchInterceptions++;
+}
+
+function endFetchInterception() {
+  activeFetchInterceptions = Math.max(0, activeFetchInterceptions - 1);
+}
+
+function isFetchIntercepting(): boolean {
+  return activeFetchInterceptions > 0;
+}
 
 function setupSSEInterceptor() {
   // 只在当前 provider 域名下注入一次（修改原型只需要一次）
@@ -227,12 +255,14 @@ function setupSSEInterceptor() {
         return origFetch.apply(this, args);
       }
 
-      resetSSEState();
-      fetchIntercepted = true;
+      if (!isFetchIntercepting()) {
+        resetSSEState();
+      }
+      beginFetchInterception();
 
       return origFetch.apply(this, args).then((response) => {
         if (!response.body) {
-          fetchIntercepted = false;
+          endFetchInterception();
           return response;
         }
 
@@ -245,24 +275,24 @@ function setupSSEInterceptor() {
             return (sourceReader.read() as any).then((result: any) => {
               if (result.done) {
                 try { flushSSEText(buf); } catch (_: any) { }
-                emitSSEEnd();
-                fetchIntercepted = false;
+                emitSSETransportEnd();
+                endFetchInterception();
                 controller.close();
                 return;
               }
               controller.enqueue(result.value);
               try {
                 const chunk = rawDecode.call(dec, result.value, { stream: true });
-                buf = processSSEText(chunk, buf);
+                buf = processSSEText(chunk, buf, 'fetch');
               } catch (_: any) { }
             }).catch((err: any) => {
-              emitSSEEnd();
-              fetchIntercepted = false;
+              emitSSETransportEnd();
+              endFetchInterception();
               try { controller.error(err); } catch (_) { }
             });
           },
           cancel: () => {
-            fetchIntercepted = false;
+            endFetchInterception();
             sourceReader.cancel();
           },
         });
@@ -273,7 +303,7 @@ function setupSSEInterceptor() {
           headers: response.headers,
         });
       }).catch((err) => {
-        fetchIntercepted = false;
+        endFetchInterception();
         throw err;
       });
     };
@@ -301,7 +331,7 @@ function setupSSEInterceptor() {
         if (typeof fullText !== 'string' || fullText.length <= ab.pos) return;
         const newData = fullText.substring(ab.pos);
         ab.pos = fullText.length;
-        ab.buf = processSSEText(newData, ab.buf || '');
+        ab.buf = processSSEText(newData, ab.buf || '', 'xhr');
       };
 
       const poller = setInterval(() => {
@@ -321,7 +351,7 @@ function setupSSEInterceptor() {
         try { flushSSEText(ab.buf || ''); } catch (_) { }
         if (!ab.ended) {
           ab.ended = true;
-          emitSSEEnd();
+          emitSSETransportEnd();
         }
       });
 
@@ -335,7 +365,7 @@ function setupSSEInterceptor() {
     TextDecoder.prototype.decode = function (input, options) {
       const result = origDecode.apply(this, arguments as any);
       if (!result || result.length < 5) return result;
-      if (fetchIntercepted) return result;
+      if (isFetchIntercepting() && currentProvider?.id !== 'kimi') return result;
 
       let st = decoderStates.get(this);
       if (!st) { st = { tracked: false, rejected: false, buf: '', n: 0 }; decoderStates.set(this, st); }
@@ -348,7 +378,7 @@ function setupSSEInterceptor() {
         } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
       }
 
-      st.buf = processSSEText(result, st.buf);
+      st.buf = processSSEText(result, st.buf, 'decoder');
       return result;
     };
 
@@ -361,9 +391,9 @@ function setupSSEInterceptor() {
 
       reader.read = function () {
         return (origRead as any)().then((result: any) => {
-          if (st.rejected || fetchIntercepted) return result;
+          if (st.rejected || (isFetchIntercepting() && currentProvider?.id !== 'kimi')) return result;
           if (result.done) {
-            if (st.tracked) { flushSSEText(st.buf); emitSSEEnd(); }
+            if (st.tracked) { flushSSEText(st.buf); emitSSETransportEnd(); }
             return result;
           }
           if (!result.value) return result;
@@ -377,7 +407,7 @@ function setupSSEInterceptor() {
             } else { st.n++; if (st.n > 3) st.rejected = true; return result; }
           }
 
-          st.buf = processSSEText(text, st.buf);
+          st.buf = processSSEText(text, st.buf, 'stream');
           return result;
         });
       };

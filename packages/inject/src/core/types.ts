@@ -249,6 +249,7 @@ export interface SSEConfig {
   urlPattern: string;
   parseLine: (line: string) => { text: string; isThink: boolean | null; done: boolean } | null;
   parseChunk?: (chunk: string) => { text: string; isThink: boolean | null; done: boolean }[];
+  completeOnStreamEnd?: boolean;
   detectionKeywords: string[];
 }
 

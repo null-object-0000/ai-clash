@@ -65,10 +65,11 @@ const thinkingAction: ToggleAction = {
 type ParseResult = { text: string; isThink: boolean | null; done: boolean };
 
 let kimiFrameBuffer = '';
+let jsonFrameIndex = 0;
 let seenContentFrames = new Set<string>();
+let currentKimiChatId = '';
 
-function resetKimiSseState() {
-  kimiFrameBuffer = '';
+function resetKimiConversationState() {
   seenContentFrames = new Set<string>();
 }
 
@@ -127,21 +128,9 @@ function extractJsonObjects(input: string): { objects: any[]; rest: string } {
   };
 }
 
-function hasOwn(data: any, key: string): boolean {
-  return !!data && Object.prototype.hasOwnProperty.call(data, key);
-}
-
 function getKimiEventOffset(data: any): number | undefined {
   const eventOffset = data?.eventOffset ?? data?.['eventOffset '];
   return typeof eventOffset === 'number' ? eventOffset : undefined;
-}
-
-function isKimiDonePatch(data: any): boolean {
-  if (hasOwn(data, 'done')) {
-    return true;
-  }
-
-  return data?.message?.status === 'MESSAGE_STATUS_COMPLETED';
 }
 
 function isDuplicateContentFrame(data: any, content: string, kind: 'think' | 'text'): boolean {
@@ -165,9 +154,19 @@ function isDuplicateContentFrame(data: any, content: string, kind: 'think' | 'te
 }
 
 function parseKimiPatch(data: any): ParseResult | null {
+  jsonFrameIndex++;
   const eventOffset = getKimiEventOffset(data);
+  console.log('[AI Clash Inject] kimi SSE JSON #', jsonFrameIndex, {
+    eventOffset,
+    data,
+  });
+
   if (eventOffset === 1 && data?.chat?.id) {
-    resetKimiSseState();
+    const chatId = String(data.chat.id);
+    if (chatId !== currentKimiChatId) {
+      currentKimiChatId = chatId;
+      resetKimiConversationState();
+    }
   }
 
   const mask = typeof data?.mask === 'string' ? data.mask : '';
@@ -179,11 +178,6 @@ function parseKimiPatch(data: any): ParseResult | null {
   if (block?.text?.content && mask.includes('block.text')) {
     if (isDuplicateContentFrame(data, block.text.content, 'text')) return null;
     return { text: block.text.content, isThink: false, done: false };
-  }
-
-  if (isKimiDonePatch(data)) {
-    resetKimiSseState();
-    return { text: '', isThink: null, done: true };
   }
 
   return null;
@@ -283,6 +277,7 @@ export const kimiProvider: ProviderConfig = {
       return parseKimiChunk(line)[0] || null;
     },
     parseChunk: parseKimiChunk,
+    completeOnStreamEnd: false,
   },
 };
 
