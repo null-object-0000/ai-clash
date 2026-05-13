@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ComponentType, CSSProperties } from 'react'
 import {
   ChromeFilled,
@@ -6,6 +6,8 @@ import {
   DownloadOutlined,
   GithubOutlined,
   GlobalOutlined,
+  MoonOutlined,
+  SunOutlined,
 } from '@ant-design/icons'
 import { Button, Card, ConfigProvider, Dropdown, Layout, Tooltip, theme } from 'antd'
 import type { MenuProps } from 'antd'
@@ -15,6 +17,7 @@ import { downloads, homePages, navItems, privacyPages } from './content'
 import type { Locale } from './content'
 import changelogEn from './markdown/changelog.en.md?raw'
 import changelogZh from './markdown/changelog.zh.md?raw'
+import { SharePage } from './SharePage'
 
 const { Header: AntHeader, Footer: AntFooter, Content } = Layout
 
@@ -53,7 +56,19 @@ function withLocale(path: string, locale: Locale) {
   return path === '/' ? '/en/' : `/en${path}`
 }
 
-function Header({ locale, path }: { locale: Locale; path: string }) {
+type ThemeMode = 'light' | 'dark'
+
+function Header({
+  locale,
+  path,
+  themeMode,
+  onToggleTheme,
+}: {
+  locale: Locale
+  path: string
+  themeMode: ThemeMode
+  onToggleTheme: () => void
+}) {
   const pagePath = stripLocale(path)
   const localeMenu: MenuProps['items'] = [
     { key: 'zh', label: <a href={pagePath}>{localeLabels.zh}</a> },
@@ -88,6 +103,13 @@ function Header({ locale, path }: { locale: Locale; path: string }) {
               <DownOutlined className="locale-button__arrow" />
             </Button>
           </Dropdown>
+          <Button
+            aria-label={themeMode === 'dark' ? '切换浅色模式' : '切换深色模式'}
+            className="theme-toggle"
+            icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
+            type="text"
+            onClick={onToggleTheme}
+          />
           <a
             className="icon-link"
             href="https://github.com/null-object-0000/ai-clash"
@@ -287,23 +309,52 @@ function Page({ locale, page }: { locale: Locale; page: string }) {
 
 export function App() {
   const path = useMemo(() => normalizePath(window.location.pathname), [])
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
+    const saved = window.localStorage.getItem('ai-clash-site-theme')
+    if (saved === 'dark' || saved === 'light') return saved
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  })
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = themeMode
+    window.localStorage.setItem('ai-clash-site-theme', themeMode)
+  }, [themeMode])
+
+  const antTheme = {
+    algorithm: themeMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+    token: {
+      colorPrimary: '#3451b2',
+      borderRadius: 8,
+      fontFamily:
+        'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    },
+  }
+
+  if (path === '/share') {
+    return (
+      <ConfigProvider theme={antTheme}>
+        <SharePage
+          themeMode={themeMode}
+          onToggleTheme={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+        />
+      </ConfigProvider>
+    )
+  }
+
   const locale = getLocale(path)
   const page = stripLocale(path)
 
   return (
     <ConfigProvider
-      theme={{
-        algorithm: theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#3451b2',
-          borderRadius: 8,
-          fontFamily:
-            'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-        },
-      }}
+      theme={antTheme}
     >
       <Layout className="site-layout">
-        <Header locale={locale} path={path} />
+        <Header
+          locale={locale}
+          path={path}
+          themeMode={themeMode}
+          onToggleTheme={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+        />
         <Content>
           <Page locale={locale} page={page} />
         </Content>

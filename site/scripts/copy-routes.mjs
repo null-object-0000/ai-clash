@@ -5,6 +5,7 @@ const routes = [
   'download',
   'changelog',
   'privacy',
+  'share',
   'en',
   'en/download',
   'en/changelog',
