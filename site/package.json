@@ -17,7 +17,8 @@
     "typescript": "~5.9.3",
     "vite": "^7.3.2",
     "react": "^19.2.5",
-    "react-dom": "^19.2.5"
+    "react-dom": "^19.2.5",
+    "react-markdown": "^10.1.0"
   },
   "devDependencies": {}
 }
