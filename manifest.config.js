@@ -28,15 +28,8 @@ const contentScripts = PROVIDERS
     ];
   });
 
-// 生成 host_permissions 配置
-const hostPermissions = [
-  ...PROVIDERS.map(p => p.matchPattern),
-  // API 模式通用权限
-  'https://api.deepseek.com/*',
-  'https://api.longcat.chat/*',
-  'https://ark.cn-beijing.volces.com/*',
-  'https://coding.dashscope.aliyuncs.com/*',
-];
+// 站点访问权限：在所有站点上
+const hostPermissions = ['<all_urls>'];
 
 // 生成 web_accessible_resources 配置
 // 仅针对有 content script 的 provider（hasContentScript !== false 且 enabled !== false）
