@@ -5,7 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { PROVIDER_META, getModelOptions, getDefaultModel } from '../../shared/config.js';
 import { useStore } from '../store';
 import { PROVIDER_NAME_MAP, type ProviderId, type ProviderMode } from '../types';
-import { getProviderColorIcon } from '../utils/providerIcons.js';
+import { getProviderColorIcon } from '../config/providerIcons.js';
 
 const NARROW_THRESHOLD = 500;
 

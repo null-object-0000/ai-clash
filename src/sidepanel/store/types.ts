@@ -9,6 +9,9 @@ export type SidepanelSettings = {
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
   isFocusFollowEnabled?: boolean;
+  hasCustomizedSummaryEnabled?: boolean;
+  hasCustomizedFocusFollowEnabled?: boolean;
+  isChannelListExpanded?: boolean;
 };
 export type SummaryConfig = { providerId?: string; model?: string };
 export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
@@ -20,6 +23,9 @@ export interface AppState {
   isDebugEnabled: boolean;
   isSummaryEnabled: boolean;
   isFocusFollowEnabled: boolean;
+  hasCustomizedSummaryEnabled: boolean;
+  hasCustomizedFocusFollowEnabled: boolean;
+  isChannelListExpanded: boolean;
   summaryProviderId: string;
   summaryModel: string;
 
@@ -45,7 +51,6 @@ export interface AppState {
   thinkResponses: Record<ProviderId, string>;
   operationStatus: Record<ProviderId, string>;
   errorTypeMap: Record<ProviderId, ErrorType>; // 错误类型映射
-  loginUrlMap: Record<ProviderId, string>; // 各平台登录链接
   rawUrlMap: Record<ProviderId, string>;
   statsMap: Record<ProviderId, ProviderStats | null>;
   collapseMap: Record<ProviderId | 'summary', boolean>; // false = 展开，true = 折叠
@@ -56,11 +61,13 @@ export interface AppState {
   summaryStage: 'thinking' | 'responding';
   summaryResponse: string;
   summaryThinkResponse: string;
+  summaryAnalysisResponse: string;
+  summaryAnalysisExpanded: boolean;
   summaryOperationStatus: string;
   summaryStats: ProviderStats | null;
   summaryCustomPrompt: string;  // 自定义总结提示词
   // 总结历史版本（运行时状态，非持久化）
-  summaryVersions: Array<{ response: string; thinkResponse: string; stats: ProviderStats | null; createdAt: number }>;
+  summaryVersions: Array<{ response: string; thinkResponse: string; analysisResponse?: string; stats: ProviderStats | null; createdAt: number }>;
   summaryCurrentVersion: number;  // 当前查看的版本索引
 
   // ─── UI Panels ───
@@ -96,6 +103,7 @@ export interface AppActions {
   setProviderApiKey: (id: ProviderId, value: string) => void;
   setProviderModel: (id: ProviderId, value: string) => void;
   testApiKey: (providerId: string, apiKey: string) => Promise<void>;
+  retryProvider: (providerId: ProviderId) => Promise<void>;
 
   // ─── Session ───
   setInputStr: (v: string) => void;
@@ -110,12 +118,14 @@ export interface AppActions {
   setShowNoChannelTip: (v: boolean) => void;
   setIsSummarySettingsOpen: (v: boolean) => void;
   toggleShowApiKey: (id: string) => void;
+  setChannelListExpanded: (expanded: boolean) => void;
 
   // ─── Collapse ───
   toggleCollapse: (providerId: ProviderId | 'summary') => void;
   collapseAll: () => void;
   expandAll: () => void;
   setThinkExpanded: (providerId: ProviderId | 'summary', expanded: boolean) => void;
+  setSummaryAnalysisExpanded: (expanded: boolean) => void;
 
   // ─── History ───
   deleteHistoryItem: (id: string) => void;
@@ -133,10 +143,6 @@ export interface AppActions {
 
   // ─── Summary Versions ───
   switchSummaryVersion: (index: number) => void;  // 切换查看的总结版本
-
-  // ─── Error State Management ───
-  setProviderError: (id: ProviderId, type: ErrorType, url?: string, opStatus?: string) => void;
-  clearProviderError: (id: ProviderId) => void;
 
   // ─── Derived getters ───
   getEnabledProviderIds: () => ProviderId[];

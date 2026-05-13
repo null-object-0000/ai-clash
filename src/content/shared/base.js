@@ -35,32 +35,6 @@ export function bootstrapProvider(providerId) {
   const pendingResolves = new Map();
 
   /**
-   * 当检测到登录页时，resolve 所有 pending 的 Promise，让串行流程继续
-   * 只在消息发送前（未获取到会话 ID）时调用
-   */
-  function resolvePendingWithError() {
-    logger.log(`[AI Clash ${PROVIDER}] 检测到登录页，resolve pending Promise`);
-    // 找到所有 pendingResolves 中的条目，resolve 它们
-    for (const [seq, entry] of pendingResolves.entries()) {
-      if (entry.timeoutId) clearTimeout(entry.timeoutId);
-      if (entry.resolve) {
-        entry.resolve({ success: false, error: 'login_required' });
-      }
-      pendingResolves.delete(seq);
-    }
-    // 同时清理 pendingCallbacks，避免重复触发
-    pendingCallbacks.clear();
-  }
-
-  /**
-   * 标记消息已发送（获取到会话 ID），之后不再调用 resolvePendingWithError
-   */
-  let messageSent = false;
-  function markMessageSent() {
-    messageSent = true;
-  }
-
-  /**
    * 初始化注入器
    * 优先使用 MAIN 世界注入的 standalone（因为它能正确拦截 fetch）
    * fallback 到本地 extension 注入器
@@ -116,8 +90,6 @@ export function bootstrapProvider(providerId) {
         if (callbacks?.onConversationId) {
           callbacks.onConversationId(conversationId);
         }
-        // 标记消息已发送，之后检测到登录页不再 resolve pending
-        markMessageSent();
         // resolve Promise，让串行流程继续执行下一个 provider
         const entry = pendingResolves.get(seq);
         if (entry?.resolve) {
@@ -148,20 +120,58 @@ export function bootstrapProvider(providerId) {
 
       // 错误 → 通知 background
       if (event.data.type === '__aiclash_error') {
-        const { error, seq } = event.data;
+        const { error, seq, errorType } = event.data;
         logger.error(`[AI Clash ${PROVIDER}] 收到 MAIN 世界错误:`, error);
         const callbacks = pendingCallbacks.get(seq);
         if (callbacks?.onError) {
-          callbacks.onError(error);
+          callbacks.onError(error, undefined, errorType || 'system_error');
         }
+        const entry = pendingResolves.get(seq);
+        if (entry?.timeoutId) {
+          clearTimeout(entry.timeoutId);
+        }
+        if (entry?.reject) {
+          entry.reject(new Error(error || '任务执行失败'));
+        }
+        pendingResolves.delete(seq);
         pendingCallbacks.delete(seq);
         safeSend({
           type: MSG_TYPES.ERROR,
-          payload: { provider: PROVIDER, message: error }
+          payload: { provider: PROVIDER, message: error, errorType: errorType || 'system_error' }
         });
         return;
       }
     });
+
+    function callMainWorld(capability, method, args = [], timeoutMs = 8000) {
+      const seq = Math.random().toString(36).slice(2);
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          window.removeEventListener('message', onResult);
+          reject(new Error(`${capability}.${method} 调用超时`));
+        }, timeoutMs);
+
+        function onResult(event) {
+          if (event.data?.type !== '__aiclash_result' || event.data.seq !== seq) return;
+          window.removeEventListener('message', onResult);
+          clearTimeout(timeoutId);
+          if (event.data.error) {
+            reject(new Error(event.data.error));
+          } else {
+            resolve(event.data.result);
+          }
+        }
+
+        window.addEventListener('message', onResult);
+        window.postMessage({
+          type: '__aiclash_call',
+          seq,
+          capability,
+          method,
+          args,
+        }, '*');
+      });
+    }
 
     // 创建代理 capabilities，符合原来的调用约定：caps.chat('send', ...args)
     const rpcCapabilities = {
@@ -195,7 +205,7 @@ export function bootstrapProvider(providerId) {
               pendingResolves.delete(seq);
               reject(new Error('等待会话 ID 超时'));
             }, 20000);
-            pendingResolves.set(seq, { resolve, timeoutId });
+            pendingResolves.set(seq, { resolve, reject, timeoutId });
           });
         } else {
           // 其他方法直接发送
@@ -207,7 +217,11 @@ export function bootstrapProvider(providerId) {
             args: args
           }, '*');
         }
-      }
+      },
+      auth: async (method, ...args) => {
+        logger.log(`[AI Clash ${PROVIDER}] RPC 调用 MAIN 世界 __AI_CLASH.auth.${method}`);
+        return callMainWorld('auth', method, args);
+      },
     };
 
     // 检查 standalone 是否真的注入成功
@@ -269,221 +283,22 @@ export function bootstrapProvider(providerId) {
           .catch((err) => sendResponse({ ok: false, error: err.message }));
         return true; // 表示异步返回
       }
+      if (request.type === MSG_TYPES.GET_PROVIDER_LOGIN_STATE) {
+        getLoginState()
+          .then((state) => sendResponse({ ok: true, state }))
+          .catch((err) => sendResponse({
+            ok: false,
+            state: { status: 'unknown', message: err.message || '无法确认登录状态' },
+          }));
+        return true;
+      }
       return false;
     });
   }
 
   // ============================================================================
-  // 登录态检测
-  // ============================================================================
-
-  /**
-   * 同步检测当前页面是否处于未登录状态（不等待，直接检查）
-   * @returns {{isLoggedOut: boolean, loginUrl?: string, isOnLoginPage?: boolean} | null}
-   */
-  function checkLoginStatusSync() {
-    // 页面未加载完成时不检测，避免误判
-    if (document.readyState !== 'complete') {
-      return null;
-    }
-
-    const currentPath = window.location.pathname;
-    const currentHref = window.location.href;
-
-    // 各平台的登录态检测选择器
-    const LOGIN_SELECTORS = {
-      deepseek: {
-        check: () => {
-          if (currentPath.includes('/sign_in') || currentPath.includes('/login') || currentPath.includes('/signup')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], button[class*="sign-in"], a[href*="/login"], a[href*="/signin"]');
-          const notLoggedInMsg = document.querySelector('*[class*="not-logged"], *[class*="please-login"]');
-          if (loginBtn || notLoggedInMsg) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://chat.deepseek.com/sign_in'
-      },
-      yuanbao: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginModal = document.querySelector('[class*="login"], [class*="auth"]');
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"]');
-          if (loginModal || loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://yuanbao.tencent.com/login'
-      },
-      longcat: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://longcat.chat/login'
-      },
-      xiaomi: {
-        check: () => {
-          // 小米登录页是 account.xiaomi.com 域名
-          if (window.location.hostname === 'account.xiaomi.com') {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          if (currentPath.includes('/login') || currentHref.includes('#/login')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://account.xiaomi.com/fe/service/login'
-      },
-      doubao: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://www.doubao.com/login'
-      },
-      qianwen: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://www.qianwen.com/login'
-      },
-      wenxin: {
-        check: () => {
-          if (currentPath.includes('/login') || currentPath.includes('/signin')) {
-            return { isLoggedOut: true, isOnLoginPage: true };
-          }
-          const loginBtn = document.querySelector('button[class*="login"], a[href*="/login"], a[href*="/signin"]');
-          if (loginBtn) {
-            return { isLoggedOut: true, isOnLoginPage: false };
-          }
-          return { isLoggedOut: false };
-        },
-        loginUrl: 'https://yiyan.baidu.com/login'
-      }
-    };
-
-    const config = LOGIN_SELECTORS[PROVIDER];
-    if (!config) {
-      return null;
-    }
-
-    const result = config.check();
-    if (result?.isLoggedOut && config.loginUrl) {
-      return { ...result, loginUrl: config.loginUrl };
-    }
-    return result;
-  }
-
-  // ============================================================================
   // 任务执行
   // ============================================================================
-
-  // 登录页轮询检测器 ID
-  let loginCheckIntervalId = null;
-  let beforeUnloadHandler = null;
-  let loginCheckStarted = false;
-
-  /**
-   * 启动登录页轮询检测
-   */
-  function startLoginCheck() {
-    if (loginCheckStarted) {
-      return;
-    }
-    loginCheckStarted = true;
-
-    // 清除之前的检测器（如果有）
-    stopLoginCheck();
-
-    // 监听页面卸载事件（检测跳转到登录页）
-    beforeUnloadHandler = () => {
-      const loginStatus = checkLoginStatusSync();
-      if (loginStatus?.isLoggedOut) {
-        safeSend({
-          type: MSG_TYPES.LOGIN_REQUIRED,
-          payload: {
-            provider: PROVIDER,
-            loginUrl: loginStatus.loginUrl
-          }
-        });
-        safeSend({
-          type: MSG_TYPES.TASK_COMPLETED,
-          payload: { provider: PROVIDER }
-        });
-        if (!messageSent) {
-          resolvePendingWithError();
-        }
-      }
-    };
-
-    window.addEventListener('beforeunload', beforeUnloadHandler);
-
-    // 每 500ms 检查一次 URL
-    loginCheckIntervalId = setInterval(() => {
-      const loginStatus = checkLoginStatusSync();
-      if (loginStatus?.isLoggedOut) {
-        stopLoginCheck();
-        const loginUrl = loginStatus.loginUrl;
-        safeSend({
-          type: MSG_TYPES.LOGIN_REQUIRED,
-          payload: {
-            provider: PROVIDER,
-            loginUrl: loginUrl
-          }
-        });
-        safeSend({
-          type: MSG_TYPES.TASK_COMPLETED,
-          payload: { provider: PROVIDER }
-        });
-        if (!messageSent) {
-          resolvePendingWithError();
-        }
-      }
-    }, 500);
-  }
-
-  /**
-   * 停止登录页轮询检测
-   */
-  function stopLoginCheck() {
-    if (loginCheckIntervalId) {
-      clearInterval(loginCheckIntervalId);
-      loginCheckIntervalId = null;
-    }
-    if (beforeUnloadHandler) {
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      beforeUnloadHandler = null;
-    }
-  }
 
   /**
    * 执行 AI 对话任务
@@ -501,9 +316,6 @@ export function bootstrapProvider(providerId) {
       });
       throw new Error('注入器初始化失败');
     }
-
-    // 启动登录页轮询检测
-    startLoginCheck();
 
     safeSend({
       type: MSG_TYPES.CHUNK_RECEIVED,
@@ -526,7 +338,7 @@ export function bootstrapProvider(providerId) {
 
       // 等待消息成功发送（获取到会话 ID）后返回
       // SSE 流式响应由回调继续处理，不阻塞返回
-      await caps.chat('send', prompt, options, {
+      const sendResult = await caps.chat('send', prompt, options, {
         onSseChunk: (text, isThink, stage, conversationId) => {
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
@@ -534,8 +346,6 @@ export function bootstrapProvider(providerId) {
           });
         },
         onConversationId: (conversationId) => {
-          // 消息发送成功，但**不要**停止登录检测——因为页面可能会在发送后跳转到登录页
-          // stopLoginCheck();  // 移除这行，让登录检测继续运行
           // 发送完成，已获取会话 ID，进入等待回复阶段
           safeSend({
             type: MSG_TYPES.CHUNK_RECEIVED,
@@ -543,20 +353,22 @@ export function bootstrapProvider(providerId) {
           });
         },
         onComplete: (fullText, conversationId) => {
-          stopLoginCheck();
           safeSend({
             type: MSG_TYPES.TASK_COMPLETED,
             payload: { provider: PROVIDER }
           });
         },
-        onError: (error, conversationId) => {
-          stopLoginCheck();
+        onError: (error, conversationId, errorType) => {
           safeSend({
             type: MSG_TYPES.ERROR,
-            payload: { provider: PROVIDER, message: error }
+            payload: { provider: PROVIDER, message: error, errorType: errorType || 'system_error' }
           });
         }
       });
+
+      if (!sendResult?.success) {
+        throw new Error(sendResult?.error || sendResult?.reason || '消息发送失败');
+      }
 
       // 等待到这里表示消息已经成功发送（获取到会话 ID）
 
@@ -567,8 +379,6 @@ export function bootstrapProvider(providerId) {
       });
 
     } catch (err) {
-      // 发生错误时停止登录检测
-      stopLoginCheck();
       safeSend({
         type: MSG_TYPES.ERROR,
         payload: { provider: PROVIDER, message: err.message || '任务执行失败' }
@@ -579,6 +389,14 @@ export function bootstrapProvider(providerId) {
       });
       throw err; // 重新抛出错误，让调用者知道失败了
     }
+  }
+
+  async function getLoginState() {
+    const caps = await initInjector();
+    if (!caps?.auth) {
+      return { status: 'unknown', message: '登录态检测不可用' };
+    }
+    return caps.auth('getLoginState');
   }
 
   // ============================================================================

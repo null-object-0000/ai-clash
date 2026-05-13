@@ -1,6 +1,6 @@
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
-import { PROVIDER_IDS, type ProviderId, type ProviderStatus, PROVIDER_NAME_MAP, type ErrorType } from '../types';
+import { PROVIDER_IDS, type ProviderId, type ProviderStatus, PROVIDER_NAME_MAP } from '../types';
 import { buffers, createDefaultRecord } from './helpers';
 import type { AppStore } from './types';
 
@@ -10,6 +10,65 @@ type StoreSet = (partial: Partial<AppStore> | ((prev: AppStore) => Partial<AppSt
 const STAGE_INDEX: Record<string, number> = {
   waiting: -1, opening: 0, loading: 1, connecting: 2, sending: 3, thinking: 4, responding: 5,
 };
+
+const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
+  综合解析: '裁判取舍',
+  综合分析: '裁判取舍',
+};
+
+const SUMMARY_HEADING_RE = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|最终建议|终极建议|最终结论|建议)\s*$/gm;
+const SUMMARY_ANALYSIS_TITLES = new Set(['核心共识', '观点对撞', '裁判取舍']);
+const SUMMARY_FINAL_TITLES = new Set(['最终建议', '终极建议', '最终结论', '建议']);
+const SUMMARY_MARKER_RE = /^\s*\[\[AI_CLASH_SUMMARY_ANALYSIS_(?:BEGIN|END)\]\]\s*$/gm;
+
+function normalizeSummaryHeading(title: string) {
+  const trimmed = title.trim();
+  return SUMMARY_ANALYSIS_TITLE_ALIASES[trimmed] || trimmed;
+}
+
+function splitSummaryOutputFallback(markdown: string): { analysis: string; final: string } | null {
+  const cleaned = markdown.replace(SUMMARY_MARKER_RE, '').trim();
+  const matches = Array.from(cleaned.matchAll(SUMMARY_HEADING_RE));
+  if (!matches.length) return null;
+
+  const sections = matches.map((match, index) => {
+    const headingStart = match.index ?? 0;
+    const contentStart = headingStart + match[0].length;
+    const nextStart = matches[index + 1]?.index ?? cleaned.length;
+    const title = normalizeSummaryHeading(match[1]);
+    return {
+      title,
+      content: cleaned.slice(contentStart, nextStart).trim(),
+    };
+  });
+
+  const analysisSections = sections.filter(section => SUMMARY_ANALYSIS_TITLES.has(section.title) && section.content);
+  const finalSections = sections.filter(section => SUMMARY_FINAL_TITLES.has(section.title) && section.content);
+  if (!analysisSections.length || !finalSections.length) return null;
+
+  return {
+    analysis: analysisSections
+      .map(section => `### ${section.title}\n${section.content}`)
+      .join('\n\n'),
+    final: finalSections.map(section => section.content).join('\n\n').trim(),
+  };
+}
+
+function salvageSummaryBuffers(set: StoreSet) {
+  if (buffers.summaryAnalysis.trim()) return;
+
+  const fallback = splitSummaryOutputFallback(buffers.summaryFull || '');
+  if (!fallback) return;
+
+  buffers.summaryAnalysis = fallback.analysis;
+  buffers.summaryFull = fallback.final;
+  buffers.summaryAnalysisDisplayedLen = fallback.analysis.length;
+  buffers.summaryDisplayedLen = fallback.final.length;
+  set({
+    summaryAnalysisResponse: fallback.analysis,
+    summaryResponse: fallback.final,
+  });
+}
 
 function trackStageTransition(prov: ProviderId, newStage: string, get: StoreGet) {
   const prevStage = get().stageMap[prov];
@@ -25,8 +84,6 @@ export function createMessageListener(
   get: StoreGet,
   set: StoreSet,
   syncProviderRawUrls: (ids: ProviderId[]) => Promise<void>,
-  setProviderError: (id: ProviderId, type: ErrorType, url?: string, opStatus?: string) => void,
-  clearProviderError: (id: ProviderId) => void,
 ) {
   return (request: any, sender: any, sendResponse: any) => {
     const { provider } = request.payload || {};
@@ -37,8 +94,9 @@ export function createMessageListener(
       if (provider === '_summary') {
         if (p.isStatus) { set({ summaryOperationStatus: p.text }); return; }
         if (p.stage) set({ summaryStage: p.stage });
-        if (!p.isThink && p.text && !buffers.summaryTiming.firstContentTime) buffers.summaryTiming.firstContentTime = Date.now();
-        if (p.isThink) buffers.summaryThink += p.text;
+        if (p.summaryPart === 'final' && p.text && !buffers.summaryTiming.firstContentTime) buffers.summaryTiming.firstContentTime = Date.now();
+        if (p.summaryPart === 'analysis') buffers.summaryAnalysis += p.text;
+        else if (p.isThink) buffers.summaryThink += p.text;
         else buffers.summaryFull += p.text;
         if (buffers.animationId == null) buffers.animationId = requestAnimationFrame(get().tickStreamDisplay);
         return;
@@ -48,17 +106,12 @@ export function createMessageListener(
       if (p.isStatus) {
         // clearError: true 表示清除之前的错误状态（重试成功场景）
         if (p.clearError) {
-          // 检查当前是否是登录错误状态，如果是则不清除
-          const currentErrorType = get().errorTypeMap[prov];
-          if (currentErrorType === 'login_required') {
-            return;
-          }
-          clearProviderError(prov);
-          // 清除错误状态后，重置相关状态
           set(prev => ({
+            errorTypeMap: { ...prev.errorTypeMap, [prov]: 'none' },
             stageMap: { ...prev.stageMap, [prov]: 'connecting' },
             responses: { ...prev.responses, [prov]: '' },
             thinkResponses: { ...prev.thinkResponses, [prov]: '' },
+            operationStatus: { ...prev.operationStatus, [prov]: '' },
           }));
           // 清除 buffers 中的文本，下次 tickStreamDisplay 会清空 UI 显示
           buffers.fullText[prov] = '';
@@ -106,12 +159,14 @@ export function createMessageListener(
 
     } else if (request.type === MSG_TYPES.TASK_COMPLETED) {
       if (provider === '_summary') {
+        salvageSummaryBuffers(set);
         const s = get();
 
         // 新生成的版本
         const newVersion = {
           response: buffers.summaryFull || '',
           thinkResponse: buffers.summaryThink || '',
+          analysisResponse: buffers.summaryAnalysis || '',
           stats: null,
           createdAt: Date.now(),
         };
@@ -148,11 +203,7 @@ export function createMessageListener(
       }
       const prov = provider as ProviderId;
       if (!prov) return;
-      // 去重：已完成或当前是登录错误状态（不覆盖登录错误）
-      const currentStatus = get().statusMap[prov];
-      const currentErrorType = get().errorTypeMap[prov];
-      if (currentStatus === 'completed') return;
-      if (currentErrorType === 'login_required') return; // 保持登录错误状态，让用户看到引导按钮
+      if (get().statusMap[prov] === 'completed') return;
 
       set((prev: AppStore) => ({ statusMap: { ...prev.statusMap, [prov]: 'completed' }, operationStatus: { ...prev.operationStatus, [prov]: '' } }));
       const timing = buffers.timing[prov];
@@ -204,20 +255,16 @@ export function createMessageListener(
       const errorType = request.payload.errorType || 'system_error';
       const errMsg = request.payload.message || request.payload.error || '未知错误';
 
-      if (errorType === 'login_required') {
-        // 登录错误：显示引导 UI，不显示错误文本
-        setProviderError(prov, 'login_required', '', '未登录或会话过期');
-      } else {
-        // 系统错误：显示错误文本
-        const errText = `[系统报错] ${errMsg}`;
-        buffers.fullText[prov] = errText;
-        buffers.displayedLen[prov] = errText.length;
-        set((prev: AppStore) => ({
-          statusMap: { ...prev.statusMap, [prov]: 'error' },
-          operationStatus: { ...prev.operationStatus, [prov]: '' },
-          responses: { ...prev.responses, [prov]: errText },
-        }));
-      }
+      // 统一按普通错误处理，避免前置登录判断误导主流程
+      const errText = `[系统报错] ${errMsg}`;
+      buffers.fullText[prov] = errText;
+      buffers.displayedLen[prov] = errText.length;
+      set((prev: AppStore) => ({
+        statusMap: { ...prev.statusMap, [prov]: 'error' },
+        operationStatus: { ...prev.operationStatus, [prov]: '' },
+        responses: { ...prev.responses, [prov]: errText },
+        errorTypeMap: { ...prev.errorTypeMap, [prov]: errorType },
+      }));
 
       syncProviderRawUrls([prov]);
       get().schedulePersist();
@@ -234,14 +281,6 @@ export function createMessageListener(
           });
         }
       }, 50);
-    } else if (request.type === MSG_TYPES.LOGIN_REQUIRED) {
-      // 处理未登录错误
-      const prov = provider as ProviderId;
-      if (!prov) return;
-
-      const { loginUrl } = request.payload;
-      setProviderError(prov, 'login_required', loginUrl || '', '未登录或会话过期');
-      get().schedulePersist();
     } else if (request.type === MSG_TYPES.GET_RUNNING_PROVIDERS) {
       if (sendResponse) {
         const s = get();

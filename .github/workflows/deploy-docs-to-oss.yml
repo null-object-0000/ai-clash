@@ -8,6 +8,9 @@ name: Deploy Docs to OSS (VitePress)
 # OSS_REGION: OSS 区域（可选，默认为 us-east-1）
 # OSS_PATH: OSS 存储路径（可选，如：docs/）
 
+permissions:
+  contents: read
+
 on:
   push:
     branches:

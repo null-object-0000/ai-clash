@@ -2,7 +2,7 @@
  * DeepSeek Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
 import { findAnyElement, hasClass, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
@@ -60,24 +60,40 @@ const searchAction: ToggleAction = {
   },
 };
 
-// Auth 登录信息配置
-const authAction: AuthAction = {
-  loggedInSelectors: [
-    '#root div div div:nth-of-type(2) div div div:has(> img) + div',
-    '#root div div div:nth-of-type(2) div div div:nth-of-type(4) img',
-  ],
-  usernameSelectors: [
-    '#root div div div:nth-of-type(2) div div div:has(> img) + div',
-  ],
-  avatarSelectors: [
-    '#root div div div:nth-of-type(2) div div div:nth-of-type(4) img',
-  ],
-};
-
 export const deepseekProvider: ProviderConfig = {
   id: 'deepseek',
   name: 'DeepSeek',
   domain: 'chat.deepseek.com',
+  auth: {
+    loginUrlPatterns: ['/sign_in'],
+    failureMessage: 'DeepSeek 当前未登录，已进入登录页，请先完成登录后再重试',
+    async getLoginState() {
+      let token = '';
+      try {
+        const raw = localStorage.getItem('userToken');
+        token = raw ? JSON.parse(raw)?.value || '' : '';
+      } catch {
+        token = '';
+      }
+
+      if (!token) {
+        return { status: 'logged_out', message: 'DeepSeek 当前未登录，请先完成登录后再重试' };
+      }
+
+      const response = await fetch('https://chat.deepseek.com/api/v0/users/current', {
+        headers: { authorization: `Bearer ${token}` },
+        method: 'GET',
+      });
+      const data = await response.json();
+      if (data?.code === 0 && data?.data) {
+        return { status: 'logged_in' };
+      }
+      if (data?.code === 40003) {
+        return { status: 'logged_out', message: 'DeepSeek 登录已失效，请重新登录后再重试' };
+      }
+      return { status: 'unknown', message: data?.msg || '无法确认 DeepSeek 登录状态' };
+    },
+  },
   actions: {
     // 基础对话能力
     chat: {
@@ -104,8 +120,6 @@ export const deepseekProvider: ProviderConfig = {
     thinking: thinkingAction,
     // 智能搜索 - 使用抽象接口
     search: searchAction,
-    // 登录信息检测
-    auth: authAction,
   },
   // 会话 ID 提取配置
   conversation: {

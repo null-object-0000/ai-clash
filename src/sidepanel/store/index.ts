@@ -2,7 +2,8 @@ import { create } from 'zustand';
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
-import { PROVIDER_META, getModelOptions, getNoLoginRequiredProviders } from '../../shared/config.js';
+import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions } from '../../shared/config.js';
+import { SUMMARY_SYSTEM_PROMPT } from '../../shared/summaryPrompt.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
@@ -20,41 +21,15 @@ import {
 import type { AppStore, SidepanelSettings, SummaryConfig, ApiConfig } from './types';
 import { createMessageListener } from './messageHandler';
 
-// 默认的归纳总结系统提示词
-const DEFAULT_SUMMARY_PROMPT = `# Role
-你是一个搭载在「AI 对撞机」上的高级仲裁与决策引擎。你的任务是深度分析多位顶尖 AI 专家针对同一问题给出的独立回答，去伪存真、提炼共识、保留分歧，最终为用户生成一份集大成的终极回复。
-
-# Core Directives (核心准则)
-1. 交叉核实 (Fact-Checking)：剔除明显的幻觉和事实性错误。
-2. 视角碰撞 (Collision)：敏锐捕捉不同模型之间的【观点分歧】。不要掩盖分歧，而是客观展现它们在主观判断、代码实现或策略选择上的差异。
-3. 降噪重构 (De-noising)：拒绝简单的复制拼接，消除各回答中的冗余废话（如"好的，我来为您解答"）。
-
-# Output Workflow (输出自适应路由)
-请严格根据用户输入的问题类型，选择对应的输出框架：
-
-### 🟢 场景 A：明确任务类（如：写代码、翻译、食谱、公文写作、数学题）
-*用户需要的是一个直接可用的最终成品。*
-直接输出一份整合了各方优点的【终极最优解】。在最优解下方，用简短的 \`### 💡 对撞机点评\` 补充说明各模型的贡献或差异即可，无需长篇大论。
-
-### 🔴 场景 B：开放决策/深度探讨类（如：行业分析、人生建议、技术选型、哲理探讨）
-*用户需要的是深度视角的碰撞与决策支持。请严格按照以下 Markdown 结构输出：*
-
-### 核心共识
-> 一针见血地提炼所有专家都认同的核心事实和底层逻辑。
-
-### 观点对撞
-> 梳理专家们存在的分歧点。列出具体的争议，客观剖析各自的底层论据及合理性。
-
-### 综合解析
-> 打破单一视角，将信息重新编排，多维度（如长短期/微观宏观等）将各专家的独到见解融入其中。
-
-### 终极建议
-> 基于对撞分析，给出具有极高可操作性的结论或 \`If-Then\` 情景化建议。`;
-
 export { buffers } from './helpers';
 export type { AppStore } from './types';
 export { PROVIDER_META } from '../../shared/config.js';
 export { MSG_TYPES } from '../../shared/messages.js';
+
+type LoginState = {
+  status: 'logged_in' | 'logged_out' | 'unknown';
+  message?: string;
+};
 
 // ════════════════════════════════════════════════════════════════════
 // Store
@@ -73,6 +48,9 @@ export const useStore = create<AppStore>()((set, get) => {
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
         isFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+        isChannelListExpanded: s.isChannelListExpanded,
       },
     });
   };
@@ -109,6 +87,13 @@ export const useStore = create<AppStore>()((set, get) => {
     });
   };
 
+  const normalizeStoredModel = (providerId: string, model?: string) => {
+    if (!model) return '';
+    const modelIds = getModelIds(providerId);
+    if (!modelIds.length) return '';
+    return modelIds.includes(model) ? model : getDefaultModel(providerId);
+  };
+
   const saveHistory = (list: ChatHistoryItem[]) => {
     const multi = list.filter(item => item.type === 'multi') as MultiChannelHistoryItem[];
     const single = list.filter(item => item.type === 'single') as SingleChannelHistoryItem[];
@@ -125,9 +110,13 @@ export const useStore = create<AppStore>()((set, get) => {
     return Object.fromEntries(PROVIDER_IDS.map(id => [id, {
       enabled: s.enabledMap[id],
       mode: s.modeMap[id],
-      // 保存稳定状态：有响应内容则是 completed，否则是 idle
-      status: (s.responses[id] || s.thinkResponses[id]) ? 'completed' : 'idle',
-      stage: (s.responses[id] || s.thinkResponses[id]) ? 'responding' : 'connecting',
+      // 保留错误态；其余有内容的视为 completed，没有内容的视为 idle
+      status: s.statusMap[id] === 'error'
+        ? 'error'
+        : (s.responses[id] || s.thinkResponses[id]) ? 'completed' : 'idle',
+      stage: s.statusMap[id] === 'error'
+        ? s.stageMap[id]
+        : (s.responses[id] || s.thinkResponses[id]) ? 'responding' : 'connecting',
       response: s.responses[id],
       thinkResponse: s.thinkResponses[id],
       operationStatus: s.operationStatus[id],
@@ -146,7 +135,9 @@ export const useStore = create<AppStore>()((set, get) => {
     if (s.summaryVersions.length === 0) return null;
 
     // 检查是否有至少一个版本有实际内容，避免保存空的总结
-    const hasContent = s.summaryVersions.some(v => (v.response || '').trim() || (v.thinkResponse || '').trim());
+    const hasContent = s.summaryVersions.some(v =>
+      (v.response || '').trim() || (v.thinkResponse || '').trim() || (v.analysisResponse || '').trim()
+    );
     if (!hasContent) return null;
 
     return {
@@ -269,30 +260,126 @@ export const useStore = create<AppStore>()((set, get) => {
   const getProviderMeta = (id: ProviderId) => PROVIDER_META.find((p: any) => p.id === id);
   const supportsApi = (id: ProviderId) => getProviderMeta(id)?.supportsApi ?? false;
 
-  // ─── 错误状态管理助手 ───
-
-  /**
-   * 设置提供器的错误状态，确保 errorTypeMap、loginUrlMap、statusMap 保持一致
-   */
-  const setProviderError = (providerId: ProviderId, errorType: ErrorType, loginUrl = '', operationStatus = '') => {
-    set(prev => ({
-      statusMap: { ...prev.statusMap, [providerId]: 'error' },
-      errorTypeMap: { ...prev.errorTypeMap, [providerId]: errorType },
-      loginUrlMap: { ...prev.loginUrlMap, [providerId]: errorType === 'login_required' ? loginUrl : '' },
-      operationStatus: { ...prev.operationStatus, [providerId]: operationStatus },
-    }));
+  const checkProviderLoginState = async (providerId: ProviderId): Promise<LoginState> => {
+    if (get().modeMap[providerId] === 'api') {
+      return { status: 'logged_in' };
+    }
+    try {
+      const r = await chrome.runtime?.sendMessage({
+        type: MSG_TYPES.GET_PROVIDER_LOGIN_STATE,
+        payload: { providerId },
+      });
+      return r?.state || { status: 'unknown', message: '无法确认登录状态' };
+    } catch (err) {
+      return {
+        status: 'unknown',
+        message: err instanceof Error ? err.message : '无法确认登录状态',
+      };
+    }
   };
 
-  /**
-   * 清除提供器的错误状态
-   */
-  const clearProviderError = (providerId: ProviderId) => {
+  const getAuthRequiredText = (providerId: ProviderId, state?: LoginState) => {
+    const providerName = PROVIDER_NAME_MAP[providerId] || providerId;
+    if (state?.status === 'logged_out') {
+      return state.message || `${providerName} 当前未登录，请先登录后再发送消息`;
+    }
+    return state?.message || `无法确认 ${providerName} 登录状态，请先登录后再发送消息`;
+  };
+
+  const applyAuthRequiredState = (providerId: ProviderId, text: string) => {
+    const errText = `[需要登录] ${text}`;
+    buffers.fullText[providerId] = errText;
+    buffers.thinkText[providerId] = '';
+    buffers.displayedLen[providerId] = errText.length;
+    buffers.thinkDisplayedLen[providerId] = 0;
+    buffers.visitedStages[providerId] = new Set();
     set(prev => ({
-      statusMap: { ...prev.statusMap, [providerId]: 'idle' },
-      errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'none' },
-      loginUrlMap: { ...prev.loginUrlMap, [providerId]: '' },
+      statusMap: { ...prev.statusMap, [providerId]: 'error' },
+      stageMap: { ...prev.stageMap, [providerId]: 'waiting' },
+      responses: { ...prev.responses, [providerId]: errText },
+      thinkResponses: { ...prev.thinkResponses, [providerId]: '' },
       operationStatus: { ...prev.operationStatus, [providerId]: '' },
+      errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'auth_required' },
+      statsMap: { ...prev.statsMap, [providerId]: null },
+      rawUrlMap: { ...prev.rawUrlMap, [providerId]: prev.modeMap[providerId] === 'api' ? 'api' : '' },
     }));
+    get().schedulePersist(0, { [providerId]: get().modeMap[providerId] === 'api' ? 'api' : '' });
+  };
+
+  // 根据启用的通道数量和用户是否手动改过设置，计算总结/导播状态
+  const getAutoModeSettings = (
+    enabledMap: Record<ProviderId, boolean>,
+    options?: {
+      prevSummaryEnabled?: boolean;
+      prevFocusFollowEnabled?: boolean;
+      hasCustomizedSummaryEnabled?: boolean;
+      hasCustomizedFocusFollowEnabled?: boolean;
+    },
+  ) => {
+    const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+    const isMultiChannelMode = enabledCount > 1;
+    const prevSummaryEnabled = options?.prevSummaryEnabled ?? false;
+    const prevFocusFollowEnabled = options?.prevFocusFollowEnabled ?? false;
+    const hasCustomizedSummaryEnabled = options?.hasCustomizedSummaryEnabled ?? false;
+    const hasCustomizedFocusFollowEnabled = options?.hasCustomizedFocusFollowEnabled ?? false;
+
+    return {
+      isSummaryEnabled: isMultiChannelMode
+        ? (hasCustomizedSummaryEnabled ? prevSummaryEnabled : true)
+        : false,
+      isFocusFollowEnabled: isMultiChannelMode
+        ? (hasCustomizedFocusFollowEnabled ? prevFocusFollowEnabled : true)
+        : false,
+    };
+  };
+
+  const dispatchProviderTask = async (
+    providerId: ProviderId,
+    prompt: string,
+    s: AppStore,
+    conversationHistory: Array<{ question: string; response: string }>,
+    isNewConversation: boolean,
+  ) => {
+    await new Promise<void>((resolve, reject) => {
+      const msg = {
+        type: MSG_TYPES.DISPATCH_TASK,
+        payload: {
+          provider: providerId,
+          prompt,
+          mode: s.modeMap[providerId] === 'web' && (providerId === 'yuanbao' || providerId === 'wenxin') ? 'web' : s.modeMap[providerId],
+          settings: {
+            isDeepThinkingEnabled: s.isDeepThinkingEnabled,
+            isWebSearchEnabled: s.isWebSearchEnabled,
+            conversationHistory,
+            isNewConversation,
+          },
+        },
+      };
+
+      if (!chrome.runtime?.sendMessage) {
+        reject(new Error('chrome.runtime.sendMessage 不可用'));
+        return;
+      }
+
+      let settled = false;
+      const timeoutId = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('等待响应超时'));
+      }, 5000);
+
+      chrome.runtime.sendMessage(msg, () => {
+        const lastError = chrome.runtime.lastError;
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+        resolve();
+      });
+    });
   };
 
   // ════════════════════════════════════════════════════════════════
@@ -306,6 +393,9 @@ export const useStore = create<AppStore>()((set, get) => {
     isDebugEnabled: false,
     isSummaryEnabled: false,
     isFocusFollowEnabled: false,
+    hasCustomizedSummaryEnabled: false,
+    hasCustomizedFocusFollowEnabled: false,
+    isChannelListExpanded: false,
     summaryProviderId: 'summarizer',
     summaryModel: 'summarizer-v1',
 
@@ -328,19 +418,20 @@ export const useStore = create<AppStore>()((set, get) => {
     thinkResponses: createDefaultRecord(''),
     operationStatus: createDefaultRecord(''),
     errorTypeMap: createDefaultRecord<ErrorType>('none'),
-    loginUrlMap: createDefaultRecord(''),
     rawUrlMap: createDefaultRecord(''),
     statsMap: createDefaultRecord<ProviderStats | null>(null),
     collapseMap: { ...createDefaultRecord(false), summary: false }, // false = 展开，true = 折叠
-    thinkExpandedMap: { ...createDefaultRecord(false), summary: true }, // true = 展开思考，false = 折叠思考
+    thinkExpandedMap: { ...createDefaultRecord(false), summary: false }, // true = 展开思考，false = 折叠思考
 
     summaryStatus: 'idle',
     summaryStage: 'responding',
     summaryResponse: '',
     summaryThinkResponse: '',
+    summaryAnalysisResponse: '',
+    summaryAnalysisExpanded: false,
     summaryOperationStatus: '',
     summaryStats: null,
-    summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT,  // 自定义总结提示词
+    summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT,  // 自定义总结提示词
     summaryVersions: [],  // 历史版本数组
     summaryCurrentVersion: 0,  // 当前查看的版本索引
 
@@ -391,33 +482,50 @@ export const useStore = create<AppStore>()((set, get) => {
       if (!s.isSummaryConfigValid()) { set({ isSummarySettingsOpen: true }); return; }
       const enabled = PROVIDER_IDS.filter(id => s.enabledMap[id]);
       if (enabled.length < 2) return;
-      set(prev => ({ isSummaryEnabled: !prev.isSummaryEnabled }));
+      set(prev => ({
+        isSummaryEnabled: !prev.isSummaryEnabled,
+        hasCustomizedSummaryEnabled: true,
+      }));
       saveSettings();
     },
 
     toggleFocusFollow: () => {
-      set(prev => ({ isFocusFollowEnabled: !prev.isFocusFollowEnabled }));
+      set(prev => ({
+        isFocusFollowEnabled: !prev.isFocusFollowEnabled,
+        hasCustomizedFocusFollowEnabled: true,
+      }));
       saveSettings();
     },
 
     setSummaryProviderId: (v) => { set({ summaryProviderId: v }); saveSummaryConfig(); },
     setSummaryModel: (v) => { set({ summaryModel: v }); saveSummaryConfig(); },
     setSummaryCustomPrompt: (v) => { set({ summaryCustomPrompt: v }); saveSummaryPrompt(); },
-    resetSummaryPrompt: () => { set({ summaryCustomPrompt: DEFAULT_SUMMARY_PROMPT }); saveSummaryPrompt(); },
+    resetSummaryPrompt: () => { set({ summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT }); saveSummaryPrompt(); },
+    setChannelListExpanded: (expanded) => {
+      set({ isChannelListExpanded: expanded });
+      saveSettings();
+    },
 
     // ─── Provider Config Actions ───
 
     toggleProvider: async (providerId) => {
       const id = providerId as ProviderId;
       const s = get();
-      if (s.enabledMap[id]) {
-        set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: false } }));
-      } else {
-        // 开启通道
-        set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: true } }));
-      }
+      const nextEnabledMap = { ...s.enabledMap, [id]: !s.enabledMap[id] };
+      const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
+        prevSummaryEnabled: s.isSummaryEnabled,
+        prevFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+      });
+
+      set({
+        enabledMap: nextEnabledMap,
+        ...autoModeSettings,
+      });
       // 保存启用的通道列表
       saveEnabledProviders();
+      saveSettings();
     },
 
     selectAllProviders: async () => {
@@ -431,8 +539,18 @@ export const useStore = create<AppStore>()((set, get) => {
       visibleProviderIds.forEach(id => {
         nextEnabledMap[id] = newValue;
       });
-      set({ enabledMap: nextEnabledMap });
+      const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
+        prevSummaryEnabled: s.isSummaryEnabled,
+        prevFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+      });
+      set({
+        enabledMap: nextEnabledMap,
+        ...autoModeSettings,
+      });
       saveEnabledProviders();
+      saveSettings();
     },
 
     invertProviderSelection: async () => {
@@ -443,22 +561,24 @@ export const useStore = create<AppStore>()((set, get) => {
       visibleProviderIds.forEach(id => {
         nextEnabledMap[id] = !s.enabledMap[id];
       });
-      set({ enabledMap: nextEnabledMap });
+      const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
+        prevSummaryEnabled: s.isSummaryEnabled,
+        prevFocusFollowEnabled: s.isFocusFollowEnabled,
+        hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
+        hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
+      });
+      set({
+        enabledMap: nextEnabledMap,
+        ...autoModeSettings,
+      });
       saveEnabledProviders();
+      saveSettings();
     },
 
     setProviderMode: (id, mode) => {
       if (mode === 'api' && !get().apiKeyMap[id]?.trim()) return;
       set(prev => ({ modeMap: { ...prev.modeMap, [id]: mode } }));
       saveApiConfig(id, { mode });
-      if (mode === 'web' && get().enabledMap[id]) {
-        get().goToProvider(id, false).then(result => {
-          if (!result?.success) {
-            set(prev => ({ enabledMap: { ...prev.enabledMap, [id]: false } }));
-            window.alert(`${PROVIDER_NAME_MAP[id]}切换到网页模式失败：${result?.error || '无法创建页面'}`);
-          }
-        });
-      }
     },
 
     setProviderApiKey: (id, value) => {
@@ -488,6 +608,79 @@ export const useStore = create<AppStore>()((set, get) => {
         message.error('请求失败');
       } finally {
         set(prev => ({ testingApiKey: { ...prev.testingApiKey, [providerId]: false } }));
+      }
+    },
+
+    retryProvider: async (providerId) => {
+      const s = get();
+      if (!s.currentQuestion.trim() || !s.enabledMap[providerId] || s.statusMap[providerId] !== 'error') return;
+      if (s.summaryStatus === 'running') {
+        message.info('正在归纳总结中，请稍后再重试失败通道');
+        return;
+      }
+
+      const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+      const isSingleChannel = enabledIds.length === 1;
+      const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked && !s.isCurrentSessionFromHistory;
+      const conversationHistory = (isSingleChannel && s.conversationTurns.length > 0)
+        ? s.conversationTurns.map(t => ({ question: t.question, response: t.response }))
+        : [];
+      const isNewConversation = !isMultiTurnContinuation;
+
+      const loginState = await checkProviderLoginState(providerId);
+      if (loginState.status !== 'logged_in') {
+        const text = getAuthRequiredText(providerId, loginState);
+        applyAuthRequiredState(providerId, text);
+        message.error(text);
+        get().schedulePersist(0);
+        return;
+      }
+
+      buffers.timing[providerId] = { startTime: Date.now(), firstContentTime: 0 };
+      buffers.fullText[providerId] = '';
+      buffers.thinkText[providerId] = '';
+      buffers.displayedLen[providerId] = 0;
+      buffers.thinkDisplayedLen[providerId] = 0;
+      buffers.visitedStages[providerId] = new Set();
+
+      buffers.summaryTriggered = false;
+      buffers.summaryFull = '';
+      buffers.summaryThink = '';
+      buffers.summaryAnalysis = '';
+      buffers.summaryDisplayedLen = 0;
+      buffers.summaryThinkDisplayedLen = 0;
+      buffers.summaryAnalysisDisplayedLen = 0;
+      buffers.summaryTiming = { startTime: 0, firstContentTime: 0 };
+
+      set(prev => ({
+        statusMap: { ...prev.statusMap, [providerId]: 'running' },
+        stageMap: { ...prev.stageMap, [providerId]: 'waiting' },
+        responses: { ...prev.responses, [providerId]: '' },
+        thinkResponses: { ...prev.thinkResponses, [providerId]: '' },
+        operationStatus: { ...prev.operationStatus, [providerId]: '' },
+        errorTypeMap: { ...prev.errorTypeMap, [providerId]: 'none' },
+        statsMap: { ...prev.statsMap, [providerId]: null },
+        rawUrlMap: { ...prev.rawUrlMap, [providerId]: prev.modeMap[providerId] === 'api' ? 'api' : '' },
+        collapseMap: { ...prev.collapseMap, [providerId]: false, summary: false },
+        thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: true, summary: false },
+        summaryStatus: 'idle',
+        summaryStage: 'responding',
+        summaryResponse: '',
+        summaryThinkResponse: '',
+        summaryAnalysisResponse: '',
+        summaryAnalysisExpanded: false,
+        summaryOperationStatus: '',
+        summaryStats: null,
+        summaryVersions: [],
+        summaryCurrentVersion: 0,
+      }));
+
+      get().schedulePersist(0, { [providerId]: s.modeMap[providerId] === 'api' ? 'api' : '' });
+
+      try {
+        await dispatchProviderTask(providerId, s.currentQuestion, s, conversationHistory, isNewConversation);
+      } catch (error) {
+        message.error(`${PROVIDER_NAME_MAP[providerId]} 重试派发失败：${error instanceof Error ? error.message : String(error)}`);
       }
     },
 
@@ -530,7 +723,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
       // 重置折叠状态：所有启用的通道默认展开，深度思考默认展开
       const newCollapseMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
-      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: true };
+      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
       for (const id of PROVIDER_IDS) {
         newCollapseMap[id] = !s.enabledMap[id];
         newThinkExpandedMap[id] = true;
@@ -571,49 +764,25 @@ export const useStore = create<AppStore>()((set, get) => {
         : [];
       const isNewConversation = !isMultiTurnContinuation;
 
-      // 串行执行：每个提供者提交成功后再执行下一个
-      for (const id of enabledIds) {
-        await new Promise<void>((resolve, reject) => {
-          const msg = {
-            type: MSG_TYPES.DISPATCH_TASK,
-            payload: {
-              provider: id, prompt,
-              mode: s.modeMap[id] === 'web' && (id === 'yuanbao' || id === 'wenxin') ? 'web' : s.modeMap[id],
-              settings: {
-                isDeepThinkingEnabled: s.isDeepThinkingEnabled,
-                isWebSearchEnabled: s.isWebSearchEnabled,
-                conversationHistory,
-                isNewConversation,
-              },
-            },
-          };
+      // 并行执行：每个通道先检查自己的网页登录态，再决定是否派发任务
+      const taskPromises = enabledIds.map(async (id) => {
+        const loginState = await checkProviderLoginState(id);
+        if (loginState.status !== 'logged_in') {
+          applyAuthRequiredState(id, getAuthRequiredText(id, loginState));
+          return;
+        }
+        return dispatchProviderTask(id, prompt, s, conversationHistory, isNewConversation);
+      });
 
-          if (!chrome.runtime?.sendMessage) {
-            reject(new Error('chrome.runtime.sendMessage 不可用'));
-            return;
-          }
-
-          chrome.runtime.sendMessage(msg, (response) => {
-            const lastError = chrome.runtime.lastError;
-            if (lastError) {
-              reject(new Error(lastError.message));
-              return;
-            }
-            resolve();
-          });
-
-          setTimeout(() => {
-            reject(new Error('等待响应超时'));
-          }, 5000);
-        });
-      }
+      // 等待所有任务发送完成（但不管结果，让后台继续执行）
+      await Promise.allSettled(taskPromises);
     },
 
     createNewChat: () => {
       get().resetTaskState();
       const s = get();
       const newCollapseMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
-      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: true };
+      const newThinkExpandedMap: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
       for (const id of PROVIDER_IDS) {
         newCollapseMap[id] = !s.enabledMap[id];
         newThinkExpandedMap[id] = true;
@@ -675,18 +844,23 @@ export const useStore = create<AppStore>()((set, get) => {
         const newErrorType = createDefaultRecord<ErrorType>('none');
         // 多通道历史：默认折叠所有通道，折叠深度思考
         const newCollapse: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(true), summary: false };
-        const newThinkExpanded: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: true };
+        const newThinkExpanded: Record<ProviderId | 'summary', boolean> = { ...createDefaultRecord(false), summary: false };
 
         for (const id of PROVIDER_IDS) {
           const ps = item.providers[id] || { enabled: false, mode: 'web' as ProviderMode, status: 'idle' as ProviderStatus, stage: 'connecting' as StageType, response: '', thinkResponse: '', operationStatus: '', errorType: 'none' as ErrorType, rawUrl: '', stats: null };
           newEnabled[id] = ps.enabled;
-          // 根据是否有响应内容来设置状态，而不是使用保存的运行时状态
-          newStatus[id] = (ps.response || ps.thinkResponse) ? 'completed' : 'idle';
-          newStage[id] = (ps.response || ps.thinkResponse) ? 'responding' : 'connecting';
+          const hasErrorContent = typeof ps.response === 'string' && ps.response.startsWith('[系统报错]');
+          const isErrorState = ps.status === 'error' || (ps.errorType && ps.errorType !== 'none') || hasErrorContent;
+          newStatus[id] = isErrorState
+            ? 'error'
+            : (ps.response || ps.thinkResponse) ? 'completed' : 'idle';
+          newStage[id] = isErrorState
+            ? (ps.stage || 'responding')
+            : (ps.response || ps.thinkResponse) ? 'responding' : 'connecting';
           newResp[id] = ps.response;
           newThink[id] = ps.thinkResponse;
           newOp[id] = ps.operationStatus;
-          newErrorType[id] = ps.errorType || (ps.operationStatus?.includes('未登录') ? 'login_required' : 'none');
+          newErrorType[id] = ps.errorType || 'none';
           newRaw[id] = ps.rawUrl;
           newStats[id] = ps.stats ?? null;
           newCollapse[id] = true; // 多通道历史默认全部折叠
@@ -717,18 +891,23 @@ export const useStore = create<AppStore>()((set, get) => {
         if (versions.length > 0) {
           // 有历史版本：恢复到当前选中的版本
           const currentVersion = versions[currentIdx] || versions[versions.length - 1];
+          const analysisResponse = currentVersion.analysisResponse || '';
           // 只有当版本有实际内容时才恢复，避免显示空气泡
-          if ((currentVersion.response || '').trim() || (currentVersion.thinkResponse || '').trim()) {
+          if ((currentVersion.response || '').trim() || (currentVersion.thinkResponse || '').trim() || analysisResponse.trim()) {
             buffers.summaryFull = currentVersion.response;
             buffers.summaryThink = currentVersion.thinkResponse;
+            buffers.summaryAnalysis = analysisResponse;
             buffers.summaryDisplayedLen = currentVersion.response.length;
             buffers.summaryThinkDisplayedLen = currentVersion.thinkResponse.length;
+            buffers.summaryAnalysisDisplayedLen = analysisResponse.length;
             buffers.summaryTriggered = true;
             set({
               summaryStatus: se.status,
               summaryStage: 'responding',
               summaryResponse: currentVersion.response,
               summaryThinkResponse: currentVersion.thinkResponse,
+              summaryAnalysisResponse: analysisResponse,
+              summaryAnalysisExpanded: false,
               summaryStats: currentVersion.stats ?? null,
               summaryVersions: versions,
               summaryCurrentVersion: currentIdx,
@@ -738,20 +917,33 @@ export const useStore = create<AppStore>()((set, get) => {
           // 旧版本数据结构：兼容处理
           const response = (se as any).response || '';
           const thinkResponse = (se as any).thinkResponse || '';
+          const analysisResponse = (se as any).analysisResponse || '';
+          const stats = (se as any).stats ?? null;
+          const normalizedVersions = [{
+            response,
+            thinkResponse,
+            analysisResponse,
+            stats,
+            createdAt: item.createdAt || Date.now(),
+          }];
           // 只有当有实际内容时才恢复，避免显示空气泡
-          if ((response || '').trim() || (thinkResponse || '').trim()) {
+          if ((response || '').trim() || (thinkResponse || '').trim() || analysisResponse.trim()) {
             buffers.summaryFull = response;
             buffers.summaryThink = thinkResponse;
+            buffers.summaryAnalysis = analysisResponse;
             buffers.summaryDisplayedLen = response.length;
             buffers.summaryThinkDisplayedLen = thinkResponse.length;
+            buffers.summaryAnalysisDisplayedLen = analysisResponse.length;
             buffers.summaryTriggered = true;
             set({
               summaryStatus: se.status,
               summaryStage: 'responding',
               summaryResponse: response,
               summaryThinkResponse: thinkResponse,
-              summaryStats: (se as any).stats ?? null,
-              summaryVersions: [],
+              summaryAnalysisResponse: analysisResponse,
+              summaryAnalysisExpanded: false,
+              summaryStats: stats,
+              summaryVersions: normalizedVersions,
               summaryCurrentVersion: 0,
             });
           }
@@ -784,6 +976,10 @@ export const useStore = create<AppStore>()((set, get) => {
 
     setThinkExpanded: (providerId, expanded) => {
       set(prev => ({ thinkExpandedMap: { ...prev.thinkExpandedMap, [providerId]: expanded } }));
+    },
+
+    setSummaryAnalysisExpanded: (expanded) => {
+      set({ summaryAnalysisExpanded: expanded });
     },
 
     // ─── History Actions ───
@@ -827,6 +1023,8 @@ export const useStore = create<AppStore>()((set, get) => {
         summaryStage: 'responding',
         summaryResponse: '',
         summaryThinkResponse: '',
+        summaryAnalysisResponse: '',
+        summaryAnalysisExpanded: false,
         summaryOperationStatus: '',
         summaryStats: null,
         summaryVersions: [],
@@ -854,6 +1052,9 @@ export const useStore = create<AppStore>()((set, get) => {
       const stf = buffers.summaryThink;
       let stl = buffers.summaryThinkDisplayedLen;
       if (stl < stf.length) { stl = Math.min(stl + CHARS_PER_FRAME, stf.length); buffers.summaryThinkDisplayedLen = stl; set({ summaryThinkResponse: stf.slice(0, stl) }); anyPending = true; }
+      const saf = buffers.summaryAnalysis;
+      let sal = buffers.summaryAnalysisDisplayedLen;
+      if (sal < saf.length) { sal = Math.min(sal + CHARS_PER_FRAME, saf.length); buffers.summaryAnalysisDisplayedLen = sal; set({ summaryAnalysisResponse: saf.slice(0, sal) }); anyPending = true; }
       const sf = buffers.summaryFull;
       let sl = buffers.summaryDisplayedLen;
       if (sl < sf.length) { sl = Math.min(sl + CHARS_PER_FRAME, sf.length); buffers.summaryDisplayedLen = sl; set({ summaryResponse: sf.slice(0, sl) }); anyPending = true; }
@@ -888,14 +1089,18 @@ export const useStore = create<AppStore>()((set, get) => {
 
       // 如果是重新生成（已有总结内容），只清空当前显示内容
       // 新生成的版本会在 messageHandler 中添加到 summaryVersions
-      if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink)) {
+      if (buffers.summaryTriggered && (buffers.summaryFull || buffers.summaryThink || buffers.summaryAnalysis)) {
         buffers.summaryFull = '';
         buffers.summaryThink = '';
+        buffers.summaryAnalysis = '';
         buffers.summaryDisplayedLen = 0;
         buffers.summaryThinkDisplayedLen = 0;
+        buffers.summaryAnalysisDisplayedLen = 0;
         set({
           summaryResponse: '',
           summaryThinkResponse: '',
+          summaryAnalysisResponse: '',
+          summaryAnalysisExpanded: false,
           summaryStats: null,
         });
       }
@@ -932,12 +1137,16 @@ export const useStore = create<AppStore>()((set, get) => {
       // 更新 buffers 和 store 状态
       buffers.summaryFull = version.response;
       buffers.summaryThink = version.thinkResponse;
+      buffers.summaryAnalysis = version.analysisResponse || '';
       buffers.summaryDisplayedLen = version.response.length;
       buffers.summaryThinkDisplayedLen = version.thinkResponse.length;
+      buffers.summaryAnalysisDisplayedLen = buffers.summaryAnalysis.length;
 
       set({
         summaryResponse: version.response,
         summaryThinkResponse: version.thinkResponse,
+        summaryAnalysisResponse: version.analysisResponse || '',
+        summaryAnalysisExpanded: false,
         summaryStats: version.stats,
         summaryCurrentVersion: index,
       });
@@ -951,9 +1160,6 @@ export const useStore = create<AppStore>()((set, get) => {
         return { success: false, error: String(err) };
       }
     },
-
-    setProviderError,
-    clearProviderError,
 
     // ─── Derived Getters ───
 
@@ -1008,7 +1214,7 @@ export const useStore = create<AppStore>()((set, get) => {
           for (const id of PROVIDER_IDS) {
             newModes[id] = (apiConfig[id]?.mode as ProviderMode) || 'web';
             newKeys[id] = apiConfig[id]?.apiKey || '';
-            newModels[id] = apiConfig[id]?.model || '';
+            newModels[id] = normalizeStoredModel(id, apiConfig[id]?.model);
           }
           newModes.yuanbao = 'web';
           newModes.wenxin = 'web';
@@ -1016,8 +1222,8 @@ export const useStore = create<AppStore>()((set, get) => {
           const sc = (result?.[SUMMARY_CONFIG_KEY] || {}) as SummaryConfig;
           const customPrompt = result?.[SUMMARY_PROMPT_KEY] as string | undefined;
 
-          // 从存储中读取用户上次开启的通道，不再检查 tab 有效性
-          // 首次使用时，默认开启所有不需要登录的通道
+          // 从存储中读取用户上次开启的通道，不再检查 tab 有效性。
+          // 首次使用不自动开启通道。
           const savedEnabled = (result?.[ENABLED_PROVIDERS_KEY] || {}) as Record<ProviderId, boolean>;
           const hasSavedEnabled = Object.keys(savedEnabled).length > 0;
           const newEnabled = createDefaultRecord(false);
@@ -1026,12 +1232,6 @@ export const useStore = create<AppStore>()((set, get) => {
             // 有保存的配置，使用用户上次的选择
             PROVIDER_IDS.forEach(id => {
               newEnabled[id] = !!savedEnabled[id];
-            });
-          } else {
-            // 首次使用，默认开启所有不需要登录的通道
-            const noLoginRequired = getNoLoginRequiredProviders() as ProviderId[];
-            noLoginRequired.forEach(id => {
-              newEnabled[id] = true;
             });
           }
 
@@ -1112,22 +1312,34 @@ export const useStore = create<AppStore>()((set, get) => {
             })
             .slice(0, MAX_HISTORY_COUNT * 2);
 
+          const hasCustomizedSummaryEnabled = saved.hasCustomizedSummaryEnabled ?? false;
+          const hasCustomizedFocusFollowEnabled = saved.hasCustomizedFocusFollowEnabled ?? false;
+          const autoModeSettings = getAutoModeSettings(newEnabled, {
+            prevSummaryEnabled: saved.isSummaryEnabled ?? false,
+            prevFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
+            hasCustomizedSummaryEnabled,
+            hasCustomizedFocusFollowEnabled,
+          });
+
           set({
             isDeepThinkingEnabled: saved.isDeepThinkingEnabled ?? true,
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
-            isSummaryEnabled: saved.isSummaryEnabled ?? false,
-            isFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
+            ...autoModeSettings,
             isDebugEnabled: debugVal,
+            hasCustomizedSummaryEnabled,
+            hasCustomizedFocusFollowEnabled,
+            isChannelListExpanded: saved.isChannelListExpanded ?? false,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
-            summaryProviderId: sc.providerId || 'summarizer', summaryModel: sc.model || 'summarizer-v1',
-            summaryCustomPrompt: customPrompt ?? DEFAULT_SUMMARY_PROMPT,
+            summaryProviderId: sc.providerId || 'summarizer',
+            summaryModel: normalizeStoredModel(sc.providerId || 'summarizer', sc.model) || getDefaultModel(sc.providerId || 'summarizer'),
+            summaryCustomPrompt: customPrompt ?? SUMMARY_SYSTEM_PROMPT,
             enabledMap: newEnabled,
             historyList: allHistory,
           });
         },
       );
 
-      const listener = createMessageListener(get, set, syncProviderRawUrls, setProviderError, clearProviderError);
+      const listener = createMessageListener(get, set, syncProviderRawUrls);
       chrome.runtime?.onMessage.addListener(listener);
       return () => { chrome.runtime?.onMessage.removeListener(listener); };
     },

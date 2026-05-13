@@ -6,6 +6,7 @@ import {
   GlobalOutlined,
   HeartOutlined,
   LeftOutlined,
+  LoginOutlined,
   MergeCellsOutlined,
   PlusOutlined,
   RedoOutlined,
@@ -37,7 +38,7 @@ import ChannelList from './components/ChannelList';
 import ChannelSettingsDrawer from './components/ChannelSettingsDrawer';
 import GlobalSettingsModal from './components/GlobalSettingsModal';
 import HistoryDrawer from './components/HistoryDrawer';
-import { getProviderIcon } from './utils/providerIcons';
+import { getProviderIcon } from './config/providerIcons';
 
 // ════════════════════════════════════════════════════════════════════
 // Styles
@@ -298,7 +299,83 @@ function renderMarkdown(content: any) {
   return <XMarkdown className="x-markdown-light" content={contentStr} />;
 }
 
-function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+type ThinkTitles = {
+  loading: string;
+  done: string;
+};
+
+const DEFAULT_THINK_TITLES: ThinkTitles = {
+  loading: '深度思考中...',
+  done: '深度思考完成',
+};
+
+type SummaryAnalysisSection = {
+  key: string;
+  title: string;
+  content: string;
+};
+
+const SUMMARY_ANALYSIS_SECTION_TITLES = ['核心共识', '观点对撞', '裁判取舍'];
+const SUMMARY_FINAL_TITLE_RE = /^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议)\s*\n+/;
+const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
+  综合解析: '裁判取舍',
+  综合分析: '裁判取舍',
+};
+
+function splitSummaryAnalysisSections(markdown: string): SummaryAnalysisSection[] {
+  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析)\s*$/gm;
+  const matches = Array.from(markdown.matchAll(headingRe));
+  if (!matches.length) return [];
+
+  return matches
+    .map((match, index) => {
+      const title = SUMMARY_ANALYSIS_TITLE_ALIASES[match[1]] ?? match[1];
+      const start = (match.index ?? 0) + match[0].length;
+      const end = matches[index + 1]?.index ?? markdown.length;
+      return {
+        key: title,
+        title,
+        content: markdown.slice(start, end).trim(),
+      };
+    })
+    .filter(section => SUMMARY_ANALYSIS_SECTION_TITLES.includes(section.title));
+}
+
+function stripSummaryFinalTitle(markdown: string) {
+  return markdown.replace(SUMMARY_FINAL_TITLE_RE, '').trimStart();
+}
+
+function SummaryAnalysisThink({
+  title,
+  loading,
+  content,
+}: {
+  title: string;
+  loading: boolean;
+  content: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <Think
+      title={title}
+      loading={loading}
+      expanded={expanded}
+      onExpand={setExpanded}
+    >
+      <XMarkdown className="x-markdown-light" content={content} />
+    </Think>
+  );
+}
+
+function renderThinkAndMarkdown(
+  thinkContent: any,
+  content: any,
+  isStreaming: boolean,
+  expanded: boolean,
+  onToggle?: (expanded: boolean) => void,
+  titles: ThinkTitles = DEFAULT_THINK_TITLES,
+) {
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   const contentIsString = typeof content === 'string';
   const contentStr = contentIsString ? content : '';
@@ -306,7 +383,7 @@ function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: bo
   return (
     <>
       <Think
-        title={thinkDone ? '深度思考完成' : '深度思考中...'}
+        title={thinkDone ? titles.done : titles.loading}
         loading={!thinkDone}
         expanded={expanded}
         onExpand={onToggle}
@@ -318,10 +395,107 @@ function renderThinkAndMarkdown(thinkContent: any, content: any, isStreaming: bo
   );
 }
 
-function makeContentRender(thinkContent: any, isStreaming: boolean, expanded: boolean, onToggle?: (expanded: boolean) => void) {
+function makeContentRender(
+  thinkContent: any,
+  isStreaming: boolean,
+  expanded: boolean,
+  onToggle?: (expanded: boolean) => void,
+  titles?: ThinkTitles,
+) {
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   return (content: any) => {
-    return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle);
+    return renderThinkAndMarkdown(thinkStr, content, isStreaming, expanded, onToggle, titles);
+  };
+}
+
+function renderSummaryThinkAndMarkdown({
+  thinkContent,
+  analysisContent,
+  content,
+  isStreaming,
+  thinkExpanded,
+  analysisExpanded,
+  onThinkToggle,
+  onAnalysisToggle,
+}: {
+  thinkContent: any;
+  analysisContent: any;
+  content: any;
+  isStreaming: boolean;
+  thinkExpanded: boolean;
+  analysisExpanded: boolean;
+  onThinkToggle?: (expanded: boolean) => void;
+  onAnalysisToggle?: (expanded: boolean) => void;
+}) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  const analysisStr = typeof analysisContent === 'string' ? analysisContent : '';
+  const rawContentStr = typeof content === 'string' ? content : '';
+  const contentStr = stripSummaryFinalTitle(rawContentStr);
+  const analysisSections = splitSummaryAnalysisSections(analysisStr);
+  const thinkDone = !isStreaming || !!analysisStr || !!contentStr;
+  const analysisDone = !isStreaming || !!contentStr;
+
+  return (
+    <>
+      {thinkStr ? (
+        <Think
+          title={thinkDone ? '深度思考完成' : '深度思考中...'}
+          loading={!thinkDone}
+          expanded={thinkExpanded}
+          onExpand={onThinkToggle}
+        >
+          <XMarkdown className="x-markdown-light" content={thinkStr} />
+        </Think>
+      ) : null}
+      {analysisSections.length ? (
+        analysisSections.map((section, index) => {
+          const sectionDone = !isStreaming || !!contentStr || index < analysisSections.length - 1;
+          return (
+            <SummaryAnalysisThink
+              key={section.key}
+              title={sectionDone ? section.title : `${section.title}生成中...`}
+              loading={!sectionDone}
+              content={section.content}
+            />
+          );
+        })
+      ) : analysisStr ? (
+        <Think
+          title={analysisDone ? '归纳总结过程完成' : '归纳总结过程中...'}
+          loading={!analysisDone}
+          expanded={analysisExpanded}
+          onExpand={onAnalysisToggle}
+        >
+          <XMarkdown className="x-markdown-light" content={analysisStr} />
+        </Think>
+      ) : null}
+      {React.isValidElement(content) ? content : (contentStr ? <XMarkdown className="x-markdown-light" content={contentStr} /> : null)}
+    </>
+  );
+}
+
+function makeSummaryContentRender(
+  thinkContent: any,
+  analysisContent: any,
+  isStreaming: boolean,
+  thinkExpanded: boolean,
+  analysisExpanded: boolean,
+  onThinkToggle?: (expanded: boolean) => void,
+  onAnalysisToggle?: (expanded: boolean) => void,
+) {
+  const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
+  const analysisStr = typeof analysisContent === 'string' ? analysisContent : '';
+  return (content: any) => {
+    return renderSummaryThinkAndMarkdown({
+      thinkContent: thinkStr,
+      analysisContent: analysisStr,
+      content,
+      isStreaming,
+      thinkExpanded,
+      analysisExpanded,
+      onThinkToggle,
+      onAnalysisToggle,
+    });
   };
 }
 
@@ -550,11 +724,12 @@ const App = () => {
   const summaryStatus = useStore(s => s.summaryStatus);
   const summaryResponse = useStore(s => s.summaryResponse);
   const summaryThinkResponse = useStore(s => s.summaryThinkResponse);
+  const summaryAnalysisResponse = useStore(s => s.summaryAnalysisResponse);
+  const summaryAnalysisExpanded = useStore(s => s.summaryAnalysisExpanded);
   const statsMap = useStore(s => s.statsMap);
   const summaryStats = useStore(s => s.summaryStats);
   const operationStatus = useStore(s => s.operationStatus);
   const errorTypeMap = useStore(s => s.errorTypeMap);
-  const loginUrlMap = useStore(s => s.loginUrlMap);
   const summaryOperationStatus = useStore(s => s.summaryOperationStatus);
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
@@ -644,13 +819,17 @@ const App = () => {
     buffers.summaryTriggered = false;
     buffers.summaryFull = '';
     buffers.summaryThink = '';
+    buffers.summaryAnalysis = '';
     buffers.summaryDisplayedLen = 0;
     buffers.summaryThinkDisplayedLen = 0;
+    buffers.summaryAnalysisDisplayedLen = 0;
     useStore.setState({
       summaryVersions: [],
       summaryCurrentVersion: 0,
       summaryResponse: '',
       summaryThinkResponse: '',
+      summaryAnalysisResponse: '',
+      summaryAnalysisExpanded: false,
       summaryStats: null,
       summaryStatus: 'idle',
     });
@@ -673,53 +852,13 @@ const App = () => {
   };
   const summaryVersions = useStore(s => s.summaryVersions);
   const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
-  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion } = useStore();
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider, goToProvider } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
     toggleDeepThinking, toggleWebSearch, toggleSummary, toggleFocusFollow,
-    toggleProvider, goToProvider, clearProviderError,
+    toggleProvider,
   } = useStore.getState();
-
-  // 处理「去登录」按钮点击
-  const handleGoToLogin = async (providerId: ProviderId) => {
-    const loginUrl = loginUrlMap[providerId];
-    if (loginUrl) {
-      window.open(loginUrl, '_blank');
-    } else {
-      // 如果没有记录的登录链接，使用 goToProvider 打开默认页面
-      await goToProvider(providerId, true);
-    }
-  };
-
-  // 处理「重新提问」按钮点击
-  const handleRetryTask = async (providerId: ProviderId) => {
-    const s = useStore.getState();
-    const prompt = currentQuestion;
-    if (!prompt) return;
-
-    // 清除之前的错误状态
-    clearProviderError(providerId);
-    useStore.setState({
-      stageMap: { ...s.stageMap, [providerId]: 'waiting' },
-      responses: { ...s.responses, [providerId]: '' },
-      thinkResponses: { ...s.thinkResponses, [providerId]: '' },
-    });
-
-    // 发送重试请求到 background
-    chrome.runtime?.sendMessage({
-      type: MSG_TYPES.RETRY_TASK,
-      payload: {
-        provider: providerId,
-        prompt,
-        settings: {
-          isNewConversation: true,
-          isDeepThinkingEnabled: s.isDeepThinkingEnabled,
-          isWebSearchEnabled: s.isWebSearchEnabled,
-        }
-      }
-    });
-  };
 
   // ==================== Init ====================
   useEffect(() => {
@@ -729,7 +868,7 @@ const App = () => {
     const messageListener = (request: any) => {
       if (request.type === MSG_TYPES.TASK_COMPLETED && request.payload.provider !== '_summary') {
         // 有通道完成了，检查是否有等待的新通道需要提交
-        checkAndSubmitPendingChannel(currentQuestion);
+        checkAndSubmitPendingChannel(useStore.getState().currentQuestion);
       }
     };
 
@@ -739,7 +878,7 @@ const App = () => {
       cleanup?.();
       chrome.runtime?.onMessage.removeListener(messageListener);
     };
-  }, [currentQuestion]);
+  }, []);
 
   // 检查并提交等待中的通道
   const checkAndSubmitPendingChannel = (question: string | null) => {
@@ -846,9 +985,7 @@ const App = () => {
         const thinkExpanded = thinkExpandedMap[id];
 
         // 如果通道已完成/出错但没有内容，跳过不渲染，避免显示空气泡
-        // 但登录错误是例外，需要显示登录引导
-        const isLoginError = errorTypeMap[id] === 'login_required';
-        if (isCompletedOrError && !hasContent && !isLoginError) {
+        if (isCompletedOrError && !hasContent) {
           return;
         }
 
@@ -860,35 +997,6 @@ const App = () => {
           contentRenderFn = makeContentRender(think, isRunning, thinkExpanded, (expanded) => {
             setThinkExpanded(id, expanded);
           });
-        } else if (isLoginError && !hasContent) {
-          // 登录错误且没有内容时，显示友好的登录引导提示
-          contentRenderFn = () => (
-            <div style={{ padding: '12px 0', color: 'var(--ant-color-text-secondary)' }}>
-              <p style={{ margin: '0 0 12px 0', fontSize: '13px' }}>
-                该通道需要登录后才能使用
-              </p>
-              <Flex gap={8}>
-                <Button
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleGoToLogin(id);
-                  }}
-                >
-                  👉 去登录
-                </Button>
-                <Button
-                  size="small"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRetryTask(id);
-                  }}
-                >
-                  🔄 已登录，重新提问
-                </Button>
-              </Flex>
-            </div>
-          );
         }
 
         items.push({
@@ -917,6 +1025,31 @@ const App = () => {
               styles={styles}
             />
           ),
+          footer: statusMap[id] === 'error' && !isCollapsed ? (
+            <Flex justify="end" gap={8} style={{ width: '100%' }}>
+              {errorTypeMap[id] === 'auth_required' ? (
+                <Button
+                  size="small"
+                  type="primary"
+                  icon={<LoginOutlined />}
+                  onClick={() => goToProvider(id, true)}
+                  style={{ borderRadius: 999 }}
+                >
+                  前往登录
+                </Button>
+              ) : null}
+              <Button
+                size="small"
+                type="default"
+                icon={<RedoOutlined />}
+                onClick={() => retryProvider(id)}
+                disabled={summaryStatus === 'running'}
+                style={{ borderRadius: 999 }}
+              >
+                重试
+              </Button>
+            </Flex>
+          ) : undefined,
           ...(isRunning && !hasContent && !isCollapsed ? {
             loadingRender: () => (
               <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} providerId={id} />
@@ -929,17 +1062,15 @@ const App = () => {
       // 确保 summaryResponse 和 summaryThinkResponse 是字符串，避免 object 导致的问题
       const summaryResp = typeof summaryResponse === 'string' ? summaryResponse : '';
       const summaryThink = typeof summaryThinkResponse === 'string' ? summaryThinkResponse : '';
-      const hasSummaryContent = !!(summaryThink.trim() || summaryResp.trim());
+      const summaryAnalysis = typeof summaryAnalysisResponse === 'string' ? summaryAnalysisResponse : '';
+      const hasSummaryContent = !!(summaryThink.trim() || summaryAnalysis.trim() || summaryResp.trim());
       const hasSummaryRunning = summaryStatus === 'running';
       // 只有在总结完成/出错且有内容时才显示，避免空气泡
       const hasSummaryCompleted = (summaryStatus === 'completed' || summaryStatus === 'error') && hasSummaryContent;
 
       // 添加手动触发按钮：总结尚未生成且有足够的通道完成时显示
       // 注意：这里只检查状态，不检查内容，因为 TASK_COMPLETED 发送时内容应该已经完整
-      // 只统计正常完成的通道（status=completed 且 errorType=none），登录错误的通道不算
-      const completedCount = enabledProviderIds.filter(id =>
-        statusMap[id] === 'completed' && errorTypeMap[id] === 'none'
-      ).length;
+      const completedCount = enabledProviderIds.filter(id => statusMap[id] === 'completed').length;
       const isAnyLocalRunning = enabledProviderIds.some(id => statusMap[id] === 'running');
 
       // 手动触发按钮显示条件：
@@ -957,6 +1088,7 @@ const App = () => {
         const summaryStage = useStore.getState().summaryStage;
         const isSummaryCollapsed = collapseMap['summary'];
         const summaryThinkExpanded = thinkExpandedMap['summary'];
+        const setSummaryAnalysisExpanded = useStore.getState().setSummaryAnalysisExpanded;
         const isSummaryCompleted = summaryStatus === 'completed' || summaryStatus === 'error';
 
         // 根据侧边栏宽度决定是否只显示图标
@@ -1082,10 +1214,10 @@ const App = () => {
           ...(isSummaryCollapsed ? {
             className: styles.bubbleContentHidden,
             contentRender: () => null,
-          } : (summaryThink ? {
-            contentRender: makeContentRender(summaryThink, summaryStatus === 'running', summaryThinkExpanded, (expanded) => {
+          } : (summaryThink || summaryAnalysis ? {
+            contentRender: makeSummaryContentRender(summaryThink, summaryAnalysis, summaryStatus === 'running', summaryThinkExpanded, summaryAnalysisExpanded, (expanded) => {
               setThinkExpanded('summary', expanded);
-            }),
+            }, setSummaryAnalysisExpanded),
           } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
           footer: summaryFooter,
@@ -1142,12 +1274,12 @@ const App = () => {
     return items;
   }, [
     conversationTurns, currentQuestion, enabledMap, statusMap, stageMap, collapseMap, thinkExpandedMap,
-    responses, thinkResponses, isSummaryEnabled, summaryStatus,
-    summaryResponse, summaryThinkResponse, statsMap, summaryStats,
+    responses, thinkResponses, isSummaryEnabled, summaryStatus, errorTypeMap,
+    summaryResponse, summaryThinkResponse, summaryAnalysisResponse, summaryAnalysisExpanded, statsMap, summaryStats,
     operationStatus, summaryOperationStatus,
     triggerSummary, regenerateSummary, switchSummaryVersion,
     summaryVersions, summaryCurrentVersion,
-    sidebarWidth,
+    sidebarWidth, retryProvider, goToProvider, isCurrentSessionFromHistory,
   ]);
 
   const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');

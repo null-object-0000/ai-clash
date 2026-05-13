@@ -12,7 +12,7 @@ Cannot access the store? No problem, just follow these 3 steps.
 
 ### 1. Download the Latest ZIP
 
-👉 **[Download AI Clash v1.2.0 Offline Package](https://github.com/null-object-0000/ai-clash/releases/latest)** (Download `ai-clash-v1.2.0.zip` after redirect)
+👉 **[Download AI Clash v1.2.0 Offline Package](https://github.com/null-object-0000/ai-clash/releases/latest)** (Download `crx-ai-clash-1.2.0.zip` after redirect)
 
 ### 2. Unzip Files
 

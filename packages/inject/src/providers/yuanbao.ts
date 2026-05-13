@@ -2,8 +2,7 @@
  * 腾讯元宝 (Yuanbao) Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
-import { IncrementalHelper } from '../core/incremental-utils.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
 import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
@@ -31,20 +30,6 @@ const thinkingAction: ToggleAction = {
     simulateRealClick(el);
     return true;
   },
-};
-
-// Auth 登录信息配置
-const authAction: AuthAction = {
-  loggedInSelectors: [
-    '.yb-nav__footer .nick-info-container .nick-info-name',
-    '.yb-nav__footer .image-container img',
-  ],
-  usernameSelectors: [
-    '.yb-nav__footer .nick-info-container .nick-info-name',
-  ],
-  avatarSelectors: [
-    '.yb-nav__footer .image-container img',
-  ],
 };
 
 export const yuanbaoProvider: ProviderConfig = {
@@ -75,8 +60,6 @@ export const yuanbaoProvider: ProviderConfig = {
     },
     // 思考模式 - 使用抽象接口
     thinking: thinkingAction,
-    // 登录信息检测
-    auth: authAction,
   },
   // 会话 ID 提取配置
   conversation: {

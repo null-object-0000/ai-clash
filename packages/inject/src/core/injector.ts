@@ -7,10 +7,10 @@ import type {
   InjectorOptions,
   Capabilities,
   ChatCapability,
+  LoginState,
   ProviderConfig,
   SendCallbacks,
   SendOptions,
-  AuthInfo,
   ToggleAction,
 } from './types.js';
 import { getProviderConfig, getProviderIds, type ProviderId } from '../providers/index.js';
@@ -419,6 +419,7 @@ function getConversationIdFromUrl(provider: ProviderConfig): string | undefined 
   }
 
   // 没有配置 pattern，尝试从 pathname 最后一段提取
+  const pathname = window.location.pathname;
   const segments = pathname.split('/').filter(Boolean);
   let id = segments.length > 0 ? segments[segments.length - 1] : undefined;
 
@@ -465,6 +466,37 @@ function getConversationId(provider: ProviderConfig): string | undefined {
   // 再从 DOM 提取
   id = getConversationIdFromDom(provider);
   return id;
+}
+
+function isCurrentPageAuthBlocked(provider: ProviderConfig): { blocked: boolean; message?: string } {
+  const auth = provider.auth;
+  if (!auth) return { blocked: false };
+
+  const href = window.location.href;
+  const pathname = window.location.pathname;
+  const matchesLoginUrl = (auth.loginUrlPatterns || []).some((pattern) =>
+    href.includes(pattern) || pathname.includes(pattern)
+  );
+
+  if (matchesLoginUrl) {
+    return {
+      blocked: true,
+      message: auth.failureMessage || `${provider.name} 当前未登录，请先完成登录后再重试`,
+    };
+  }
+
+  return { blocked: false };
+}
+
+function getCurrentPageLoginState(provider: ProviderConfig): LoginState {
+  const authState = isCurrentPageAuthBlocked(provider);
+  if (authState.blocked) {
+    return {
+      status: 'logged_out',
+      message: authState.message || `${provider.name} 当前未登录，请先完成登录后再重试`,
+    };
+  }
+  return { status: 'logged_in' };
 }
 
 /**
@@ -709,6 +741,25 @@ function createChatCapability(provider: ProviderConfig): ChatCapability {
   };
 }
 
+function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
+  return {
+    async getLoginState() {
+      try {
+        if (provider.auth?.getLoginState) {
+          const state = await provider.auth.getLoginState();
+          if (state?.status) return state;
+        }
+        return getCurrentPageLoginState(provider);
+      } catch (err) {
+        return {
+          status: 'unknown',
+          message: err instanceof Error ? err.message : String(err),
+        };
+      }
+    },
+  };
+}
+
 function fillTextInput(el: HTMLElement, text: string): void {
   const setter = Object.getOwnPropertyDescriptor(
     el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
@@ -849,61 +900,12 @@ function createSearchCapability(provider: ProviderConfig): Capabilities['search'
   };
 }
 
-/**
- * 创建 Auth 能力（获取登录信息）
- */
-function createAuthCapability(provider: ProviderConfig): Capabilities['auth'] {
-  const { actions } = provider;
-  const auth = actions.auth;
-
-  if (!auth) {
-    return undefined;
-  }
-
-  return {
-    async getInfo(): Promise<AuthInfo> {
-      // 检查是否已登录：只要 loggedInSelectors 中任意一个元素存在即视为已登录
-      const loggedInEl = findAnyElement(auth.loggedInSelectors);
-      if (!loggedInEl) {
-        return { loggedIn: false };
-      }
-
-      // 提取用户名
-      let username: string | undefined;
-      if (auth.usernameSelectors) {
-        const usernameEl = findAnyElement(auth.usernameSelectors);
-        if (usernameEl) {
-          username = usernameEl.textContent?.trim() || undefined;
-        }
-      }
-
-      // 提取头像 URL
-      let avatarUrl: string | undefined;
-      if (auth.avatarSelectors) {
-        const avatarEl = findAnyElement(auth.avatarSelectors);
-        if (avatarEl && avatarEl.tagName === 'IMG') {
-          avatarUrl = (avatarEl as HTMLImageElement).src || (avatarEl as HTMLImageElement).dataset.src || undefined;
-        }
-      }
-
-      return {
-        loggedIn: true,
-        username,
-        avatarUrl,
-      };
-    },
-  };
-}
-
-/**
- * 创建完整能力对象
- */
 function createCapabilities(provider: ProviderConfig): Capabilities {
   return {
     chat: createChatCapability(provider),
+    auth: createAuthCapability(provider),
     thinking: createThinkingCapability(provider),
     search: createSearchCapability(provider),
-    auth: createAuthCapability(provider),
     // model: createModelCapability(provider), // TODO: 实现模型切换能力
   };
 }
@@ -946,9 +948,9 @@ function createWindowAdapter(
       window.addEventListener(`${globalName}_call`, callHandler as EventListener);
       (window as any)[globalName] = {
         chat: capabilities.chat,
+        auth: capabilities.auth,
         thinking: capabilities.thinking,
         search: capabilities.search,
-        auth: capabilities.auth,
         _isInjected: true,
       };
     },

@@ -2,7 +2,7 @@
  * 豆包 (Doubao) Provider Configuration
  */
 
-import type { ProviderConfig, ToggleAction, AuthAction } from '../core/types.js';
+import type { ProviderConfig, ToggleAction } from '../core/types.js';
 import { findAnyElement, simulateRealClick } from '../core/dom-utils.js';
 
 // 思考模式实现
@@ -60,24 +60,26 @@ const thinkingAction: ToggleAction = {
   },
 };
 
-// Auth 登录信息配置
-const authAction: AuthAction = {
-  loggedInSelectors: [
-    '#flow_chat_sidebar .-mx-12 .w-full button img',
-    '#flow_chat_sidebar .-mx-12 .w-full button .text-dbx-text-primary',
-  ],
-  usernameSelectors: [
-    '#flow_chat_sidebar .-mx-12 .w-full button .text-dbx-text-primary',
-  ],
-  avatarSelectors: [
-    '#flow_chat_sidebar .-mx-12 .w-full button img',
-  ],
-};
-
 export const doubaoProvider: ProviderConfig = {
   id: 'doubao',
   name: '豆包',
   domain: 'doubao.com',
+  auth: {
+    failureMessage: '豆包当前未登录，请先完成登录后再重试',
+    getLoginState() {
+      const accountInfo = (window as any)._ROUTER_DATA?.loaderData?.chat_layout?.chat_layout?.accountInfo;
+      if (!accountInfo) {
+        return { status: 'unknown', message: '无法确认豆包登录状态' };
+      }
+      if (accountInfo?.message === 'success' && accountInfo?.data?.user_id) {
+        return { status: 'logged_in' };
+      }
+      if (accountInfo?.data?.error_code === 13 || accountInfo?.message === 'error') {
+        return { status: 'logged_out', message: accountInfo?.data?.description || '豆包当前未登录，请先完成登录后再重试' };
+      }
+      return { status: 'unknown', message: '无法确认豆包登录状态' };
+    },
+  },
   actions: {
     // 基础对话能力
     chat: {
@@ -102,8 +104,6 @@ export const doubaoProvider: ProviderConfig = {
     },
     // 思考模式 - 使用抽象接口
     thinking: thinkingAction,
-    // 登录信息检测
-    auth: authAction,
     // 注意：豆包没有手动开关的联网搜索功能，搜索由系统自动判断是否需要联网
   },
   // 会话 ID 提取配置

@@ -93,10 +93,21 @@ export interface Injector {
  */
 export interface Capabilities {
   chat: ChatCapability;
+  auth?: AuthCapability;
   thinking?: ThinkingCapability;
   search?: SearchCapability;
   model?: ModelCapability;
-  auth?: AuthCapability;
+}
+
+export type LoginStatus = 'logged_in' | 'logged_out' | 'unknown';
+
+export interface LoginState {
+  status: LoginStatus;
+  message?: string;
+}
+
+export interface AuthCapability {
+  getLoginState(): Promise<LoginState>;
 }
 
 /**
@@ -175,41 +186,6 @@ export interface SearchCapability {
 }
 
 /**
- * 登录信息
- */
-export interface AuthInfo {
-  loggedIn: boolean;
-  username?: string;
-  avatarUrl?: string;
-}
-
-/**
- * Auth 能力接口 - 获取登录状态和账号信息
- */
-export interface AuthCapability {
-  getInfo(): Promise<AuthInfo>;
-}
-
-/**
- * Provider 配置中的 Auth 动作配置
- */
-export interface AuthAction {
-  /**
-   * 登录状态检测选择器 - 当这些元素存在时表示已登录
-   * 通常是用户头像、用户名显示区域等
-   */
-  loggedInSelectors: string[];
-  /**
-   * 用户名文本提取选择器
-   */
-  usernameSelectors?: string[];
-  /**
-   * 头像图片 URL 提取选择器
-   */
-  avatarSelectors?: string[];
-}
-
-/**
  * 切换模式能力接口（思考模式/搜索模式通用）
  *
  * 用于获取和切换 AI 的各种模式状态（如深度思考模式、联网搜索模式等）。
@@ -284,7 +260,14 @@ export interface ProviderConfig {
   domain: string;
   actions: ProviderActions;
   conversation?: ConversationConfig;
+  auth?: AuthConfig;
   sse?: SSEConfig;
+}
+
+export interface AuthConfig {
+  loginUrlPatterns?: string[];
+  failureMessage?: string;
+  getLoginState?: () => Promise<LoginState> | LoginState;
 }
 
 /**
@@ -310,7 +293,6 @@ export interface ProviderActions {
   thinking?: ToggleAction;
   search?: ToggleAction;
   model?: ModelAction;
-  auth?: AuthAction;
 }
 
 /**
@@ -341,7 +323,11 @@ export interface SendCallbacks {
 
   onComplete?: (fullText: string, conversationId: string | undefined) => void;
 
-  onError?: (error: string, conversationId?: string) => void;
+  onError?: (
+    error: string,
+    conversationId?: string,
+    errorType?: 'system_error' | 'auth_required'
+  ) => void;
 }
 
 /**

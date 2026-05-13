@@ -19,12 +19,21 @@
         "test:ui": "playwright test --ui"
     },
     "dependencies": {
+<<<<<<< HEAD
         "@ant-design/icons": "^6.2.3",
         "@ant-design/x": "^2.7.0",
         "@ant-design/x-markdown": "^2.7.0",
         "@ant-design/x-sdk": "^2.7.0",
         "@lobehub/icons": "^5.8.0",
         "antd": "^6.3.7",
+=======
+        "@ant-design/icons": "^6.1.1",
+        "@ant-design/x": "^2.5.0",
+        "@ant-design/x-markdown": "^2.5.0",
+        "@ant-design/x-sdk": "^2.5.0",
+        "@lobehub/icons": "^5.5.4",
+        "antd": "^6.3.6",
+>>>>>>> a0bf6cb8868fd2ee4de12750b22bb4aaf78758de
         "antd-style": "^4.1.0",
         "dayjs": "^1.11.20",
         "motion": "^12.38.0",

@@ -70,31 +70,19 @@ async function init() {
 // ============================================================================
 
 function detectProviderFromDomain(): string | null {
-  const hostname = location.hostname;
+  const hostname = location.hostname.toLowerCase();
 
-  if (hostname.includes('chat.deepseek.com')) {
-    return 'deepseek';
-  }
-  if (hostname.includes('doubao.com')) {
-    return 'doubao';
-  }
-  if (hostname.includes('www.qianwen.com')) {
-    return 'qianwen';
-  }
-  if (hostname.includes('tiangong.cn')) {
-    return 'longcat';
-  }
-  if (hostname.includes('yuanbao.tencent.com')) {
-    return 'yuanbao';
-  }
-  if (hostname.includes('yiyan.baidu.com')) {
-    return 'wenxin';
-  }
-  if (hostname.includes('aistudio.xiaomimimo.com')) {
-    return 'xiaomi';
-  }
+  const providerByHost: Record<string, string> = {
+    'chat.deepseek.com': 'deepseek',
+    'doubao.com': 'doubao',
+    'www.qianwen.com': 'qianwen',
+    'tiangong.cn': 'longcat',
+    'yuanbao.tencent.com': 'yuanbao',
+    'yiyan.baidu.com': 'wenxin',
+    'aistudio.xiaomimimo.com': 'xiaomi',
+  };
 
-  return null;
+  return providerByHost[hostname] ?? null;
 }
 
 // ============================================================================
@@ -159,7 +147,6 @@ window.addEventListener('message', async (event) => {
     const { seq, capability, method, args } = event.data;
 
     // 处理 chat.send 的特殊回调转发
-    // content script 只传 [prompt, options]，我们在这边重建回调
     if (capability === 'chat' && method === 'send') {
       const [prompt, options] = args;
 
@@ -193,13 +180,14 @@ window.addEventListener('message', async (event) => {
             conversationId,
           }, '*');
         },
-        onError: (error: string, conversationId?: string) => {
+        onError: (error: string, conversationId?: string, errorType?: 'system_error' | 'auth_required') => {
           console.error(`[AI Clash Inject] MAIN world onError: ${error}`);
           window.postMessage({
             type: '__aiclash_error',
             seq,
             error,
             conversationId,
+            errorType,
           }, '*');
         },
       };
@@ -214,10 +202,10 @@ window.addEventListener('message', async (event) => {
 
       // 正常调用
       waitingInjector.call(capability, method, prompt, options, wrappedCallbacks)
-        .then(result => {
+        .then((result: any) => {
           console.log('[AI Clash Inject] chat.send completed:', result);
         })
-        .catch(err => {
+        .catch((err: any) => {
           console.error('[AI Clash Inject] chat.send failed:', err);
         });
       return;
@@ -225,7 +213,7 @@ window.addEventListener('message', async (event) => {
 
     // 通用调用
     try {
-      const result = waitingInjector.call(capability, method, ...args);
+      const result = await waitingInjector.call(capability, method, ...args);
       window.postMessage({
         type: '__aiclash_result',
         seq,
