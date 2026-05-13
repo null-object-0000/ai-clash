@@ -88,12 +88,18 @@ a {
   display: inline-flex;
   align-items: center;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   color: var(--vp-c-text-1);
   font-size: 16px;
   font-weight: 600;
   line-height: 1;
+}
+
+.nav-bar > .brand,
+.nav-bar > .brand:visited,
+.nav-bar > .brand:hover {
+  color: var(--vp-c-text-1);
 }
 
 .brand img {
