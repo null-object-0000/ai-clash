@@ -70,9 +70,9 @@ a {
 }
 
 .brand img {
-  width: 24px;
-  height: 24px;
-  margin-right: 8px;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
 }
 
 .brand span {
@@ -225,18 +225,30 @@ a {
 .button.ant-btn .ant-btn-icon {
   display: inline-flex;
   align-items: center;
-  height: 20px;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-inline-end: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.36);
 }
 
 .browser-icon {
   display: block;
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   flex: 0 0 auto;
 }
 
 .chrome-icon {
-  color: #ffffff;
+  color: #4285f4;
+}
+
+.edge-browser-icon {
+  width: 18px;
+  height: 18px;
+  transform: translate(1.5px, -0.5px);
 }
 
 .button.brand.ant-btn {

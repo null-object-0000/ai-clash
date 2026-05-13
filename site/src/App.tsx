@@ -10,8 +10,11 @@ import {
 import { Button, Card, ConfigProvider, Dropdown, Layout, Tooltip, theme } from 'antd'
 import type { MenuProps } from 'antd'
 import { DeepSeek, Doubao, Qwen, Yuanbao, XiaomiMiMo, Wenxin } from '@lobehub/icons'
-import { changelogs, downloads, homePages, navItems, privacyPages } from './content'
+import ReactMarkdown from 'react-markdown'
+import { downloads, homePages, navItems, privacyPages } from './content'
 import type { Locale } from './content'
+import changelogEn from './markdown/changelog.en.md?raw'
+import changelogZh from './markdown/changelog.zh.md?raw'
 
 const { Header: AntHeader, Footer: AntFooter, Content } = Layout
 
@@ -99,25 +102,7 @@ function Header({ locale, path }: { locale: Locale; path: string }) {
 }
 
 function EdgeIcon() {
-  return (
-    <svg className="browser-icon" viewBox="0 0 24 24" aria-hidden="true">
-      <defs>
-        <linearGradient id="edge-a" x1="3.31" x2="20.56" y1="15.15" y2="7.05" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#0C59A4" />
-          <stop offset="0.54" stopColor="#11AEEF" />
-          <stop offset="1" stopColor="#35C889" />
-        </linearGradient>
-      </defs>
-      <path
-        fill="url(#edge-a)"
-        d="M21.5 13.03c0-4.73-3.42-8.83-8.06-9.68C8.1 2.37 3 6.46 3 11.9c0 .89.13 1.75.38 2.56 1.05-3.62 4.36-5.65 7.45-5.65 2.98 0 5.42 1.73 5.42 4.34 0 1.88-1.39 3.1-3.36 3.1H8.34c.77 2.05 2.73 3.38 5.23 3.38 3.95 0 7.93-2.72 7.93-6.6Z"
-      />
-      <path
-        fill="#0AA6A6"
-        d="M16.24 13.15c0-2.61-2.44-4.34-5.42-4.34-3.09 0-6.4 2.03-7.45 5.65.96 3.09 3.83 5.34 7.24 5.34 2.43 0 4.62-1.15 5.99-2.94-.89.37-1.92.56-3.03.56-2.5 0-4.46-1.33-5.23-3.38h4.55c1.97 0 3.35-1.21 3.35-2.89Z"
-      />
-    </svg>
-  )
+  return <img className="browser-icon edge-browser-icon" src="/edge.svg" alt="" aria-hidden="true" />
 }
 
 function getActionIcon(kind: string) {
@@ -230,25 +215,11 @@ function DownloadPage({ locale }: { locale: Locale }) {
 }
 
 function ChangelogPage({ locale }: { locale: Locale }) {
+  const markdown = locale === 'zh' ? changelogZh : changelogEn
+
   return (
-    <Article title={locale === 'zh' ? '更新日志' : 'Changelog'}>
-      {changelogs[locale].map((release) => (
-        <section className="release" key={release.version}>
-          <h2>{release.version}</h2>
-          {release.groups.map((group) => (
-            <div key={group.title}>
-              <h3>{group.title}</h3>
-              {group.items.length > 0 && (
-                <ul>
-                  {group.items.map((item) => (
-                    <li key={item} dangerouslySetInnerHTML={{ __html: item }} />
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </section>
-      ))}
+    <Article title="">
+      <ReactMarkdown>{markdown}</ReactMarkdown>
     </Article>
   )
 }
@@ -283,7 +254,7 @@ function Article({ title, children }: { title: string; children: React.ReactNode
   return (
     <main className="doc-shell">
       <article className="doc">
-        <h1>{title}</h1>
+        {title && <h1>{title}</h1>}
         {children}
       </article>
     </main>
