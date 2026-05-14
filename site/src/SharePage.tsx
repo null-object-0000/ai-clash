@@ -14,8 +14,9 @@ import {
 import { Bubble, Sender, Think } from '@ant-design/x'
 import type { BubbleListProps } from '@ant-design/x'
 import XMarkdown from '@ant-design/x-markdown'
-import { Button, Flex, Tooltip } from 'antd'
+import { Button, Flex, message, Tooltip } from 'antd'
 import { DeepSeek, Doubao, Qwen } from '@lobehub/icons'
+import { useMemo, useState } from 'react'
 import '@ant-design/x-markdown/themes/light.css'
 
 type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'summary'
@@ -117,15 +118,19 @@ function renderMarkdown(content: unknown) {
 function ProviderHeader({
   providerId,
   stats,
+  collapsed,
+  onToggle,
 }: {
   providerId: ProviderId
   stats?: ProviderStats
+  collapsed: boolean
+  onToggle: () => void
 }) {
   const Icon = providerIcons[providerId]
 
   return (
-    <div className="share-provider-header">
-      <span className="share-provider-header__arrow">
+    <button className="share-provider-header" type="button" onClick={onToggle}>
+      <span className={`share-provider-header__arrow ${collapsed ? 'is-collapsed' : ''}`}>
         <RightOutlined />
       </span>
       <div className="share-provider-header__content">
@@ -133,30 +138,49 @@ function ProviderHeader({
         <span className="share-provider-header__name">{providerNames[providerId]}</span>
         {stats ? <span className="share-provider-header__status">{formatStats(stats)}</span> : null}
       </div>
-    </div>
+    </button>
   )
 }
 
 function ThinkAndMarkdown({
+  messageKey,
   think,
   analysis,
   response,
   summary,
+  expandedMap,
+  onExpandedChange,
 }: {
+  messageKey: string
   think?: string
   analysis?: string
   response?: string
   summary?: boolean
+  expandedMap: Record<string, boolean>
+  onExpandedChange: (key: string, expanded: boolean) => void
 }) {
+  const thinkKey = `${messageKey}:think`
+  const analysisKey = `${messageKey}:analysis`
+
   return (
     <>
       {think ? (
-        <Think title="深度思考完成" loading={false} expanded={false}>
+        <Think
+          title="深度思考完成"
+          loading={false}
+          expanded={!!expandedMap[thinkKey]}
+          onExpand={(expanded) => onExpandedChange(thinkKey, expanded)}
+        >
           <XMarkdown className="x-markdown-light" content={think} />
         </Think>
       ) : null}
       {analysis ? (
-        <Think title={summary ? '归纳总结过程完成' : '分析完成'} loading={false} expanded={false}>
+        <Think
+          title={summary ? '归纳总结过程完成' : '分析完成'}
+          loading={false}
+          expanded={!!expandedMap[analysisKey]}
+          onExpand={(expanded) => onExpandedChange(analysisKey, expanded)}
+        >
           <XMarkdown className="x-markdown-light" content={analysis} />
         </Think>
       ) : null}
@@ -173,43 +197,6 @@ const role: BubbleListProps['role'] = {
   user: { placement: 'end' },
 }
 
-function buildItems(): BubbleListProps['items'] {
-  return sharedMessages.map((item) => {
-    if (item.role === 'user') {
-      return {
-        key: item.key,
-        role: 'user',
-        content: item.question,
-      }
-    }
-
-    return {
-      key: item.key,
-      role: 'assistant',
-      content: item.response ?? '',
-      style: { paddingTop: 0, paddingBottom: 0 },
-      header: item.providerId ? <ProviderHeader providerId={item.providerId} stats={item.stats} /> : null,
-      contentRender: () => (
-        <ThinkAndMarkdown
-          think={item.thinkResponse}
-          analysis={item.analysisResponse}
-          response={item.response}
-          summary={item.providerId === 'summary'}
-        />
-      ),
-      footer:
-        item.providerId === 'summary' ? (
-          <Flex gap={8} align="center">
-            <button className="share-floating-btn-text">
-              <CopyOutlined />
-              复制总结
-            </button>
-          </Flex>
-        ) : undefined,
-    }
-  })
-}
-
 export function SharePage({
   themeMode,
   onToggleTheme,
@@ -217,7 +204,77 @@ export function SharePage({
   themeMode: 'light' | 'dark'
   onToggleTheme: () => void
 }) {
-  const items = buildItems()
+  const [collapseMap, setCollapseMap] = useState<Record<string, boolean>>({})
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({})
+  const [inputValue, setInputValue] = useState('')
+  const [deepThinking, setDeepThinking] = useState(true)
+  const [webSearch, setWebSearch] = useState(true)
+
+  const toggleCollapse = (key: string) => {
+    setCollapseMap((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const setExpanded = (key: string, expanded: boolean) => {
+    setExpandedMap((prev) => ({ ...prev, [key]: expanded }))
+  }
+
+  const copySummary = async () => {
+    const summary = sharedMessages.find((item) => item.providerId === 'summary')?.response ?? ''
+    await navigator.clipboard?.writeText(summary)
+    message.success('总结内容已复制到剪贴板')
+  }
+
+  const items: BubbleListProps['items'] = useMemo(() => {
+    return sharedMessages.map((item) => {
+      if (item.role === 'user') {
+        return {
+          key: item.key,
+          role: 'user',
+          content: item.question,
+        }
+      }
+
+      const collapsed = !!collapseMap[item.key]
+
+      return {
+        key: item.key,
+        role: 'assistant',
+        content: item.response ?? '',
+        style: { paddingTop: 0, paddingBottom: 0 },
+        className: collapsed ? 'share-bubble-content-hidden' : undefined,
+        header: item.providerId ? (
+          <ProviderHeader
+            providerId={item.providerId}
+            stats={item.stats}
+            collapsed={collapsed}
+            onToggle={() => toggleCollapse(item.key)}
+          />
+        ) : null,
+        contentRender: collapsed
+          ? () => null
+          : () => (
+              <ThinkAndMarkdown
+                messageKey={item.key}
+                think={item.thinkResponse}
+                analysis={item.analysisResponse}
+                response={item.response}
+                summary={item.providerId === 'summary'}
+                expandedMap={expandedMap}
+                onExpandedChange={setExpanded}
+              />
+            ),
+        footer:
+          item.providerId === 'summary' && !collapsed ? (
+            <Flex gap={8} align="center">
+              <button className="share-floating-btn-text" type="button" onClick={copySummary}>
+                <CopyOutlined />
+                复制总结
+              </button>
+            </Flex>
+          ) : undefined,
+      }
+    })
+  }, [collapseMap, expandedMap])
 
   return (
     <main className="share-page">
@@ -259,9 +316,13 @@ export function SharePage({
             </Tooltip>
           </Flex>
           <Sender
-            readOnly
-            value=""
+            value={inputValue}
             placeholder="输入你的问题，按 Enter 发送"
+            onChange={setInputValue}
+            onSubmit={() => {
+              message.info('这是分享页预览，暂不发送新问题')
+              setInputValue('')
+            }}
             autoSize
             suffix={false}
             footer={(_, { components }) => {
@@ -269,10 +330,10 @@ export function SharePage({
               return (
                 <Flex justify="space-between" align="center">
                   <Flex gap="small" align="center">
-                    <Sender.Switch icon={<BulbOutlined />} value>
+                    <Sender.Switch icon={<BulbOutlined />} value={deepThinking} onChange={setDeepThinking}>
                       深度思考
                     </Sender.Switch>
-                    <Sender.Switch icon={<GlobalOutlined />} value>
+                    <Sender.Switch icon={<GlobalOutlined />} value={webSearch} onChange={setWebSearch}>
                       联网搜索
                     </Sender.Switch>
                   </Flex>
