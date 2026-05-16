@@ -7,5 +7,6 @@ release
 test-results
 playwright-report
 .vscode
+site-dev.*.log
 docs/.vitepress/cache
 .codex

@@ -28,20 +28,8 @@ const contentScripts = PROVIDERS
     ];
   });
 
-// 生成 host_permissions 配置
-const hostPermissions = [
-  ...PROVIDERS.map(p => p.matchPattern),
-  // 官网版本信息接口
-  'https://null-object-0000.github.io/ai-clash/*',
-  'https://ai-clash.snewbie.site/*',
-  'https://raw.githubusercontent.com/null-object-0000/ai-clash/*',
-  // API 模式通用权限
-  'https://api.deepseek.com/*',
-  'https://api.longcat.chat/*',
-  'https://api.xiaomimimo.com/*',
-  'https://ark.cn-beijing.volces.com/*',
-  'https://coding.dashscope.aliyuncs.com/*',
-];
+// 站点访问权限：在所有站点上
+const hostPermissions = ['<all_urls>'];
 
 // 生成 web_accessible_resources 配置
 // 仅针对有 content script 的 provider（hasContentScript !== false 且 enabled !== false）

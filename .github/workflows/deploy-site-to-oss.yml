@@ -1,4 +1,4 @@
-name: Deploy Docs to OSS (VitePress)
+name: Deploy Site to OSS
 
 # 需要在 GitHub Secrets 中配置以下变量：
 # OSS_ACCESS_KEY_ID: OSS 访问密钥 ID
@@ -6,7 +6,7 @@ name: Deploy Docs to OSS (VitePress)
 # OSS_ENDPOINT: OSS 端点地址（如：https://oss-cn-shanghai.aliyuncs.com）
 # OSS_BUCKET: OSS 存储桶名称
 # OSS_REGION: OSS 区域（可选，默认为 us-east-1）
-# OSS_PATH: OSS 存储路径（可选，如：docs/）
+# OSS_PATH: OSS 存储路径（可选，如：site/）
 
 permissions:
   contents: read
@@ -31,10 +31,10 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: cd docs && bun install
+        run: cd site && bun install
 
       - name: Build site
-        run: cd docs && bun run build
+        run: cd site && bun run build
         env:
           BASE_URL: /
 
@@ -85,7 +85,7 @@ jobs:
             # -e 指定 endpoint
             # -i 指定 AccessKey ID
             # -k 指定 AccessKey Secret
-            ossutil sync docs/.vitepress/dist/ ${OSS_TARGET} \
+            ossutil sync site/dist/ ${OSS_TARGET} \
               --update \
               --delete \
               -e ${OSS_ENDPOINT} \
@@ -104,7 +104,7 @@ jobs:
             # 上传文件到 S3 兼容的 OSS
             # --endpoint-url 使用基础端点（不包含 bucket 名称）
             # --delete 参数会删除目标中不存在的文件
-            aws s3 sync docs/.vitepress/dist/ ${S3_PATH} \
+            aws s3 sync site/dist/ ${S3_PATH} \
               --endpoint-url ${OSS_ENDPOINT} \
               --delete \
               --region ${AWS_DEFAULT_REGION}

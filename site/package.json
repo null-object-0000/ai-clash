@@ -1,0 +1,26 @@
+{
+  "name": "ai-clash-site",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build && node scripts/copy-routes.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.2.3",
+    "@ant-design/x": "^2.7.0",
+    "@ant-design/x-markdown": "^2.7.0",
+    "@lobehub/icons": "^5.8.0",
+    "@vitejs/plugin-react-swc": "^4.3.1",
+    "antd": "^6.4.2",
+    "antd-style": "^4.1.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.3",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {}
+}
