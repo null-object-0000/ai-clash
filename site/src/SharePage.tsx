@@ -1,22 +1,15 @@
 import {
-  BulbOutlined,
-  CommentOutlined,
   CopyOutlined,
-  GlobalOutlined,
   MergeCellsOutlined,
-  MoonOutlined,
-  PlusOutlined,
   RightOutlined,
-  SettingOutlined,
-  SunOutlined,
-  VideoCameraOutlined,
 } from '@ant-design/icons'
-import { Bubble, Sender, Think } from '@ant-design/x'
+import { Bubble, Think } from '@ant-design/x'
 import type { BubbleListProps } from '@ant-design/x'
 import XMarkdown from '@ant-design/x-markdown'
-import { Button, Flex, message, Tooltip } from 'antd'
+import { App as AntApp, Flex } from 'antd'
 import { DeepSeek, Doubao, Qwen } from '@lobehub/icons'
 import { useMemo, useState } from 'react'
+import '@ant-design/x-markdown/themes/dark.css'
 import '@ant-design/x-markdown/themes/light.css'
 
 type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'summary'
@@ -148,6 +141,7 @@ function ThinkAndMarkdown({
   analysis,
   response,
   summary,
+  markdownClassName,
   expandedMap,
   onExpandedChange,
 }: {
@@ -156,6 +150,7 @@ function ThinkAndMarkdown({
   analysis?: string
   response?: string
   summary?: boolean
+  markdownClassName: string
   expandedMap: Record<string, boolean>
   onExpandedChange: (key: string, expanded: boolean) => void
 }) {
@@ -171,7 +166,7 @@ function ThinkAndMarkdown({
           expanded={!!expandedMap[thinkKey]}
           onExpand={(expanded) => onExpandedChange(thinkKey, expanded)}
         >
-          <XMarkdown className="x-markdown-light" content={think} />
+          <XMarkdown className={markdownClassName} content={think} />
         </Think>
       ) : null}
       {analysis ? (
@@ -181,10 +176,10 @@ function ThinkAndMarkdown({
           expanded={!!expandedMap[analysisKey]}
           onExpand={(expanded) => onExpandedChange(analysisKey, expanded)}
         >
-          <XMarkdown className="x-markdown-light" content={analysis} />
+          <XMarkdown className={markdownClassName} content={analysis} />
         </Think>
       ) : null}
-      {response ? <XMarkdown className="x-markdown-light" content={response} /> : null}
+      {response ? <XMarkdown className={markdownClassName} content={response} /> : null}
     </>
   )
 }
@@ -197,18 +192,25 @@ const role: BubbleListProps['role'] = {
   user: { placement: 'end' },
 }
 
-export function SharePage({
-  themeMode,
-  onToggleTheme,
-}: {
-  themeMode: 'light' | 'dark'
-  onToggleTheme: () => void
-}) {
+async function writeClipboard(text: string) {
+  if (!navigator.clipboard?.writeText) return false
+
+  const timeout = new Promise<false>((resolve) => {
+    window.setTimeout(() => resolve(false), 500)
+  })
+  const write = navigator.clipboard.writeText(text).then(
+    () => true,
+    () => false,
+  )
+
+  return Promise.race([write, timeout])
+}
+
+export function SharePage({ themeMode }: { themeMode: 'light' | 'dark' }) {
+  const { message } = AntApp.useApp()
   const [collapseMap, setCollapseMap] = useState<Record<string, boolean>>({})
   const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({})
-  const [inputValue, setInputValue] = useState('')
-  const [deepThinking, setDeepThinking] = useState(true)
-  const [webSearch, setWebSearch] = useState(true)
+  const markdownClassName = themeMode === 'dark' ? 'x-markdown-dark' : 'x-markdown-light'
 
   const toggleCollapse = (key: string) => {
     setCollapseMap((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -220,8 +222,12 @@ export function SharePage({
 
   const copySummary = async () => {
     const summary = sharedMessages.find((item) => item.providerId === 'summary')?.response ?? ''
-    await navigator.clipboard?.writeText(summary)
-    message.success('总结内容已复制到剪贴板')
+    const copied = await writeClipboard(summary)
+    if (copied) {
+      message.success('总结内容已复制到剪贴板')
+    } else {
+      message.info('当前浏览器限制剪贴板访问，请手动选择总结内容复制')
+    }
   }
 
   const items: BubbleListProps['items'] = useMemo(() => {
@@ -259,6 +265,7 @@ export function SharePage({
                 analysis={item.analysisResponse}
                 response={item.response}
                 summary={item.providerId === 'summary'}
+                markdownClassName={markdownClassName}
                 expandedMap={expandedMap}
                 onExpandedChange={setExpanded}
               />
@@ -274,75 +281,15 @@ export function SharePage({
           ) : undefined,
       }
     })
-  }, [collapseMap, expandedMap])
+  }, [collapseMap, expandedMap, markdownClassName, message])
 
   return (
     <main className="share-page">
       <section className="share-panel" aria-label="AI 对撞机会话分享">
-        <div className="share-floating-toolbar">
-          <button className="share-floating-btn" title="新对话">
-            <PlusOutlined />
-          </button>
-          <button className="share-floating-btn" title="历史记录">
-            <CommentOutlined />
-          </button>
-          <button className="share-floating-btn" title="全局设置">
-            <SettingOutlined />
-          </button>
-          <button
-            className="share-floating-btn"
-            title={themeMode === 'dark' ? '切换浅色模式' : '切换深色模式'}
-            onClick={onToggleTheme}
-          >
-            {themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
-          </button>
-        </div>
-
         <div className="share-chat-list">
           <Bubble.List items={items} role={role} style={{ paddingInline: 16 }} />
         </div>
 
-        <Flex vertical className="share-sender">
-          <Flex gap="small" className="share-mode-row">
-            <Tooltip title="多通道模型输出完成后自动生成归纳总结，帮助你快速抓住重点">
-              <Button size="small" type="primary" icon={<MergeCellsOutlined />} className="share-mode-btn">
-                自动总结
-              </Button>
-            </Tooltip>
-            <Tooltip title="自动追踪并切换至正在输出的模型">
-              <Button size="small" type="default" icon={<VideoCameraOutlined />} className="share-mode-btn">
-                导播模式
-              </Button>
-            </Tooltip>
-          </Flex>
-          <Sender
-            value={inputValue}
-            placeholder="输入你的问题，按 Enter 发送"
-            onChange={setInputValue}
-            onSubmit={() => {
-              message.info('这是分享页预览，暂不发送新问题')
-              setInputValue('')
-            }}
-            autoSize
-            suffix={false}
-            footer={(_, { components }) => {
-              const { SendButton } = components
-              return (
-                <Flex justify="space-between" align="center">
-                  <Flex gap="small" align="center">
-                    <Sender.Switch icon={<BulbOutlined />} value={deepThinking} onChange={setDeepThinking}>
-                      深度思考
-                    </Sender.Switch>
-                    <Sender.Switch icon={<GlobalOutlined />} value={webSearch} onChange={setWebSearch}>
-                      联网搜索
-                    </Sender.Switch>
-                  </Flex>
-                  <SendButton type="primary" disabled />
-                </Flex>
-              )
-            }}
-          />
-        </Flex>
       </section>
     </main>
   )

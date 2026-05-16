@@ -336,6 +336,12 @@ a {
   color: var(--vp-c-text-1);
 }
 
+.button.alt.ant-btn .ant-btn-icon {
+  background: var(--vp-c-control-hover);
+  color: var(--vp-c-text-1);
+  box-shadow: inset 0 0 0 1px var(--vp-c-divider);
+}
+
 .button.alt.ant-btn:hover {
   border-color: var(--vp-c-divider);
   background: var(--vp-c-control-hover);
@@ -633,7 +639,7 @@ a {
 
 .share-page {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   background: var(--vp-c-bg-soft);
 }
 
@@ -643,16 +649,21 @@ a {
   flex-direction: column;
   width: 100vw;
   max-width: none;
-  height: 100vh;
-  overflow: hidden;
+  min-height: calc(100vh - 64px);
+  overflow: visible;
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
 }
 
 .share-panel .x-markdown,
-.share-panel .x-markdown-light {
+.share-panel .x-markdown-light,
+.share-panel .x-markdown-dark {
   font-size: 14px;
   line-height: 1.65;
+}
+
+.share-panel .ant-bubble-content-filled {
+  background: var(--vp-c-bg-soft);
 }
 
 .share-panel .x-markdown ul,
@@ -662,7 +673,11 @@ a {
 .share-panel .x-markdown-light ul,
 .share-panel .x-markdown-light ol,
 .share-panel .x-markdown-light p,
-.share-panel .x-markdown-light li {
+.share-panel .x-markdown-light li,
+.share-panel .x-markdown-dark ul,
+.share-panel .x-markdown-dark ol,
+.share-panel .x-markdown-dark p,
+.share-panel .x-markdown-dark li {
   margin: 0;
 }
 
@@ -677,21 +692,16 @@ a {
 .share-panel .x-markdown-light h3,
 .share-panel .x-markdown-light h4,
 .share-panel .x-markdown-light h5,
-.share-panel .x-markdown-light h6 {
+.share-panel .x-markdown-light h6,
+.share-panel .x-markdown-dark h1,
+.share-panel .x-markdown-dark h2,
+.share-panel .x-markdown-dark h3,
+.share-panel .x-markdown-dark h4,
+.share-panel .x-markdown-dark h5,
+.share-panel .x-markdown-dark h6 {
   margin-top: 16px;
 }
 
-.share-floating-toolbar {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.share-floating-btn,
 .share-floating-btn-text {
   display: inline-flex;
   align-items: center;
@@ -703,13 +713,6 @@ a {
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.share-floating-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  font-size: 15px;
 }
 
 .share-floating-btn-text {
@@ -726,8 +729,8 @@ a {
   flex: 1;
   min-height: 0;
   flex-direction: column;
-  overflow: hidden;
-  padding-block-start: 48px;
+  overflow: visible;
+  padding-block: 24px;
 }
 
 .share-chat-list .ant-bubble-list {
@@ -736,9 +739,13 @@ a {
   padding-bottom: 8px;
 }
 
+.share-chat-list .ant-bubble + .ant-bubble {
+  margin-top: 12px;
+}
+
 .share-provider-header {
   display: flex;
-  width: calc(100% + 24px);
+  width: auto;
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
@@ -800,30 +807,6 @@ a {
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.share-sender {
-  flex-shrink: 0;
-  padding: 16px;
-}
-
-.share-mode-row {
-  margin-bottom: 8px;
-}
-
-.share-mode-btn.ant-btn {
-  height: 28px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.share-sender .ant-sender {
-  border-radius: 12px;
-}
-
-.share-sender .ant-sender-disabled {
-  background: var(--vp-c-bg);
-  opacity: 1;
 }
 
 .share-bubble-content-hidden > .ant-bubble-body {
