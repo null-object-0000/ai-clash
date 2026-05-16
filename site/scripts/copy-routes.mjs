@@ -10,6 +10,7 @@ const routes = [
   'en/download',
   'en/changelog',
   'en/privacy',
+  'en/share',
 ]
 
 await copyFile(join('dist', 'index.html'), join('dist', '404.html'))

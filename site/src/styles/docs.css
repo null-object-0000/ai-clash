@@ -1,0 +1,82 @@
+.doc-shell {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 32px 80px;
+}
+
+.doc {
+  max-width: 688px;
+}
+
+.doc h1 {
+  margin: 0 0 32px;
+  color: var(--vp-c-text-1);
+  font-size: 38px;
+  line-height: 1.25;
+  font-weight: 600;
+}
+
+.doc h2 {
+  margin: 48px 0 16px;
+  padding-top: 24px;
+  border-top: 1px solid var(--vp-c-divider);
+  color: var(--vp-c-text-1);
+  font-size: 24px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.doc h3 {
+  margin: 32px 0 8px;
+  color: var(--vp-c-text-1);
+  font-size: 19px;
+  line-height: 1.45;
+  font-weight: 600;
+}
+
+.doc p,
+.doc li {
+  color: var(--vp-c-text-2);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.doc p {
+  margin: 16px 0;
+}
+
+.doc ul,
+.doc ol {
+  padding-left: 24px;
+  margin: 16px 0;
+}
+
+.doc li+li {
+  margin-top: 8px;
+}
+
+.doc a {
+  color: var(--vp-c-brand-1);
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.doc strong {
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+}
+
+.release h2:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .doc-shell {
+    padding: 40px 24px 64px;
+  }
+
+  .doc h1 {
+    font-size: 32px;
+  }
+}

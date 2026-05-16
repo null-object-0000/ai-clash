@@ -10,7 +10,7 @@ export const navItems = {
   en: [
     { label: 'Home', href: '/en/' },
     { label: 'Install Guide', href: '/en/download' },
-    { label: 'Changelog', href: '/changelog' },
+    { label: 'Changelog', href: '/en/changelog' },
     { label: 'Privacy Policy', href: '/en/privacy' },
   ],
 } satisfies Record<Locale, Array<{ label: string; href: string }>>
