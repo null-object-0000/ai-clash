@@ -1,4 +1,4 @@
-name: Deploy Docs to Pages (VitePress)
+name: Deploy Site to Pages
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # Not needed if lastUpdated is not configured, but good for Vitepress
+          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -35,17 +35,17 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
-        run: cd docs && bun install
+        run: cd site && bun install
 
       - name: Build site
-        run: cd docs && bun run build
+        run: cd site && bun run build
         env:
           BASE_URL: /ai-clash/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: site/dist
 
   deploy:
     environment:

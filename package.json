@@ -10,7 +10,8 @@
     ],
     "scripts": {
         "dev": "bun run build:inject && tsc --noEmit && vite build --watch",
-        "dev:docs": "cd docs && bun dev",
+        "dev:site": "cd site && bun dev",
+        "build:site": "cd site && bun run build",
         "typecheck": "tsc --noEmit && (cd packages/inject && bun run typecheck)",
         "build:inject": "bun --filter @ai-clash/inject build",
         "build": "bun run build:inject && tsc --noEmit && vite build",

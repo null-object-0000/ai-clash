@@ -26,6 +26,8 @@ const localeLabels: Record<Locale, string> = {
   en: 'English',
 }
 
+const basePath = normalizePath(import.meta.env.BASE_URL).replace(/\/$/, '')
+
 type AiIcon = ComponentType<{ size?: number | string; className?: string; style?: CSSProperties }>
 
 const aiProviders = [
@@ -39,6 +41,26 @@ const aiProviders = [
 
 function normalizePath(pathname: string) {
   return pathname.replace(/\/+$/, '') || '/'
+}
+
+function stripBasePath(pathname: string) {
+  const normalizedPath = normalizePath(pathname)
+  if (!basePath) return normalizedPath
+  if (normalizedPath === basePath) return '/'
+  if (normalizedPath.startsWith(`${basePath}/`)) {
+    return normalizedPath.slice(basePath.length) || '/'
+  }
+  return normalizedPath
+}
+
+function withBasePath(path: string) {
+  if (/^(https?:|mailto:|tel:|#)/.test(path)) return path
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return `${basePath}${normalizedPath}` || '/'
+}
+
+function assetPath(path: string) {
+  return withBasePath(path)
 }
 
 function getLocale(pathname: string): Locale {
@@ -71,15 +93,15 @@ function Header({
 }) {
   const pagePath = stripLocale(path)
   const localeMenu: MenuProps['items'] = [
-    { key: 'zh', label: <a href={pagePath}>{localeLabels.zh}</a> },
-    { key: 'en', label: <a href={withLocale(pagePath, 'en')}>{localeLabels.en}</a> },
+    { key: 'zh', label: <a href={withBasePath(pagePath)}>{localeLabels.zh}</a> },
+    { key: 'en', label: <a href={withBasePath(withLocale(pagePath, 'en'))}>{localeLabels.en}</a> },
   ]
 
   return (
     <AntHeader className="header">
       <div className="nav-bar">
-        <a className="brand" href={withLocale('/', locale)} aria-label={homePages[locale].name}>
-          <img src="/logo.png" alt="" />
+        <a className="brand" href={withBasePath(withLocale('/', locale))} aria-label={homePages[locale].name}>
+          <img src={assetPath('/logo.png')} alt="" />
           <span>{homePages[locale].name}</span>
         </a>
 
@@ -87,7 +109,7 @@ function Header({
           {navItems[locale].map((item) => (
             <a
               key={item.href}
-              href={item.href}
+              href={withBasePath(item.href)}
               className={normalizePath(path) === normalizePath(item.href) ? 'active' : undefined}
             >
               {item.label}
@@ -124,7 +146,7 @@ function Header({
 }
 
 function EdgeIcon() {
-  return <img className="browser-icon edge-browser-icon" src="/edge.svg" alt="" aria-hidden="true" />
+  return <img className="browser-icon edge-browser-icon" src={assetPath('/edge.svg')} alt="" aria-hidden="true" />
 }
 
 function getActionIcon(kind: string) {
@@ -148,7 +170,7 @@ function HomePage({ locale }: { locale: Locale }) {
               <Button
                 key={action.href}
                 className={`button ${action.kind}`}
-                href={action.href}
+                href={withBasePath(action.href)}
                 icon={getActionIcon(action.kind)}
                 size="large"
                 type={action.kind.includes('brand') ? 'primary' : 'default'}
@@ -176,7 +198,7 @@ function HomePage({ locale }: { locale: Locale }) {
           </div>
         </div>
         <div className="hero-logo">
-          <img src="/logo.png" alt={content.logoAlt} />
+          <img src={assetPath('/logo.png')} alt={content.logoAlt} />
         </div>
       </section>
 
@@ -190,7 +212,7 @@ function HomePage({ locale }: { locale: Locale }) {
       </section>
 
       <div className="demo">
-        <img src="/动画.gif" alt={content.demoAlt} />
+        <img src={assetPath('/动画.gif')} alt={content.demoAlt} />
       </div>
     </main>
   )
@@ -308,7 +330,7 @@ function Page({ locale, page }: { locale: Locale; page: string }) {
 }
 
 export function App() {
-  const path = useMemo(() => normalizePath(window.location.pathname), [])
+  const path = useMemo(() => stripBasePath(window.location.pathname), [])
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = window.localStorage.getItem('ai-clash-site-theme')
     if (saved === 'dark' || saved === 'light') return saved
