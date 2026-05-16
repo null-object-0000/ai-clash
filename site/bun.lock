@@ -5,18 +5,22 @@
     "": {
       "name": "ai-clash-site",
       "dependencies": {
-        "@ant-design/icons": "^6.1.1",
+        "@ant-design/icons": "^6.2.3",
         "@ant-design/x": "^2.7.0",
         "@ant-design/x-markdown": "^2.7.0",
         "@lobehub/icons": "^5.8.0",
-        "@vitejs/plugin-react-swc": "^4.3.0",
-        "antd": "^6.3.6",
+        "@vitejs/plugin-react-swc": "^4.3.1",
+        "antd": "^6.4.2",
         "antd-style": "^4.1.0",
-        "react": "^19.2.5",
-        "react-dom": "^19.2.5",
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6",
         "react-markdown": "^10.1.0",
         "typescript": "~5.9.3",
-        "vite": "^7.3.2",
+        "vite": "^7.3.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
       },
     },
   },
@@ -528,6 +532,8 @@
     "@types/prismjs": ["@types/prismjs@1.26.6", "", {}, "sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw=="],
 
     "@types/react": ["@types/react@19.2.14", "", { "dependencies": { "csstype": "^3.2.2" } }, "sha512-ilcTH/UniCkMdtexkoCN0bI7pMcJDvmQFPvuPvmEaYA/NSfFTAgdUSLAoVjaRJm7+6PvcM+q1zYOwS4wTYMF9w=="],
+
+    "@types/react-dom": ["@types/react-dom@19.2.3", "", { "peerDependencies": { "@types/react": "^19.2.0" } }, "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ=="],
 
     "@types/trusted-types": ["@types/trusted-types@2.0.7", "", {}, "sha512-ScaPdn1dQczgbl0QFTeTOmVHFULt394XJgOQNoyVhZ6r2vLnMLJfBPd53SB52T/3G36VI1/g2MZaX0cwDuXsfw=="],
 
