@@ -1,6 +1,6 @@
 .share-page {
   display: flex;
-  min-height: calc(100vh - 64px);
+  min-height: auto;
   background: var(--vp-c-bg-soft);
 }
 
@@ -10,7 +10,7 @@
   flex-direction: column;
   width: 100vw;
   max-width: none;
-  min-height: calc(100vh - 64px);
+  min-height: auto;
   overflow: visible;
   background: var(--vp-c-bg);
   color: var(--vp-c-text-1);
@@ -84,7 +84,7 @@
 
 .share-chat-list {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   flex-direction: column;
   overflow: visible;
@@ -92,8 +92,8 @@
 }
 
 .share-chat-list .ant-bubble-list {
-  flex: 1;
-  overflow-y: auto;
+  flex: 0 1 auto;
+  overflow-y: visible;
   padding-bottom: 8px;
 }
 

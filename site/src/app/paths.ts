@@ -3,7 +3,8 @@ import type { Locale } from '../content'
 export const basePath = normalizePath(import.meta.env.BASE_URL).replace(/\/$/, '')
 
 export function normalizePath(pathname: string) {
-  return pathname.replace(/\/+$/, '') || '/'
+  const withoutTrailingSlash = pathname.replace(/\/+$/, '') || '/'
+  return withoutTrailingSlash.replace(/\.html$/, '') || '/'
 }
 
 export function stripBasePath(pathname: string) {

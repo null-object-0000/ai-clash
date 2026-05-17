@@ -19,4 +19,5 @@ for (const route of routes) {
   const dir = join('dist', route)
   await mkdir(dir, { recursive: true })
   await copyFile(join('dist', 'index.html'), join(dir, 'index.html'))
+  await copyFile(join('dist', 'index.html'), join('dist', `${route}.html`))
 }
