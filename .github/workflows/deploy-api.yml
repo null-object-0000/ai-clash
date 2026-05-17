@@ -30,10 +30,10 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: cd packages/api && bun install --frozen-lockfile
 
       - name: Build API
-        run: bun --filter @ai-clash/api build
+        run: cd packages/api && bun build
 
       - name: Log in to ACR
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login "$ACR_REGISTRY" -u "${{ secrets.ACR_USERNAME }}" --password-stdin
