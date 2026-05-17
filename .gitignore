@@ -10,3 +10,4 @@ playwright-report
 site-dev.*.log
 docs/.vitepress/cache
 .codex
+packages/api/.env

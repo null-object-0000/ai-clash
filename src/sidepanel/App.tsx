@@ -12,6 +12,7 @@ import {
   RedoOutlined,
   RightOutlined,
   SettingOutlined,
+  ShareAltOutlined,
   TrophyOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
@@ -31,7 +32,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers, PROVIDER_META } from './store';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
-  type ProviderId, type StageType,
+  type ProviderId, type ProviderStats, type StageType,
 } from './types';
 import { MSG_TYPES } from './store';
 import ChannelList from './components/ChannelList';
@@ -507,6 +508,36 @@ const role: BubbleListProps['role'] = {
   user: { placement: 'end' },
 };
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+
+type ShareSnapshot = {
+  schemaVersion: 1;
+  title?: string;
+  question: string;
+  createdAt: number;
+  locale: 'zh' | 'en';
+  providers: Array<{
+    providerId: string;
+    providerName: string;
+    status: 'completed' | 'error';
+    response: string;
+    thinkResponse?: string;
+    stats?: ProviderStats | null;
+  }>;
+  summary?: {
+    response: string;
+    thinkResponse?: string;
+    analysisResponse?: string;
+    stats?: ProviderStats | null;
+  };
+};
+
+type PublishedShare = {
+  id: string;
+  url: string;
+  deleteToken: string;
+};
+
 function formatStats(stats: import('./types').ProviderStats) {
   return `首字 ${(stats.ttff / 1000).toFixed(1)}s · 总耗时 ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString('zh-CN')}字 · ${stats.charsPerSec}字/s`;
 }
@@ -685,6 +716,9 @@ const App = () => {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(400);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [publishedShare, setPublishedShare] = useState<PublishedShare | null>(null);
+  const [publishedShareMap, setPublishedShareMap] = useState<Record<number, PublishedShare>>({});
 
   // 预设提示词
   const presetPrompts: PromptsProps['items'] = useMemo(() => [
@@ -854,6 +888,10 @@ const App = () => {
   const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
   const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider, goToProvider } = useStore();
 
+  useEffect(() => {
+    setPublishedShare(publishedShareMap[summaryCurrentVersion] ?? null);
+  }, [publishedShareMap, summaryCurrentVersion]);
+
   const {
     setInputStr, submit, createNewChat,
     toggleDeepThinking, toggleWebSearch, toggleSummary, toggleFocusFollow,
@@ -919,6 +957,186 @@ const App = () => {
     resizeObserver.observe(containerRef.current);
     return () => resizeObserver.disconnect();
   }, []);
+
+  const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
+  const shareableProviderCount = PROVIDER_IDS.filter((id) => {
+    if (!enabledMap[id]) return false;
+    if (statusMap[id] !== 'completed' && statusMap[id] !== 'error') return false;
+    return !!(responses[id]?.trim() || thinkResponses[id]?.trim());
+  }).length;
+  const canShareCurrentSession = hasAsked && !!currentQuestion.trim() && shareableProviderCount > 0 && !isAnyRunning && summaryStatus !== 'running';
+
+  const buildShareSnapshot = (): ShareSnapshot | null => {
+    const question = currentQuestion.trim();
+    if (!question) return null;
+
+    const providers = PROVIDER_IDS
+      .filter((id) => enabledMap[id] && (statusMap[id] === 'completed' || statusMap[id] === 'error'))
+      .map((id) => {
+        const response = typeof responses[id] === 'string' ? responses[id].trim() : '';
+        const thinkResponse = typeof thinkResponses[id] === 'string' ? thinkResponses[id].trim() : '';
+        if (!response && !thinkResponse) return null;
+        return {
+          providerId: id,
+          providerName: PROVIDER_NAME_MAP[id] || id,
+          status: statusMap[id] === 'error' ? 'error' as const : 'completed' as const,
+          response,
+          ...(thinkResponse ? { thinkResponse } : {}),
+          stats: statsMap[id] ?? null,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => !!item);
+
+    if (!providers.length) return null;
+
+    const currentSummaryVersion = summaryVersions[summaryCurrentVersion];
+    const summaryResp = (currentSummaryVersion?.response ?? summaryResponse ?? '').trim();
+    const summaryThink = (currentSummaryVersion?.thinkResponse ?? summaryThinkResponse ?? '').trim();
+    const summaryAnalysis = (currentSummaryVersion?.analysisResponse ?? summaryAnalysisResponse ?? '').trim();
+    const summary = summaryResp || summaryThink || summaryAnalysis
+      ? {
+          response: summaryResp,
+          ...(summaryThink ? { thinkResponse: summaryThink } : {}),
+          ...(summaryAnalysis ? { analysisResponse: summaryAnalysis } : {}),
+          stats: currentSummaryVersion?.stats ?? summaryStats ?? null,
+        }
+      : undefined;
+
+    return {
+      schemaVersion: 1,
+      title: question.slice(0, 80),
+      question,
+      createdAt: Date.now(),
+      locale: 'zh',
+      providers,
+      ...(summary ? { summary } : {}),
+    };
+  };
+
+  const copyShareUrl = async (url: string) => {
+    if (!navigator.clipboard?.writeText) return false;
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const publishShare = async () => {
+    const snapshot = buildShareSnapshot();
+    if (!snapshot) {
+      message.warning('当前没有可分享的完整回答');
+      return;
+    }
+
+    setShareLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/shares`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(snapshot),
+      });
+      const data = await res.json().catch(() => null) as { id?: string; url?: string; deleteToken?: string; error?: string } | null;
+      if (!res.ok || !data?.id || !data?.url || !data?.deleteToken) {
+        throw new Error(data?.error || `分享失败：HTTP ${res.status}`);
+      }
+
+      const nextShare: PublishedShare = { id: data.id, url: data.url, deleteToken: data.deleteToken };
+      setPublishedShare(nextShare);
+      setPublishedShareMap(prev => ({
+        ...prev,
+        [summaryCurrentVersion]: nextShare,
+      }));
+      const copied = await copyShareUrl(data.url);
+      if (copied) {
+        message.success('分享链接已复制到剪贴板');
+      } else {
+        Modal.info({
+          title: '分享链接已生成',
+          content: data.url,
+          okText: '知道了',
+        });
+      }
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '分享失败，请稍后重试');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const revokeShare = async () => {
+    if (!publishedShare) return;
+
+    setShareLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/shares/${encodeURIComponent(publishedShare.id)}`, {
+        method: 'DELETE',
+        headers: { 'x-delete-token': publishedShare.deleteToken },
+      });
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      if (!res.ok) {
+        throw new Error(data?.error || `取消分享失败：HTTP ${res.status}`);
+      }
+      setPublishedShare(null);
+      setPublishedShareMap(prev => {
+        const next = { ...prev };
+        delete next[summaryCurrentVersion];
+        return next;
+      });
+      message.success('已取消分享');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : '取消分享失败，请稍后重试');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleShareCurrentSession = () => {
+    if (!canShareCurrentSession) {
+      message.info(isAnyRunning || summaryStatus === 'running' ? '请等待当前回答完成后再分享' : '当前没有可分享内容');
+      return;
+    }
+
+    Modal.confirm({
+      title: '生成公开分享链接？',
+      content: '会把本次问题、各通道回答和归纳总结上传到后端，任何拿到链接的人都可以查看。',
+      okText: '生成分享链接',
+      cancelText: '取消',
+      onOk: publishShare,
+    });
+  };
+
+  const resetPublishedShares = () => {
+    setPublishedShare(null);
+    setPublishedShareMap({});
+  };
+
+  const copyPublishedShareUrl = async () => {
+    if (!publishedShare) return;
+    const copied = await copyShareUrl(publishedShare.url);
+    if (copied) {
+      message.success('分享链接已复制到剪贴板');
+    } else {
+      Modal.info({
+        title: '分享链接',
+        content: publishedShare.url,
+        okText: '知道了',
+      });
+    }
+  };
+
+  const confirmRevokeShare = () => {
+    if (!publishedShare) return;
+    Modal.confirm({
+      title: '取消公开分享？',
+      content: '取消后，已生成的分享链接将无法继续访问。',
+      okText: '取消分享',
+      cancelText: '返回',
+      okButtonProps: { danger: true },
+      onOk: revokeShare,
+    });
+  };
 
   // ==================== Messages ====================
   const messages = useMemo(() => {
@@ -1184,6 +1402,90 @@ const App = () => {
           )
         ) : null;
 
+        const shareButton = isSummaryCompleted && hasSummaryContent ? (
+          publishedShare ? (
+            showButtonText ? (
+              <>
+                <button
+                  className={styles.floatingBtnWithText}
+                  style={{ borderRadius: '16px', padding: '0 12px', height: '32px', fontSize: '13px' }}
+                  disabled={shareLoading}
+                  onClick={copyPublishedShareUrl}
+                >
+                  <CopyOutlined style={{ fontSize: 14 }} />
+                  复制链接
+                </button>
+                <button
+                  className={styles.floatingBtnWithText}
+                  style={{ borderRadius: '16px', padding: '0 12px', height: '32px', fontSize: '13px' }}
+                  disabled={shareLoading}
+                  onClick={confirmRevokeShare}
+                >
+                  <ShareAltOutlined spin={shareLoading} style={{ fontSize: 14 }} />
+                  取消分享
+                </button>
+              </>
+            ) : (
+              <>
+                <Tooltip title="复制分享链接" placement="top">
+                  <button
+                    className={styles.floatingBtn}
+                    style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                    disabled={shareLoading}
+                    onClick={copyPublishedShareUrl}
+                  >
+                    <CopyOutlined style={{ fontSize: 14 }} />
+                  </button>
+                </Tooltip>
+                <Tooltip title="取消分享" placement="top">
+                  <button
+                    className={styles.floatingBtn}
+                    style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                    disabled={shareLoading}
+                    onClick={confirmRevokeShare}
+                  >
+                    <ShareAltOutlined spin={shareLoading} style={{ fontSize: 14 }} />
+                  </button>
+                </Tooltip>
+              </>
+            )
+          ) : showButtonText ? (
+            <button
+              className={styles.floatingBtnWithText}
+              style={{
+                borderRadius: '16px',
+                padding: '0 12px',
+                height: '32px',
+                fontSize: '13px',
+                opacity: canShareCurrentSession ? 1 : 0.5,
+                cursor: canShareCurrentSession ? 'pointer' : 'not-allowed',
+              }}
+              disabled={shareLoading || !canShareCurrentSession}
+              onClick={handleShareCurrentSession}
+            >
+              <ShareAltOutlined spin={shareLoading} style={{ fontSize: 14 }} />
+              分享
+            </button>
+          ) : (
+            <Tooltip title={canShareCurrentSession ? '分享当前会话' : '回答完成后可分享'} placement="top">
+              <button
+                className={styles.floatingBtn}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  opacity: canShareCurrentSession ? 1 : 0.5,
+                  cursor: canShareCurrentSession ? 'pointer' : 'not-allowed',
+                }}
+                disabled={shareLoading || !canShareCurrentSession}
+                onClick={handleShareCurrentSession}
+              >
+                <ShareAltOutlined spin={shareLoading} style={{ fontSize: 14 }} />
+              </button>
+            </Tooltip>
+          )
+        ) : null;
+
         // 版本切换器
         const versionSwitcher = summaryVersions.length > 1 ? (
           <VersionSwitcher
@@ -1194,11 +1496,12 @@ const App = () => {
         ) : null;
 
         // 合并 footer 内容
-        const summaryFooter = copyButton || regenerateButton ? (
+        const summaryFooter = copyButton || regenerateButton || shareButton ? (
           <Flex gap={8} align="center" justify="space-between" style={{ width: '100%' }}>
             <Flex gap={8} align="center">
               {copyButton}
               {regenerateButton}
+              {shareButton}
             </Flex>
             {versionSwitcher}
           </Flex>
@@ -1280,9 +1583,9 @@ const App = () => {
     triggerSummary, regenerateSummary, switchSummaryVersion,
     summaryVersions, summaryCurrentVersion,
     sidebarWidth, retryProvider, goToProvider, isCurrentSessionFromHistory,
+    canShareCurrentSession, publishedShare, shareLoading, handleShareCurrentSession,
+    copyPublishedShareUrl, confirmRevokeShare,
   ]);
-
-  const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
 
   // ==================== Event ====================
   const handleUserSubmit = async (val: string) => {
@@ -1299,6 +1602,7 @@ const App = () => {
         onOk: () => {
           setInputStr(val);
           setInputValue(''); // 立即清空输入框，提升用户体验
+          resetPublishedShares();
           submit();
           listRef.current?.scrollTo({ top: 'bottom' });
         },
@@ -1312,6 +1616,7 @@ const App = () => {
     // 单通道模式或首次提问，直接提交
     setInputStr(val);
     setInputValue(''); // 立即清空输入框，提升用户体验
+    resetPublishedShares();
     await submit();
     listRef.current?.scrollTo({ top: 'bottom' });
   };
@@ -1328,7 +1633,10 @@ const App = () => {
           className={styles.floatingBtnWithText}
           title="新对话"
           onClick={() => {
-            if (hasAsked) createNewChat();
+            if (hasAsked) {
+              resetPublishedShares();
+              createNewChat();
+            }
             else message.info('当前已经是新会话');
           }}
         >

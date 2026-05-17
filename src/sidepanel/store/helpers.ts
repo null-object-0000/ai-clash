@@ -19,13 +19,15 @@ export const CHARS_PER_FRAME = 8;
 // ════════════════════════════════════════════════════════════════════
 
 export function createSessionId() {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
+  const webCrypto = globalThis.crypto;
+
+  if (webCrypto?.randomUUID) {
+    return webCrypto.randomUUID();
   }
 
-  if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+  if (webCrypto?.getRandomValues) {
     const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
+    webCrypto.getRandomValues(bytes);
 
     // UUID v4 formatting from CSPRNG bytes
     bytes[6] = (bytes[6] & 0x0f) | 0x40;

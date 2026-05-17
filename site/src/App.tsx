@@ -43,7 +43,9 @@ export function App() {
   const antLocale = locale === 'en' ? enUS : zhCN
   const antTheme = createAntTheme(themeMode)
   const pageContent =
-    page === '/share' ? <SharePage locale={locale} themeMode={themeMode} /> : <Page locale={locale} page={page} />
+    page === '/share' || page.startsWith('/share/')
+      ? <SharePage locale={locale} themeMode={themeMode} shareId={page.startsWith('/share/') ? page.slice('/share/'.length) : undefined} />
+      : <Page locale={locale} page={page} />
 
   return (
     <ConfigProvider locale={antLocale} theme={antTheme}>
