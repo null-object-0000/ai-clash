@@ -55,27 +55,27 @@ jobs:
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
-      - name: Deploy on server
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
-          ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-        run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
+      # - name: Deploy on server
+      #   env:
+      #     SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      #     SERVER_USER: ${{ secrets.SERVER_USER }}
+      #     SERVER_SSH_KEY: ${{ secrets.SERVER_SSH_KEY }}
+      #     ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      #     ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      #   run: |
+      #     mkdir -p ~/.ssh
+      #     printf '%s\n' "$SERVER_SSH_KEY" > ~/.ssh/id_rsa
+      #     chmod 600 ~/.ssh/id_rsa
 
-          ACR_USERNAME_B64="$(printf '%s' "$ACR_USERNAME" | base64 -w0)"
-          ACR_PASSWORD_B64="$(printf '%s' "$ACR_PASSWORD" | base64 -w0)"
+      #     ACR_USERNAME_B64="$(printf '%s' "$ACR_USERNAME" | base64 -w0)"
+      #     ACR_PASSWORD_B64="$(printf '%s' "$ACR_PASSWORD" | base64 -w0)"
 
-          ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" \
-            "ACR_USERNAME=\$(printf '%s' '$ACR_USERNAME_B64' | base64 -d) && \
-             ACR_PASSWORD=\$(printf '%s' '$ACR_PASSWORD_B64' | base64 -d) && \
-             echo \"\$ACR_PASSWORD\" | docker login '$ACR_REGISTRY' -u \"\$ACR_USERNAME\" --password-stdin && \
-             cd '$REMOTE_DIR' && \
-             docker compose pull ai-clash-api && \
-             docker compose run --rm ai-clash-api node dist/migrate.js && \
-             docker compose up -d ai-clash-api && \
-             curl -fsS http://127.0.0.1:8080/healthz"
+      #     ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_HOST" \
+      #       "ACR_USERNAME=\$(printf '%s' '$ACR_USERNAME_B64' | base64 -d) && \
+      #        ACR_PASSWORD=\$(printf '%s' '$ACR_PASSWORD_B64' | base64 -d) && \
+      #        echo \"\$ACR_PASSWORD\" | docker login '$ACR_REGISTRY' -u \"\$ACR_USERNAME\" --password-stdin && \
+      #        cd '$REMOTE_DIR' && \
+      #        docker compose pull ai-clash-api && \
+      #        docker compose run --rm ai-clash-api node dist/migrate.js && \
+      #        docker compose up -d ai-clash-api && \
+      #        curl -fsS http://127.0.0.1:8080/healthz"
