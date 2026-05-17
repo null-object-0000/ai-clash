@@ -7,6 +7,7 @@ RUN bun install --frozen-lockfile
 
 FROM oven/bun:1.3.3 AS build
 WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages/api/node_modules ./packages/api/node_modules
 COPY package.json tsconfig.json ./
 COPY packages/api ./packages/api
