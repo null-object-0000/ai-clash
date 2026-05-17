@@ -1,12 +1,14 @@
 dist
 node_modules
 release
+target
 .claude
 .claude.json
 .cursor
 test-results
 playwright-report
 .vscode
+.idea
 site-dev.*.log
 docs/.vitepress/cache
 .codex

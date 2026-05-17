@@ -24,17 +24,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        run: cd packages/api && bun install --frozen-lockfile
-
-      - name: Build API
-        run: cd packages/api && bun run build
-
       - name: Log in to ACR
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login "$ACR_REGISTRY" -u "${{ secrets.ACR_USERNAME }}" --password-stdin
 
@@ -70,6 +59,5 @@ jobs:
       #        echo \"\$ACR_PASSWORD\" | docker login '$ACR_REGISTRY' -u \"\$ACR_USERNAME\" --password-stdin && \
       #        cd '$REMOTE_DIR' && \
       #        docker compose pull ai-clash-api && \
-      #        docker compose run --rm ai-clash-api node dist/migrate.js && \
       #        docker compose up -d ai-clash-api && \
       #        curl -fsS http://127.0.0.1:8080/healthz"

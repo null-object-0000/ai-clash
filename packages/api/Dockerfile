@@ -1,13 +1,11 @@
-FROM oven/bun:1.3.3
+FROM maven:3.9-eclipse-temurin-25 AS build
+WORKDIR /workspace
+COPY packages/api/pom.xml .
+COPY packages/api/src ./src
+RUN mvn -B -DskipTests package
+
+FROM eclipse-temurin:25-jre
 WORKDIR /app
-
-COPY bun.lock ./
-COPY packages/api ./packages/api
-
-WORKDIR /app/packages/api
-RUN bun install --frozen-lockfile
-RUN bun run build
-
-ENV NODE_ENV=production
+COPY --from=build /workspace/target/ai-clash-api-0.1.0.jar /app/app.jar
 EXPOSE 8080
-CMD ["bun", "run", "start"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
