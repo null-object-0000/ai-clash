@@ -508,7 +508,7 @@ const role: BubbleListProps['role'] = {
   user: { placement: 'end' },
 };
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://ai-clash-service.snewbie.site').replace(/\/+$/, '');
 
 type ShareSnapshot = {
   schemaVersion: 1;
