@@ -15,7 +15,7 @@ RUN bun --filter @ai-clash/api build
 FROM oven/bun:1.3.3 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=deps /app/.bun .bun
+COPY --from=deps /root/.bun /root/.bun
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/packages/api/dist ./dist
 COPY packages/api/package.json ./package.json
