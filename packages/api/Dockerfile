@@ -15,6 +15,7 @@ RUN bun --filter @ai-clash/api build
 FROM node:24-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+COPY --from=deps /app/.bun .bun
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/packages/api/dist ./dist
 COPY packages/api/package.json ./package.json
