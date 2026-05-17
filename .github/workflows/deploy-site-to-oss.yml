@@ -15,6 +15,8 @@ on:
   push:
     branches:
       - main  # 可以根据需要修改分支名
+    paths:
+      - 'site/**'
   workflow_dispatch:  # 允许手动触发
 
 jobs:

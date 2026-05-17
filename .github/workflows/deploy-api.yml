@@ -1,15 +1,8 @@
 name: Deploy API
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'packages/api/**'
-      - 'package.json'
-      - 'bun.lock'
-      - '.github/workflows/deploy-api.yml'
+  release:
+    types: [published]
 
 permissions:
   contents: read
