@@ -33,7 +33,7 @@ jobs:
         run: cd packages/api && bun install --frozen-lockfile
 
       - name: Build API
-        run: cd packages/api && bun build
+        run: cd packages/api && bun run build
 
       - name: Log in to ACR
         run: echo "${{ secrets.ACR_PASSWORD }}" | docker login "$ACR_REGISTRY" -u "${{ secrets.ACR_USERNAME }}" --password-stdin
