@@ -1,13 +1,12 @@
 package site.snewbie.aiclash.api.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Service;
 import site.snewbie.aiclash.api.config.AppProperties;
 import site.snewbie.aiclash.api.exception.ApiException;
 import site.snewbie.aiclash.api.repository.ShareRepository;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -131,7 +130,7 @@ public class ShareService {
   private String writeJson(Object value) {
     try {
       return objectMapper.writeValueAsString(value);
-    } catch (JsonProcessingException error) {
+    } catch (Exception error) {
       throw new ApiException(400, "invalid JSON body");
     }
   }
@@ -139,7 +138,7 @@ public class ShareService {
   private Map<String, Object> readJson(String value) {
     try {
       return objectMapper.readValue(value, new TypeReference<>() {});
-    } catch (JsonProcessingException error) {
+    } catch (Exception error) {
       throw new ApiException(500, "stored share payload is invalid");
     }
   }
