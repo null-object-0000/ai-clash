@@ -12,7 +12,7 @@ COPY package.json tsconfig.json ./
 COPY packages/api ./packages/api
 RUN bun --filter @ai-clash/api build
 
-FROM node:24-alpine AS runtime
+FROM oven/bun:1.3.3 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app/.bun .bun
@@ -21,4 +21,4 @@ COPY --from=build /app/packages/api/dist ./dist
 COPY packages/api/package.json ./package.json
 COPY packages/api/migrations ./migrations
 EXPOSE 8080
-CMD ["node", "dist/index.js"]
+CMD ["bun", "run", "start"]
