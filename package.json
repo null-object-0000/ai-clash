@@ -6,7 +6,7 @@
     "version": "1.2.1",
     "type": "module",
     "workspaces": [
-        "packages/*"
+        "packages/inject"
     ],
     "scripts": {
         "dev": "bun run build:inject && tsc --noEmit && vite build --watch",
@@ -14,7 +14,7 @@
         "build:site": "cd site && bun run build",
         "typecheck": "tsc --noEmit && (cd packages/inject && bun run typecheck)",
         "build:inject": "bun --filter @ai-clash/inject build",
-        "build:api": "bun --filter @ai-clash/api build",
+        "build:api": "docker build -f packages/api/Dockerfile -t ai-clash-api:local .",
         "build": "bun run build:inject && tsc --noEmit && vite build",
         "build:test": "bun run build:inject && tsc --noEmit && vite build && bun run test",
         "test": "playwright test",

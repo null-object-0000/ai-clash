@@ -1,23 +1,11 @@
-FROM oven/bun:1.3.3 AS deps
-WORKDIR /app
-COPY package.json bun.lock ./
-COPY packages/api/package.json packages/api/package.json
-COPY packages/inject/package.json packages/inject/package.json
-RUN bun install --frozen-lockfile
+FROM maven:3.9-eclipse-temurin-25 AS build
+WORKDIR /workspace
+COPY packages/api/pom.xml .
+COPY packages/api/src ./src
+RUN mvn -B -DskipTests package
 
-FROM oven/bun:1.3.3 AS build
+FROM eclipse-temurin:25-jre
 WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json tsconfig.json ./
-COPY packages/api ./packages/api
-RUN bun --filter @ai-clash/api build
-
-FROM node:24-alpine AS runtime
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/packages/api/dist ./dist
-COPY packages/api/package.json ./package.json
-COPY packages/api/migrations ./migrations
+COPY --from=build /workspace/target/ai-clash-api-0.1.0.jar /app/app.jar
 EXPOSE 8080
-CMD ["node", "dist/index.js"]
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
