@@ -10,11 +10,11 @@
         "@ant-design/x-markdown": "^2.7.0",
         "@ant-design/x-sdk": "^2.7.0",
         "@lobehub/icons": "^5.8.0",
-        "antd": "^6.3.7",
+        "antd": "^6.4.3",
         "antd-style": "^4.1.0",
         "dayjs": "^1.11.20",
-        "motion": "^12.38.0",
-        "openai": "^6.37.0",
+        "motion": "^12.39.0",
+        "openai": "^6.38.0",
         "react": "^19.2.6",
         "react-dom": "^19.2.6",
         "react-markdown": "^10.1.0",
@@ -27,7 +27,7 @@
         "@types/node": "^24.12.4",
         "@types/react": "^19.2.14",
         "@types/react-dom": "^19.2.3",
-        "@vitejs/plugin-react-swc": "^4.3.0",
+        "@vitejs/plugin-react-swc": "^4.3.1",
         "cross-env": "^10.1.0",
         "typescript": "~5.9.3",
         "vite": "^7.3.3",
@@ -49,6 +49,28 @@
       "optionalPeers": [
         "@types/chrome",
       ],
+    },
+    "packages/site": {
+      "name": "ai-clash-site",
+      "version": "1.0.0",
+      "dependencies": {
+        "@ant-design/icons": "^6.2.3",
+        "@ant-design/x": "^2.7.0",
+        "@ant-design/x-markdown": "^2.7.0",
+        "@lobehub/icons": "^5.8.0",
+        "@vitejs/plugin-react-swc": "^4.3.1",
+        "antd": "^6.4.2",
+        "antd-style": "^4.1.0",
+        "react": "^19.2.6",
+        "react-dom": "^19.2.6",
+        "react-markdown": "^10.1.0",
+        "typescript": "~5.9.3",
+        "vite": "^7.3.3",
+      },
+      "devDependencies": {
+        "@types/react": "^19.2.14",
+        "@types/react-dom": "^19.2.3",
+      },
     },
   },
   "packages": {
@@ -613,6 +635,8 @@
     "acorn-walk": ["acorn-walk@8.3.5", "", { "dependencies": { "acorn": "^8.11.0" } }, "sha512-HEHNfbars9v4pgpW6SO1KSPkfoS0xVOM/9UzkJltjlsHZmJasxg8aXkuZa7SMf8vKGIBhpUsPluQSqhJFCqebw=="],
 
     "ahooks": ["ahooks@3.9.7", "", { "dependencies": { "@babel/runtime": "^7.21.0", "@types/js-cookie": "^3.0.6", "dayjs": "^1.9.1", "intersection-observer": "^0.12.0", "js-cookie": "^3.0.5", "lodash": "^4.17.21", "react-fast-compare": "^3.2.2", "resize-observer-polyfill": "^1.5.1", "screenfull": "^5.0.0", "tslib": "^2.4.1" }, "peerDependencies": { "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0" } }, "sha512-S0lvzhbdlhK36RFBkGv+RbOM/dbbweym+BIHM/bwwuWVSVN5TuVErHPMWo4w0t1NDYg5KPp2iEf7Y7E5LASYiw=="],
+
+    "ai-clash-site": ["ai-clash-site@workspace:packages/site"],
 
     "ansi-regex": ["ansi-regex@5.0.1", "", {}, "sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ=="],
 

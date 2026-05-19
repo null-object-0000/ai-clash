@@ -16,7 +16,7 @@ on:
     branches:
       - main  # 可以根据需要修改分支名
     paths:
-      - 'site/**'
+      - 'packages/site/**'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -33,10 +33,10 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: cd site && bun install
+        run: cd packages/site && bun install
 
       - name: Build site
-        run: cd site && bun run build
+        run: cd packages/site && bun run build
         env:
           BASE_URL: /
 
@@ -87,7 +87,7 @@ jobs:
             # -e 指定 endpoint
             # -i 指定 AccessKey ID
             # -k 指定 AccessKey Secret
-            ossutil sync site/dist/ ${OSS_TARGET} \
+            ossutil sync packages/site/dist/ ${OSS_TARGET} \
               --update \
               --delete \
               -e ${OSS_ENDPOINT} \
@@ -106,7 +106,7 @@ jobs:
             # 上传文件到 S3 兼容的 OSS
             # --endpoint-url 使用基础端点（不包含 bucket 名称）
             # --delete 参数会删除目标中不存在的文件
-            aws s3 sync site/dist/ ${S3_PATH} \
+            aws s3 sync packages/site/dist/ ${S3_PATH} \
               --endpoint-url ${OSS_ENDPOINT} \
               --delete \
               --region ${AWS_DEFAULT_REGION}
