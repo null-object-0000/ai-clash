@@ -44,9 +44,9 @@
   line-height: 1;
 }
 
-.nav-bar > .brand,
-.nav-bar > .brand:visited,
-.nav-bar > .brand:hover {
+.nav-bar>.brand,
+.nav-bar>.brand:visited,
+.nav-bar>.brand:hover {
   color: var(--vp-c-text-1);
 }
 
@@ -285,12 +285,6 @@
 }
 
 @media (max-width: 900px) {
-  .nav-bar {
-    padding: 0 24px;
-  }
-}
-
-@media (max-width: 720px) {
   .header {
     height: 64px;
   }
@@ -319,7 +313,7 @@
     font-size: 13px;
   }
 
-.nav-links {
+  .nav-links {
     display: none;
   }
 
@@ -358,7 +352,7 @@
     padding: 0;
   }
 
-  .start-chat-button.ant-btn > span:not(.ant-btn-icon) {
+  .start-chat-button.ant-btn>span:not(.ant-btn-icon) {
     display: none;
   }
 }
