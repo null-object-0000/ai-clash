@@ -3,11 +3,13 @@ import { join } from 'node:path'
 
 const routes = [
   'download',
+  'chat',
   'changelog',
   'privacy',
   'share',
   'en',
   'en/download',
+  'en/chat',
   'en/changelog',
   'en/privacy',
   'en/share',

@@ -8,12 +8,14 @@ import { createAntTheme } from './app/theme'
 import type { ThemeMode } from './app/theme'
 import { Footer } from './layout/Footer'
 import { Header } from './layout/Header'
-import { ChangelogPage, DownloadPage, HomePage, PrivacyPage, SharePage } from './pages'
+import { ChangelogPage, ChatPage, DownloadPage, HomePage, PrivacyPage, SharePage } from './pages'
 
 const { Content } = Layout
 
 function Page({ locale, page }: { locale: Locale; page: string }) {
   switch (page) {
+    case '/chat':
+      return <ChatPage locale={locale} />
     case '/download':
       return <DownloadPage locale={locale} />
     case '/changelog':
@@ -40,6 +42,7 @@ export function App() {
 
   const locale = getInitialLocale(path)
   const page = stripLocale(path)
+  const isAppPage = page === '/chat'
   const antLocale = locale === 'en' ? enUS : zhCN
   const antTheme = createAntTheme(themeMode)
   const pageContent =
@@ -51,14 +54,16 @@ export function App() {
     <ConfigProvider locale={antLocale} theme={antTheme}>
       <Layout className="site-layout">
         <AntApp>
-          <Header
-            locale={locale}
-            path={path}
-            themeMode={themeMode}
-            onToggleTheme={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
-          />
+          {!isAppPage ? (
+            <Header
+              locale={locale}
+              path={path}
+              themeMode={themeMode}
+              onToggleTheme={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+            />
+          ) : null}
           <Content>{pageContent}</Content>
-          <Footer />
+          {isAppPage ? null : <Footer />}
         </AntApp>
       </Layout>
     </ConfigProvider>

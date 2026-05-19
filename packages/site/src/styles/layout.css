@@ -10,6 +10,12 @@
   backdrop-filter: saturate(180%) blur(12px);
 }
 
+.header--app {
+  position: relative;
+  z-index: 30;
+  background: var(--vp-c-bg);
+}
+
 .nav-bar {
   display: flex;
   align-items: center;
@@ -19,6 +25,11 @@
   margin: 0 auto;
   padding: 0 32px;
   gap: 24px;
+}
+
+.header--app .nav-bar {
+  max-width: none;
+  padding: 0 16px;
 }
 
 .brand {
@@ -89,6 +100,30 @@
   color: var(--vp-c-text-2);
 }
 
+.header--app .brand {
+  height: 64px;
+}
+
+.start-chat-button.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 18px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+.start-chat-button.ant-btn .ant-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .locale-button.ant-btn {
   display: inline-flex;
   align-items: center;
@@ -149,6 +184,88 @@
   color: var(--vp-c-text-1);
 }
 
+.mobile-menu-button.ant-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 10px;
+  background: var(--vp-c-control);
+  color: var(--vp-c-text-1);
+  font-size: 18px;
+}
+
+.mobile-menu-button.ant-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-control-hover);
+  color: var(--vp-c-brand-1);
+}
+
+.mobile-nav-drawer .ant-drawer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  background: var(--vp-c-bg);
+}
+
+.mobile-menu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.mobile-nav-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 0;
+  border-top: 1px solid var(--vp-c-divider);
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.mobile-nav-links a,
+.mobile-menu-section a,
+.mobile-github-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--vp-c-text-1);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.mobile-nav-links a:hover,
+.mobile-nav-links a.active,
+.mobile-menu-section a:hover,
+.mobile-github-link:hover {
+  background: var(--vp-c-control-hover);
+  color: var(--vp-c-brand-1);
+}
+
+.mobile-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-menu-label {
+  padding: 0 12px;
+  color: var(--vp-c-text-3);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.mobile-github-link {
+  gap: 10px;
+}
+
 .footer {
   border-top: 1px solid var(--vp-c-divider);
   padding: 32px 24px;
@@ -175,37 +292,73 @@
 
 @media (max-width: 720px) {
   .header {
-    height: auto;
+    height: 64px;
   }
 
   .nav-bar {
-    flex-wrap: wrap;
-    padding: 12px 20px 0;
-    gap: 8px 12px;
+    flex-wrap: nowrap;
+    padding: 0 16px;
+    gap: 10px;
   }
 
   .brand {
-    height: 40px;
+    flex: 1 1 auto;
+    height: 64px;
   }
 
   .nav-actions {
+    flex: 0 0 auto;
+    gap: 8px;
     margin-left: auto;
   }
 
-  .nav-links {
-    order: 3;
-    flex: 0 0 calc(100% + 40px);
-    width: calc(100% + 40px);
-    margin: 0 -20px;
-    padding: 0 20px;
-    overflow-x: auto;
-    justify-content: flex-start;
-    border-top: 1px solid var(--vp-c-divider);
+  .start-chat-button.ant-btn {
+    display: inline-flex;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
   }
 
-  .nav-links a {
-    flex: 0 0 auto;
-    height: 44px;
+.nav-links {
+    display: none;
+  }
+
+  .locale-button.ant-btn,
+  .icon-link {
+    display: none;
+  }
+
+  .mobile-menu-button.ant-btn {
+    display: inline-flex;
+  }
+}
+
+.nav-links--app {
+  pointer-events: none;
+}
+
+@media (max-width: 390px) {
+  .nav-bar {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .brand {
+    font-size: 15px;
+  }
+
+  .start-chat-button.ant-btn {
     padding: 0 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .start-chat-button.ant-btn {
+    width: 36px;
+    padding: 0;
+  }
+
+  .start-chat-button.ant-btn > span:not(.ant-btn-icon) {
+    display: none;
   }
 }
