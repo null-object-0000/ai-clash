@@ -68,6 +68,7 @@ public class AuthService {
         .queryParam("scope", "read:user user:email")
         .queryParam("state", state)
         .build()
+        .encode()
         .toUriString();
   }
 

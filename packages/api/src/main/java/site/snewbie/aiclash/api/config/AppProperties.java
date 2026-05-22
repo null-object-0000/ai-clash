@@ -12,20 +12,37 @@ public class AppProperties {
   private final List<String> corsOrigins;
   private final int maxShareBytes;
   private final int shareDefaultTtlDays;
+  private final Auth auth;
 
   public AppProperties(
       @Value("${app.public-site-url}") String publicSiteUrl,
       @Value("${app.cors-origins}") String corsOrigins,
       @Value("${app.max-share-bytes}") int maxShareBytes,
-      @Value("${app.share-default-ttl-days}") int shareDefaultTtlDays
+      @Value("${app.share-default-ttl-days}") int shareDefaultTtlDays,
+      @Value("${app.auth.github-client-id}") String githubClientId,
+      @Value("${app.auth.github-client-secret}") String githubClientSecret,
+      @Value("${app.auth.github-redirect-uri}") String githubRedirectUri,
+      @Value("${app.auth.allowed-return-origins}") String allowedReturnOrigins,
+      @Value("${app.auth.session-days}") int sessionDays,
+      @Value("${app.auth.session-cookie-name}") String sessionCookieName,
+      @Value("${app.auth.cookie-secure}") boolean cookieSecure
   ) {
     this.publicSiteUrl = trimTrailingSlash(publicSiteUrl);
-    this.corsOrigins = Arrays.stream(corsOrigins.split(","))
-        .map(String::trim)
-        .filter(item -> !item.isBlank())
-        .toList();
+    this.corsOrigins = splitCsv(corsOrigins);
     this.maxShareBytes = maxShareBytes;
     this.shareDefaultTtlDays = shareDefaultTtlDays;
+    this.auth = new Auth(
+        githubClientId == null ? "" : githubClientId.trim(),
+        githubClientSecret == null ? "" : githubClientSecret.trim(),
+        trimTrailingSlash(githubRedirectUri),
+        splitCsv(allowedReturnOrigins).stream()
+            .map(AppProperties::trimTrailingSlash)
+            .filter(item -> !item.isBlank())
+            .toList(),
+        sessionDays,
+        sessionCookieName == null || sessionCookieName.isBlank() ? "ai_clash_session" : sessionCookieName.trim(),
+        cookieSecure
+    );
   }
 
   public String publicSiteUrl() {
@@ -44,8 +61,30 @@ public class AppProperties {
     return shareDefaultTtlDays;
   }
 
+  public Auth auth() {
+    return auth;
+  }
+
+  private static List<String> splitCsv(String value) {
+    if (value == null || value.isBlank()) return List.of();
+    return Arrays.stream(value.split(","))
+        .map(String::trim)
+        .filter(item -> !item.isBlank())
+        .toList();
+  }
+
   private static String trimTrailingSlash(String value) {
     if (value == null || value.isBlank()) return "";
     return value.replaceAll("/+$", "");
   }
+
+  public record Auth(
+      String githubClientId,
+      String githubClientSecret,
+      String githubRedirectUri,
+      List<String> allowedReturnOrigins,
+      int sessionDays,
+      String sessionCookieName,
+      boolean cookieSecure
+  ) {}
 }

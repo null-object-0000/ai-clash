@@ -13,3 +13,5 @@ site-dev.*.log
 docs/.vitepress/cache
 .codex
 packages/api/.env
+packages/site/.env
+packages/site/.env.local

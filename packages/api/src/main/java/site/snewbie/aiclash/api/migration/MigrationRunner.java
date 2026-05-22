@@ -7,6 +7,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 
 @Component
 public class MigrationRunner implements ApplicationRunner {
@@ -40,8 +42,43 @@ public class MigrationRunner implements ApplicationRunner {
       if (exists != null && exists > 0) continue;
 
       var sql = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-      jdbcTemplate.execute(sql);
+      for (var statement : splitStatements(sql)) {
+        jdbcTemplate.execute(statement);
+      }
       jdbcTemplate.update("INSERT INTO schema_migrations (name) VALUES (?)", name);
     }
+  }
+
+  private static List<String> splitStatements(String sql) {
+    var statements = new ArrayList<String>();
+    var current = new StringBuilder();
+    var inSingleQuote = false;
+    var inDoubleQuote = false;
+
+    for (var index = 0; index < sql.length(); index++) {
+      var currentChar = sql.charAt(index);
+      var previousChar = index > 0 ? sql.charAt(index - 1) : '\0';
+
+      if (currentChar == '\'' && !inDoubleQuote && previousChar != '\\') {
+        inSingleQuote = !inSingleQuote;
+      } else if (currentChar == '"' && !inSingleQuote && previousChar != '\\') {
+        inDoubleQuote = !inDoubleQuote;
+      }
+
+      if (currentChar == ';' && !inSingleQuote && !inDoubleQuote) {
+        addStatement(statements, current);
+        current.setLength(0);
+      } else {
+        current.append(currentChar);
+      }
+    }
+
+    addStatement(statements, current);
+    return statements;
+  }
+
+  private static void addStatement(List<String> statements, StringBuilder statement) {
+    var sql = statement.toString().trim();
+    if (!sql.isBlank()) statements.add(sql);
   }
 }

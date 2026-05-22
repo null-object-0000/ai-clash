@@ -14,6 +14,14 @@ export type AuthState =
   | { authenticated: false; user?: undefined }
   | { authenticated: true; user: AuthUser }
 
+export type AuthStatus = 'loading' | 'ready'
+
+export type SiteAuth = {
+  state: AuthState
+  status: AuthStatus
+  refresh: () => Promise<void>
+}
+
 export async function fetchAuthState(): Promise<AuthState> {
   const res = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' })
   const data = await res.json().catch(() => null) as AuthState | null

@@ -23,18 +23,24 @@ public class AuthRepository {
   }
 
   public String consumeOauthState(String id, String provider) {
+    var consumed = jdbcTemplate.update("""
+        UPDATE oauth_states
+           SET consumed_at = NOW()
+         WHERE id = ?
+           AND provider = ?
+           AND consumed_at IS NULL
+           AND expires_at > NOW()
+        """, id, provider);
+    if (consumed == 0) return null;
+
     try {
-      var returnTo = jdbcTemplate.queryForObject("""
+      return jdbcTemplate.queryForObject("""
           SELECT return_to
             FROM oauth_states
            WHERE id = ?
              AND provider = ?
-             AND consumed_at IS NULL
-             AND expires_at > NOW()
            LIMIT 1
           """, String.class, id, provider);
-      jdbcTemplate.update("UPDATE oauth_states SET consumed_at = NOW() WHERE id = ?", id);
-      return returnTo;
     } catch (EmptyResultDataAccessException error) {
       return null;
     }

@@ -8,6 +8,7 @@ import {
   DeleteOutlined,
   GlobalOutlined,
   HeartOutlined,
+  LoginOutlined,
   LogoutOutlined,
   MergeCellsOutlined,
   PlusOutlined,
@@ -20,10 +21,11 @@ import {
 import { Bubble, Conversations, Sender, Welcome } from '@ant-design/x'
 import type { BubbleListProps, ConversationsProps } from '@ant-design/x'
 import XMarkdown from '@ant-design/x-markdown'
-import { Button, Dropdown, Flex, Modal, Switch, Tag } from 'antd'
+import { Avatar, Button, Dropdown, Flex, Modal, Switch, Tag } from 'antd'
 import type { MenuProps } from 'antd'
 import { DeepSeek, Doubao, Qwen, Yuanbao } from '@lobehub/icons'
 import type { Locale } from '../content'
+import { logout, startGithubLogin, type SiteAuth } from '../app/auth'
 import { assetPath } from '../app/paths'
 
 type ChatMessage = {
@@ -64,6 +66,8 @@ const labels = {
     options: '运行选项',
     account: '个人空间',
     accountSettings: '账号设置',
+    login: 'GitHub 登录',
+    checkingSession: '读取登录态',
     logout: '退出登录',
     deepThink: '深度思考',
     webSearch: '联网搜索',
@@ -96,6 +100,8 @@ const labels = {
     options: 'Run Options',
     account: 'Workspace',
     accountSettings: 'Account Settings',
+    login: 'Sign in with GitHub',
+    checkingSession: 'Checking session',
     logout: 'Log Out',
     deepThink: 'Deep Think',
     webSearch: 'Web Search',
@@ -195,7 +201,12 @@ function getTimeGroup(timestamp: number, locale: Locale) {
   return locale === 'zh' ? '更早' : 'Earlier'
 }
 
-export function ChatPage({ locale }: { locale: Locale }) {
+function getUserName(auth: SiteAuth) {
+  if (!auth.state.authenticated) return ''
+  return auth.state.user.displayName || auth.state.user.providerLogin || auth.state.user.email || `#${auth.state.user.id}`
+}
+
+export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
   const copy = labels[locale]
   const [sessions, setSessions] = useState<ChatSession[]>(readSessions)
   const [activeId, setActiveId] = useState(() => sessions[0]?.id ?? '')
@@ -311,12 +322,21 @@ export function ChatPage({ locale }: { locale: Locale }) {
   const toggleAllChannels = () => {
     setEnabledChannels(allEnabled ? new Set() : new Set(channelItems.map((item) => item.id)))
   }
+  const handleLogout = async () => {
+    await logout()
+    await auth.refresh()
+  }
+
   const userMenu: MenuProps['items'] = [
     { key: 'settings', icon: <SettingOutlined />, label: copy.accountSettings },
     { key: 'options', icon: <MergeCellsOutlined />, label: copy.options },
     { type: 'divider' },
-    { key: 'logout', icon: <LogoutOutlined />, label: copy.logout, disabled: true },
+    { key: 'logout', icon: <LogoutOutlined />, label: copy.logout },
   ]
+  const userMenuClick: MenuProps['onClick'] = (info) => {
+    if (info.key === 'logout') void handleLogout()
+  }
+  const userName = getUserName(auth)
 
   return (
     <main className="chat-page">
@@ -347,18 +367,36 @@ export function ChatPage({ locale }: { locale: Locale }) {
             <span>{copy.emptyHistory}</span>
           </div>
         )}
-        <Dropdown menu={{ items: userMenu }} placement="topRight" trigger={['click']}>
-          <button className="chat-user-entry" type="button">
-            <span className="chat-user-avatar">
-              <UserOutlined />
-            </span>
+        {auth.status === 'loading' ? (
+          <button className="chat-user-entry" disabled type="button">
+            <Avatar className="chat-user-avatar" icon={<UserOutlined />} size={32} />
             <span className="chat-user-meta">
-              <strong>{copy.account}</strong>
+              <strong>{copy.checkingSession}</strong>
               <small>AI Clash</small>
             </span>
-            <SettingOutlined className="chat-user-caret" />
           </button>
-        </Dropdown>
+        ) : auth.state.authenticated ? (
+          <Dropdown menu={{ items: userMenu, onClick: userMenuClick }} placement="topRight" trigger={['click']}>
+            <button className="chat-user-entry" type="button">
+              <Avatar className="chat-user-avatar" icon={<UserOutlined />} size={32} src={auth.state.user.avatarUrl} />
+              <span className="chat-user-meta">
+                <strong>{userName}</strong>
+                <small>{auth.state.user.email || auth.state.user.providerLogin || copy.account}</small>
+              </span>
+              <SettingOutlined className="chat-user-caret" />
+            </button>
+          </Dropdown>
+        ) : (
+          <button className="chat-user-entry" type="button" onClick={startGithubLogin}>
+            <span className="chat-user-avatar">
+              <LoginOutlined />
+            </span>
+            <span className="chat-user-meta">
+              <strong>{copy.login}</strong>
+              <small>AI Clash</small>
+            </span>
+          </button>
+        )}
       </aside>
 
       <section className="chat-copilot">

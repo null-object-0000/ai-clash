@@ -21,7 +21,9 @@ public class CorsConfig implements WebMvcConfigurer {
     if (properties.corsOrigins().contains("*")) {
       registration.allowedOriginPatterns("*");
     } else {
-      registration.allowedOrigins(properties.corsOrigins().toArray(String[]::new));
+      registration
+          .allowedOrigins(properties.corsOrigins().toArray(String[]::new))
+          .allowCredentials(true);
     }
   }
 }
