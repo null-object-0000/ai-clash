@@ -25,6 +25,23 @@ const useStyles = createStyles(({ css, token }) => ({
       }
     }
   `,
+  drawerBody: css`
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  `,
+  drawerContent: css`
+    flex: 1;
+    min-height: 0;
+    overflow: hidden auto;
+    padding: 0 8px 0 0;
+  `,
+  drawerFooter: css`
+    flex-shrink: 0;
+    padding: 10px 8px 10px 0;
+    border-top: 1px solid ${token.colorBorderSecondary};
+  `,
   emptyState: css`
     display: flex;
     flex-direction: column;
@@ -81,9 +98,10 @@ function getDefaultLabel(item: ChatHistoryItem) {
 interface Props {
   open: boolean;
   onClose: () => void;
+  footer?: React.ReactNode;
 }
 
-const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
+const HistoryDrawer: React.FC<Props> = ({ open, onClose, footer }) => {
   const { styles } = useStyles();
   const historyList = useStore(s => s.historyList);
   const [renameTarget, setRenameTarget] = useState<{ id: string; label: string } | null>(null);
@@ -130,35 +148,40 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
   return (
     <>
       <Drawer
-        placement="right"
+        placement="left"
         width="clamp(200px, 75%, 320px)"
         open={open}
         onClose={onClose}
         closable={false}
-        styles={{ body: { padding: '0 8px 0 0', overflow: 'hidden auto' } }}
+        styles={{ body: { padding: '0 0 0 8px', overflow: 'hidden' } }}
       >
-        {historyList.length === 0 ? (
-          <div className={styles.emptyState}>
-            <CommentOutlined className={styles.emptyIcon} />
-            <div className={styles.emptyText}>暂无历史记录</div>
-            <div className={styles.emptyDesc}>开始提问后，对话记录会保存在这里</div>
+        <div className={styles.drawerBody}>
+          <div className={styles.drawerContent}>
+            {historyList.length === 0 ? (
+              <div className={styles.emptyState}>
+                <CommentOutlined className={styles.emptyIcon} />
+                <div className={styles.emptyText}>暂无历史记录</div>
+                <div className={styles.emptyDesc}>开始提问后，对话记录会保存在这里</div>
+              </div>
+            ) : (
+              <Conversations
+                items={conversationItems}
+                menu={conversationMenu}
+                groupable
+                onActiveChange={(key) => {
+                  const item = historyList.find(h => h.id === key);
+                  if (item) {
+                    restoreHistorySession(item);
+                  }
+                  onClose();
+                }}
+                styles={{ item: { padding: '0 8px' } }}
+                className={styles.conversations}
+              />
+            )}
           </div>
-        ) : (
-          <Conversations
-            items={conversationItems}
-            menu={conversationMenu}
-            groupable
-            onActiveChange={(key) => {
-              const item = historyList.find(h => h.id === key);
-              if (item) {
-                restoreHistorySession(item);
-              }
-              onClose();
-            }}
-            styles={{ item: { padding: '0 8px' } }}
-            className={styles.conversations}
-          />
-        )}
+          {footer ? <div className={styles.drawerFooter}>{footer}</div> : null}
+        </div>
       </Drawer>
       <Modal
         open={!!renameTarget}

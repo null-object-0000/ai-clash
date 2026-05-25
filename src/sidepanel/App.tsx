@@ -7,6 +7,8 @@ import {
   HeartOutlined,
   LeftOutlined,
   LoginOutlined,
+  LogoutOutlined,
+  MenuOutlined,
   MergeCellsOutlined,
   PlusOutlined,
   RedoOutlined,
@@ -14,8 +16,10 @@ import {
   SettingOutlined,
   ShareAltOutlined,
   TrophyOutlined,
+  UserOutlined,
   VideoCameraOutlined,
 } from '@ant-design/icons';
+import { Google, Microsoft } from '@lobehub/icons';
 import type { BubbleListProps, PromptsProps } from '@ant-design/x';
 import {
   Bubble,
@@ -26,7 +30,7 @@ import {
 } from '@ant-design/x';
 import { BubbleListRef } from '@ant-design/x/es/bubble';
 import XMarkdown from '@ant-design/x-markdown';
-import { Button, Dropdown, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
+import { Avatar, Button, Dropdown, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers, PROVIDER_META } from './store';
@@ -117,6 +121,14 @@ const useStyles = createStyles(({ token, css }) => ({
     display: flex;
     align-items: center;
     gap: 6px;
+  `,
+  floatingAccount: css`
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 50;
+    display: flex;
+    align-items: center;
   `,
   floatingBtn: css`
     display: flex;
@@ -284,6 +296,39 @@ const useStyles = createStyles(({ token, css }) => ({
     > .ant-bubble-body {
       padding: 0 !important;
       background: transparent !important;
+    }
+  `,
+  drawerFooterActions: css`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  `,
+  drawerFooterButton: css`
+    width: 100%;
+    min-height: 40px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: ${token.colorText};
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: ${token.colorBgTextHover};
+    }
+
+    .drawer-footer-label {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   `,
 }));
@@ -538,6 +583,22 @@ type PublishedShare = {
   deleteToken: string;
 };
 
+type AuthUser = {
+  id: number;
+  displayName?: string;
+  avatarUrl?: string;
+  status?: string;
+  email?: string;
+  provider?: string;
+  providerLogin?: string;
+};
+
+type AuthState =
+  | { authenticated: false; user?: undefined }
+  | { authenticated: true; user: AuthUser };
+
+type AuthStatus = 'loading' | 'ready';
+
 function formatStats(stats: import('./types').ProviderStats) {
   return `首字 ${(stats.ttff / 1000).toFixed(1)}s · 总耗时 ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString('zh-CN')}字 · ${stats.charsPerSec}字/s`;
 }
@@ -719,6 +780,10 @@ const App = () => {
   const [shareLoading, setShareLoading] = useState(false);
   const [publishedShare, setPublishedShare] = useState<PublishedShare | null>(null);
   const [publishedShareMap, setPublishedShareMap] = useState<Record<number, PublishedShare>>({});
+  const [authState, setAuthState] = useState<AuthState>({ authenticated: false });
+  const [authStatus, setAuthStatus] = useState<AuthStatus>('loading');
+  const [authLoading, setAuthLoading] = useState(false);
+  const pendingAuthActionRef = useRef<(() => void) | null>(null);
 
   // 预设提示词
   const presetPrompts: PromptsProps['items'] = useMemo(() => [
@@ -898,6 +963,74 @@ const App = () => {
     toggleProvider,
   } = useStore.getState();
 
+  const refreshAuthState = async (): Promise<AuthState> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' });
+      const data = await res.json().catch(() => null) as AuthState | null;
+      const nextState: AuthState = res.ok && data?.authenticated ? data : { authenticated: false };
+      setAuthState(nextState);
+      return nextState;
+    } catch {
+      const nextState: AuthState = { authenticated: false };
+      setAuthState(nextState);
+      return nextState;
+    } finally {
+      setAuthStatus('ready');
+    }
+  };
+
+  const startLogin = async (provider: 'github' | 'google' | 'microsoft' = 'github', afterLogin?: () => void) => {
+    if (authLoading) return;
+    pendingAuthActionRef.current = afterLogin ?? null;
+    setAuthLoading(true);
+    const loginUrl = `${API_BASE_URL}/api/auth/${provider}/start`;
+
+    try {
+      await chrome.tabs.create({ url: loginUrl });
+    } catch {
+      window.open(loginUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    const providerName = provider === 'google' ? 'Google' : provider === 'microsoft' ? 'Microsoft' : 'GitHub';
+    message.info(`请在打开的页面完成 ${providerName} 授权`);
+    const startedAt = Date.now();
+    const poll = window.setInterval(async () => {
+      const nextState = await refreshAuthState();
+      if (nextState.authenticated) {
+        window.clearInterval(poll);
+        setAuthLoading(false);
+        message.success('登录成功');
+        const pendingAction = pendingAuthActionRef.current;
+        pendingAuthActionRef.current = null;
+        pendingAction?.();
+        return;
+      }
+
+      if (Date.now() - startedAt > 120_000) {
+        window.clearInterval(poll);
+        setAuthLoading(false);
+        pendingAuthActionRef.current = null;
+        message.warning('登录未完成，请稍后重试');
+      }
+    }, 2000);
+  };
+
+  const logoutAccount = async () => {
+    setAuthLoading(true);
+    try {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      setAuthState({ authenticated: false });
+      message.success('已退出登录');
+    } catch {
+      message.error('退出登录失败，请稍后重试');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   // ==================== Init ====================
   useEffect(() => {
     const cleanup = useStore.getState().init();
@@ -916,6 +1049,10 @@ const App = () => {
       cleanup?.();
       chrome.runtime?.onMessage.removeListener(messageListener);
     };
+  }, []);
+
+  useEffect(() => {
+    void refreshAuthState();
   }, []);
 
   // 检查并提交等待中的通道
@@ -1023,6 +1160,33 @@ const App = () => {
     }
   };
 
+  const ensureAuthenticatedForShare = async () => {
+    if (authState.authenticated) return true;
+    const nextState = authStatus === 'loading' ? await refreshAuthState() : authState;
+    if (nextState.authenticated) return true;
+
+    Modal.confirm({
+      title: '登录后分享',
+      content: '登录后可生成公开分享链接，并在之后管理或撤回分享内容。',
+      okText: 'GitHub 登录',
+      cancelText: '取消',
+      onOk: () => startLogin('github', publishShare),
+      footer: (_, { OkBtn, CancelBtn }) => (
+        <>
+          <CancelBtn />
+          <Button icon={<Google.Color size={14} />} onClick={() => startLogin('google', publishShare)}>
+            Google 登录
+          </Button>
+          <Button icon={<Microsoft.Color size={14} />} onClick={() => startLogin('microsoft', publishShare)}>
+            Microsoft 登录
+          </Button>
+          <OkBtn />
+        </>
+      ),
+    });
+    return false;
+  };
+
   const publishShare = async () => {
     const snapshot = buildShareSnapshot();
     if (!snapshot) {
@@ -1035,6 +1199,7 @@ const App = () => {
       const res = await fetch(`${API_BASE_URL}/api/shares`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(snapshot),
       });
       const data = await res.json().catch(() => null) as { id?: string; url?: string; deleteToken?: string; error?: string } | null;
@@ -1073,6 +1238,7 @@ const App = () => {
       const res = await fetch(`${API_BASE_URL}/api/shares/${encodeURIComponent(publishedShare.id)}`, {
         method: 'DELETE',
         headers: { 'x-delete-token': publishedShare.deleteToken },
+        credentials: 'include',
       });
       const data = await res.json().catch(() => null) as { error?: string } | null;
       if (!res.ok) {
@@ -1092,11 +1258,13 @@ const App = () => {
     }
   };
 
-  const handleShareCurrentSession = () => {
+  const handleShareCurrentSession = async () => {
     if (!canShareCurrentSession) {
       message.info(isAnyRunning || summaryStatus === 'running' ? '请等待当前回答完成后再分享' : '当前没有可分享内容');
       return;
     }
+
+    if (!(await ensureAuthenticatedForShare())) return;
 
     Modal.confirm({
       title: '生成公开分享链接？',
@@ -1624,10 +1792,87 @@ const App = () => {
   // ==================== Render ====================
   const summaryBlockReason = useStore.getState().summaryBlockReason();
   const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+  const accountTitle = authState.authenticated
+    ? authState.user.displayName || authState.user.providerLogin || '账号'
+    : '登录';
+  const loginMenuItems = [
+    {
+      key: 'login-github',
+      label: 'GitHub 登录',
+      icon: <LoginOutlined />,
+      onClick: () => startLogin('github'),
+    },
+    {
+      key: 'login-google',
+      label: 'Google 登录',
+      icon: <Google.Color size={14} />,
+      onClick: () => startLogin('google'),
+    },
+    {
+      key: 'login-microsoft',
+      label: 'Microsoft 登录',
+      icon: <Microsoft.Color size={14} />,
+      onClick: () => startLogin('microsoft'),
+    },
+  ];
+  const accountMenuItems = authState.authenticated ? [
+    {
+      key: 'account',
+      label: (
+        <div style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {accountTitle}
+        </div>
+      ),
+      disabled: true,
+    },
+    { type: 'divider' as const },
+    {
+      key: 'refresh',
+      label: '刷新登录状态',
+      onClick: () => void refreshAuthState(),
+    },
+    {
+      key: 'logout',
+      label: '退出登录',
+      icon: <LogoutOutlined />,
+      onClick: logoutAccount,
+    },
+  ] : [];
+
+  const drawerFooter = (
+    <div className={styles.drawerFooterActions}>
+      {authState.authenticated ? (
+        <Dropdown menu={{ items: accountMenuItems }} trigger={['click']} placement="topLeft">
+          <button className={styles.drawerFooterButton} disabled={authLoading}>
+            <Avatar size={24} src={authState.user.avatarUrl} icon={<UserOutlined />} />
+            <span className="drawer-footer-label">{accountTitle}</span>
+          </button>
+        </Dropdown>
+      ) : (
+        <Dropdown menu={{ items: loginMenuItems }} trigger={['click']} placement="topLeft">
+          <button className={styles.drawerFooterButton} disabled={authLoading}>
+            <LoginOutlined />
+            <span className="drawer-footer-label">登录</span>
+          </button>
+        </Dropdown>
+      )}
+      <button className={styles.drawerFooterButton} onClick={() => setSettingsOpen(true)}>
+        <SettingOutlined />
+        <span className="drawer-footer-label">设置</span>
+      </button>
+    </div>
+  );
 
   return (
     <div className={styles.copilotChat} ref={containerRef}>
       {/* ─── Floating Toolbar ─── */}
+      <div className={styles.floatingAccount}>
+        <Tooltip title="菜单" placement="right">
+          <button className={styles.floatingBtn} onClick={() => setHistoryOpen(true)}>
+            <MenuOutlined />
+          </button>
+        </Tooltip>
+      </div>
       <div className={styles.floatingToolbar}>
         <button
           className={styles.floatingBtnWithText}
@@ -1642,12 +1887,13 @@ const App = () => {
         >
           <PlusOutlined />
         </button>
-        <button className={styles.floatingBtn} title="历史记录" onClick={() => setHistoryOpen(true)}>
-          <CommentOutlined />
-        </button>
-        <button className={styles.floatingBtn} title="全局设置" onClick={() => setSettingsOpen(true)}>
-          <SettingOutlined />
-        </button>
+        {!authState.authenticated ? (
+          <Dropdown menu={{ items: loginMenuItems }} trigger={['click']} placement="bottomRight">
+            <button className={styles.floatingBtn} title="登录" disabled={authLoading}>
+              <LoginOutlined />
+            </button>
+          </Dropdown>
+        ) : null}
       </div>
 
       {/* ─── Chat List ─── */}
@@ -1815,7 +2061,7 @@ const App = () => {
 
       {/* ─── Modals & Drawers ─── */}
       <ChannelSettingsDrawer />
-      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} />
+      <HistoryDrawer open={historyOpen} onClose={() => setHistoryOpen(false)} footer={drawerFooter} />
       <GlobalSettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} sidebarWidth={sidebarWidth} />
     </div>
   );
