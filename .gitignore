@@ -16,3 +16,5 @@ packages/api/.env
 packages/site/.env
 packages/site/.env.local
 .env
+packages/site/vite-dev.out.log
+packages/site/vite-dev.err.log
