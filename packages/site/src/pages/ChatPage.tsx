@@ -5,8 +5,10 @@ import {
   CarOutlined,
   CheckSquareOutlined,
   CommentOutlined,
+  CopyOutlined,
   DeleteOutlined,
   GlobalOutlined,
+  HomeOutlined,
   HeartOutlined,
   MenuFoldOutlined,
   LoginOutlined,
@@ -19,30 +21,47 @@ import {
   TrophyOutlined,
   UserOutlined,
 } from '@ant-design/icons'
-import { Bubble, Conversations, Sender, Welcome } from '@ant-design/x'
+import { Bubble, Conversations, Sender, Think, Welcome } from '@ant-design/x'
 import type { BubbleListProps, ConversationsProps } from '@ant-design/x'
 import XMarkdown from '@ant-design/x-markdown'
-import { Avatar, Button, Drawer, Dropdown, Flex, Modal, Switch, Tag } from 'antd'
+import { App as AntApp, Avatar, Button, Drawer, Dropdown, Flex, Modal, Switch, Tag } from 'antd'
 import type { MenuProps } from 'antd'
 import { DeepSeek, Doubao, Qwen, Yuanbao } from '@lobehub/icons'
 import type { Locale } from '../content'
 import { API_BASE_URL } from '../app/api'
 import { logout, startGithubLogin, type SiteAuth } from '../app/auth'
-import { assetPath } from '../app/paths'
+import { assetPath, withLocale } from '../app/paths'
 
-type ChatMessage = {
+export type ProviderStats = {
+  ttff: number
+  totalTime: number
+  charCount: number
+  charsPerSec: number
+}
+
+export type ChatMessage = {
   key: string
   role: 'user' | 'assistant'
   content: string
   providerId?: string
   providerName?: string
+  thinkResponse?: string
+  analysisResponse?: string
+  stats?: ProviderStats
 }
 
-type ChatSession = {
+export type ChatSession = {
   id: string
   title: string
   updatedAt: number
   messages: ChatMessage[]
+}
+
+type ShareNotice = {
+  status: 'loading' | 'error'
+  title: string
+  description: string
+  actionLabel: string
 }
 
 type AiModel = {
@@ -50,6 +69,17 @@ type AiModel = {
   name: string
   ownedBy?: string
   Icon: ElementType
+}
+
+type CompletionMessage = {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+}
+
+type SummaryAnalysisSection = {
+  key: string
+  title: string
+  content: string
 }
 
 const storageKey = 'ai-clash-site-chat-history'
@@ -92,6 +122,15 @@ const labels = {
     apiMode: 'API',
     openHistory: '打开历史对话',
     prompts: '💡 你可以问我：',
+    thinkDone: '深度思考完成',
+    analysisDone: '分析完成',
+    summaryAnalysisDone: '归纳总结过程完成',
+    copySummary: '复制总结',
+    copySuccess: '总结内容已复制到剪贴板',
+    copyBlocked: '当前浏览器限制剪贴板访问，请手动选择总结内容复制',
+    sharedConversation: '分享对话',
+    sharedReadonly: '这是一条只读分享。',
+    backHome: '返回首页',
   },
   en: {
     newChat: 'New Chat',
@@ -130,6 +169,15 @@ const labels = {
     apiMode: 'API',
     openHistory: 'Open history',
     prompts: '💡 Try asking:',
+    thinkDone: 'Reasoning complete',
+    analysisDone: 'Analysis complete',
+    summaryAnalysisDone: 'Summary process complete',
+    copySummary: 'Copy summary',
+    copySuccess: 'Summary copied to clipboard',
+    copyBlocked: 'Clipboard access is restricted in this browser. Please select and copy the summary manually.',
+    sharedConversation: 'Shared chat',
+    sharedReadonly: 'This is a read-only shared conversation.',
+    backHome: 'Back Home',
   },
 } satisfies Record<Locale, Record<string, string>>
 
@@ -145,6 +193,35 @@ const promptItems = {
     { icon: <HeartOutlined />, text: 'Turn several model suggestions into one actionable plan' },
   ],
 } satisfies Record<Locale, Array<{ icon: ReactNode; text: string }>>
+
+const SUMMARY_SYSTEM_PROMPT = `# Role
+你是「AI 对撞机」的中立裁判，不是独立回答问题的普通助手。你的主要任务是对比多个 AI 模型对同一问题的回答，提炼共识、展示分歧、做出基于回答内容的裁判取舍，最后给用户一份直接可执行的最终建议。
+
+# Principles
+1. 对撞优先：必须让用户看清各 AI 回答的共同点、分歧点、隐含假设和遗漏。
+2. 只基于材料：只基于用户问题和各模型回答做归纳、比较与取舍；不要引入各模型回答之外的新事实、新方案、新风险或新背景知识。
+3. 不拼接原文：不要复述每个模型的长段原文，只保留对对比和最终判断有用的信息。
+4. 不制造共识：只有多个回答共同支持，或从回答内容中可以稳定推出的内容，才放入“核心共识”。
+5. 可裁判但不扩写：可以指出哪些回答路线更可靠、哪些应降权，但不要扩展成自己的独立解答。
+6. 面向行动：最终建议必须可执行，并且能追溯到“核心共识 / 观点对撞 / 裁判取舍”中的依据；如果材料不足以支持确定结论，应说明不足以判断。
+
+# Output Contract
+严格使用以下输出结构。分析区必须放入 AI Clash 专用标记内，标记外只输出最终建议正文。
+不要使用任何模型原生思考标签。
+如果你无法输出专用标记，至少必须保留四个 Markdown 标题：### 核心共识、### 观点对撞、### 裁判取舍、### 最终建议，方便系统兜底解析；正常情况下不要输出“最终建议 / 终极建议”标题。
+
+[[AI_CLASH_SUMMARY_ANALYSIS_BEGIN]]
+### 核心共识
+提炼各 AI 共同支持的关键事实、约束和稳定判断。不要写最终建议。
+
+### 观点对撞
+对比各 AI 的关键分歧、不同路线、隐含假设、适用条件、明显遗漏或风险。如果没有关键分歧，写“无关键分歧”。
+
+### 裁判取舍
+基于上面的共识和对撞，说明采纳哪类回答路线、降权哪类回答路线，以及原因。不要提出各 AI 回答之外的新方案。
+[[AI_CLASH_SUMMARY_ANALYSIS_END]]
+
+直接给出最终建议正文。不要输出“终极建议”标题，不要客套，不要说“综上”，必要时用步骤、优先级或 If-Then 条件表达。`
 
 function readSessions(): ChatSession[] {
   try {
@@ -178,23 +255,235 @@ function getModelIcon(modelId = '') {
   const value = modelId.toLowerCase()
   if (value.includes('deepseek')) return DeepSeek.Color
   if (value.includes('doubao') || value.includes('volc')) return Doubao.Color
-  if (value.includes('qwen') || value.includes('qwq') || value.includes('tongyi')) return Qwen.Color
+  if (value.includes('qwen') || value.includes('qwq') || value.includes('tongyi') || value.includes('qianwen')) return Qwen.Color
   if (value.includes('hunyuan') || value.includes('yuanbao')) return Yuanbao.Color
   return MergeCellsOutlined
 }
 
-function ProviderHeader({ providerId, providerName }: { providerId?: string; providerName?: string }) {
+function formatStats(stats: ProviderStats | undefined, locale: Locale) {
+  if (!stats) return ''
+  return locale === 'zh'
+    ? `首字 ${(stats.ttff / 1000).toFixed(1)}s · 总耗时 ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString('zh-CN')}字 · ${stats.charsPerSec}字/s`
+    : `TTFT ${(stats.ttff / 1000).toFixed(1)}s · Total ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString('en-US')} chars · ${stats.charsPerSec} chars/s`
+}
+
+function ProviderHeader({
+  providerId,
+  providerName,
+  stats,
+  collapsed,
+  onToggle,
+  locale,
+}: {
+  providerId?: string
+  providerName?: string
+  stats?: ProviderStats
+  collapsed?: boolean
+  onToggle?: () => void
+  locale: Locale
+}) {
   const Icon = getModelIcon(providerId)
-  return (
-    <div className="chat-provider-header">
-      <span className="chat-provider-header__arrow">
+  const content = (
+    <>
+      <span className={`chat-provider-header__arrow ${collapsed ? 'is-collapsed' : ''}`}>
         <RightOutlined />
       </span>
       <div className="chat-provider-header__content">
         <Icon size={14} />
         <span>{providerName || providerId || 'AI'}</span>
+        {stats ? <small className="chat-provider-header__status">{formatStats(stats, locale)}</small> : null}
       </div>
+    </>
+  )
+
+  if (onToggle) {
+    return (
+      <button className="chat-provider-header chat-provider-header--button" type="button" onClick={onToggle}>
+        {content}
+      </button>
+    )
+  }
+
+  return (
+    <div className="chat-provider-header">
+      {content}
     </div>
+  )
+}
+
+function ThinkAndMarkdown({
+  message,
+  markdownClassName,
+  expandedMap,
+  onExpandedChange,
+  locale,
+}: {
+  message: ChatMessage
+  markdownClassName: string
+  expandedMap: Record<string, boolean>
+  onExpandedChange: (key: string, expanded: boolean) => void
+  locale: Locale
+}) {
+  const copy = labels[locale]
+  const thinkKey = `${message.key}:think`
+  const analysisKey = `${message.key}:analysis`
+  const isSummary = message.providerId === 'summary'
+
+  return (
+    <>
+      {message.thinkResponse ? (
+        <Think
+          title={copy.thinkDone}
+          loading={false}
+          expanded={!!expandedMap[thinkKey]}
+          onExpand={(expanded) => onExpandedChange(thinkKey, expanded)}
+        >
+          <XMarkdown className={markdownClassName} content={message.thinkResponse} />
+        </Think>
+      ) : null}
+      {message.analysisResponse ? (
+        <Think
+          title={isSummary ? copy.summaryAnalysisDone : copy.analysisDone}
+          loading={false}
+          expanded={!!expandedMap[analysisKey]}
+          onExpand={(expanded) => onExpandedChange(analysisKey, expanded)}
+        >
+          <XMarkdown className={markdownClassName} content={message.analysisResponse} />
+        </Think>
+      ) : null}
+      <XMarkdown className={markdownClassName} content={message.content} />
+    </>
+  )
+}
+
+const SUMMARY_ANALYSIS_SECTION_TITLES = ['核心共识', '观点对撞', '裁判取舍']
+const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
+  综合解析: '裁判取舍',
+  综合分析: '裁判取舍',
+}
+const SUMMARY_FINAL_SECTION_TITLES = ['最终建议', '终极建议', '最终结论', '建议']
+const SUMMARY_MARKER_RE = /\[\[AI_CLASH_SUMMARY_ANALYSIS_BEGIN\]\]([\s\S]*?)\[\[AI_CLASH_SUMMARY_ANALYSIS_END\]\]/
+const SUMMARY_MARKER_LINE_RE = /^\s*\[\[AI_CLASH_SUMMARY_ANALYSIS_(?:BEGIN|END)\]\]\s*$/gm
+
+function normalizeSummaryHeading(title: string) {
+  return SUMMARY_ANALYSIS_TITLE_ALIASES[title.trim()] || title.trim()
+}
+
+function splitSummaryAnalysisSections(markdown: string): SummaryAnalysisSection[] {
+  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析)\s*$/gm
+  const matches = Array.from(markdown.matchAll(headingRe))
+  if (!matches.length) return []
+
+  return matches
+    .map((match) => {
+      const title = SUMMARY_ANALYSIS_TITLE_ALIASES[match[1]] ?? match[1]
+      const start = (match.index ?? 0) + match[0].length
+      const next = matches.find((candidate) => (candidate.index ?? 0) > (match.index ?? 0))
+      const end = next?.index ?? markdown.length
+      return {
+        key: title,
+        title,
+        content: markdown.slice(start, end).trim(),
+      }
+    })
+    .filter((section) => SUMMARY_ANALYSIS_SECTION_TITLES.includes(section.title) && section.content)
+}
+
+function splitSummaryOutputFallback(markdown: string): { analysis: string; final: string } | null {
+  const cleaned = markdown.replace(SUMMARY_MARKER_LINE_RE, '').trim()
+  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|最终建议|终极建议|最终结论|建议)\s*$/gm
+  const matches = Array.from(cleaned.matchAll(headingRe))
+  if (!matches.length) return null
+
+  const sections = matches.map((match, index) => {
+    const contentStart = (match.index ?? 0) + match[0].length
+    const nextStart = matches[index + 1]?.index ?? cleaned.length
+    return {
+      title: normalizeSummaryHeading(match[1]),
+      content: cleaned.slice(contentStart, nextStart).trim(),
+    }
+  })
+  const analysisSections = sections.filter((section) => SUMMARY_ANALYSIS_SECTION_TITLES.includes(section.title) && section.content)
+  const finalSections = sections.filter((section) => SUMMARY_FINAL_SECTION_TITLES.includes(section.title) && section.content)
+  if (!analysisSections.length || !finalSections.length) return null
+
+  return {
+    analysis: analysisSections.map((section) => `### ${section.title}\n${section.content}`).join('\n\n'),
+    final: finalSections.map((section) => section.content).join('\n\n').trim(),
+  }
+}
+
+function splitSummaryCompletion(markdown: string): { analysis?: string; final: string } {
+  const markerMatch = markdown.match(SUMMARY_MARKER_RE)
+  if (markerMatch) {
+    const analysis = markerMatch[1].trim()
+    const final = markdown.replace(SUMMARY_MARKER_RE, '').trim()
+    return { analysis: analysis || undefined, final: final || markdown }
+  }
+
+  const fallback = splitSummaryOutputFallback(markdown)
+  if (fallback) return { analysis: fallback.analysis, final: fallback.final }
+  return { final: markdown }
+}
+
+function SummaryThinkAndMarkdown({
+  message,
+  markdownClassName,
+  expandedMap,
+  onExpandedChange,
+  locale,
+}: {
+  message: ChatMessage
+  markdownClassName: string
+  expandedMap: Record<string, boolean>
+  onExpandedChange: (key: string, expanded: boolean) => void
+  locale: Locale
+}) {
+  const copy = labels[locale]
+  const thinkKey = `${message.key}:think`
+  const analysisSource = message.analysisResponse || message.content
+  const analysisSections = splitSummaryAnalysisSections(analysisSource)
+  const shouldRenderRawResponse = !!message.analysisResponse || !analysisSections.length
+
+  return (
+    <>
+      {message.thinkResponse ? (
+        <Think
+          title={copy.thinkDone}
+          loading={false}
+          expanded={!!expandedMap[thinkKey]}
+          onExpand={(expanded) => onExpandedChange(thinkKey, expanded)}
+        >
+          <XMarkdown className={markdownClassName} content={message.thinkResponse} />
+        </Think>
+      ) : null}
+      {analysisSections.length ? (
+        analysisSections.map((section) => {
+          const sectionKey = `${message.key}:analysis:${section.key}`
+          return (
+            <Think
+              key={section.key}
+              title={section.title}
+              loading={false}
+              expanded={!!expandedMap[sectionKey]}
+              onExpand={(expanded) => onExpandedChange(sectionKey, expanded)}
+            >
+              <XMarkdown className={markdownClassName} content={section.content} />
+            </Think>
+          )
+        })
+      ) : message.analysisResponse ? (
+        <Think
+          title={copy.summaryAnalysisDone}
+          loading={false}
+          expanded={!!expandedMap[`${message.key}:analysis`]}
+          onExpand={(expanded) => onExpandedChange(`${message.key}:analysis`, expanded)}
+        >
+          <XMarkdown className={markdownClassName} content={message.analysisResponse} />
+        </Think>
+      ) : null}
+      {shouldRenderRawResponse ? <XMarkdown className={markdownClassName} content={message.content} /> : null}
+    </>
   )
 }
 
@@ -258,6 +547,39 @@ function readCompletionContent(payload: unknown) {
   return typeof text === 'string' ? text : ''
 }
 
+function readDeltaValue(payload: unknown, field: 'content' | 'reasoning_content') {
+  if (!payload || typeof payload !== 'object') return ''
+  const choices = (payload as { choices?: unknown }).choices
+  if (!Array.isArray(choices)) return ''
+  const first = choices[0]
+  if (!first || typeof first !== 'object') return ''
+  const delta = (first as { delta?: unknown }).delta
+  if (delta && typeof delta === 'object') {
+    const value = (delta as Record<string, unknown>)[field]
+    if (typeof value === 'string') return value
+  }
+  return ''
+}
+
+function readCompletionDelta(payload: unknown) {
+  return readDeltaValue(payload, 'content') || readCompletionContent(payload)
+}
+
+function readReasoningDelta(payload: unknown) {
+  return readDeltaValue(payload, 'reasoning_content')
+}
+
+function readErrorMessage(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== 'object') return fallback
+  const error = (payload as { error?: unknown }).error
+  if (error && typeof error === 'object') {
+    const message = (error as { message?: unknown }).message
+    if (message != null) return String(message)
+  }
+  if (error != null) return String(error)
+  return fallback
+}
+
 async function fetchJson(url: string, init?: RequestInit) {
   const res = await fetch(url, { credentials: 'include', ...init })
   const data = await res.json().catch(() => null)
@@ -268,8 +590,161 @@ async function fetchJson(url: string, init?: RequestInit) {
   return data
 }
 
-export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
+async function fetchChatCompletionStream({
+  model,
+  messages,
+  deepThink,
+  onDelta,
+}: {
+  model: string
+  messages: CompletionMessage[]
+  deepThink: boolean
+  onDelta: (message: Pick<ChatMessage, 'content' | 'thinkResponse'>) => void
+}) {
+  const res = await fetch(`${API_BASE_URL}/api/ai/chat/completions`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      messages,
+      stream: true,
+      extra_body: {
+        thinking: { type: deepThink ? 'enabled' : 'disabled' },
+      },
+    }),
+  })
+
+  const contentType = res.headers.get('content-type') || ''
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    try {
+      throw new Error(readErrorMessage(JSON.parse(text), `HTTP ${res.status}`))
+    } catch (error) {
+      if (error instanceof SyntaxError) throw new Error(text || `HTTP ${res.status}`)
+      throw error
+    }
+  }
+
+  if (!res.body || !contentType.includes('text/event-stream')) {
+    const data = await res.json().catch(() => null)
+    const content = readCompletionContent(data)
+    if (content) onDelta({ content })
+    return { content, thinkResponse: '' }
+  }
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let content = ''
+  let thinkResponse = ''
+  let done = false
+
+  const consumeEvent = (event: string) => {
+    const data = event
+      .split(/\r?\n/)
+      .filter((line) => line.startsWith('data:'))
+      .map((line) => line.slice(5).trimStart())
+      .join('\n')
+      .trim()
+
+    if (!data) return
+    if (data === '[DONE]') {
+      done = true
+      return
+    }
+
+    try {
+      const payload = JSON.parse(data)
+      const contentDelta = readCompletionDelta(payload)
+      const reasoningDelta = readReasoningDelta(payload)
+      if (contentDelta || reasoningDelta) {
+        content += contentDelta
+        thinkResponse += reasoningDelta
+        onDelta({ content, thinkResponse })
+      }
+    } catch {
+      // Ignore malformed SSE keep-alive payloads from upstream proxies.
+    }
+  }
+
+  while (!done) {
+    const chunk = await reader.read()
+    if (chunk.done) break
+    buffer += decoder.decode(chunk.value, { stream: true })
+    const events = buffer.split(/\r?\n\r?\n/)
+    buffer = events.pop() || ''
+    events.forEach(consumeEvent)
+  }
+
+  buffer += decoder.decode()
+  if (buffer.trim()) consumeEvent(buffer)
+  return { content, thinkResponse }
+}
+
+function buildChannelHistoryMessages(messages: ChatMessage[], channelId: string): CompletionMessage[] {
+  const historyMessages: CompletionMessage[] = []
+
+  messages.forEach((message) => {
+    if (!message.content.trim()) return
+    if (message.role === 'user') {
+      historyMessages.push({ role: 'user', content: message.content })
+      return
+    }
+    if (message.providerId === channelId || message.providerId === 'summary') {
+      historyMessages.push({ role: 'assistant', content: message.content })
+    }
+  })
+
+  return historyMessages
+}
+
+async function writeClipboard(text: string) {
+  if (!navigator.clipboard?.writeText) return false
+  const timeout = new Promise<false>((resolve) => {
+    window.setTimeout(() => resolve(false), 500)
+  })
+  const write = navigator.clipboard.writeText(text).then(
+    () => true,
+    () => false,
+  )
+  return Promise.race([write, timeout])
+}
+
+function ChatNotice({ notice, locale }: { notice: ShareNotice; locale: Locale }) {
+  return (
+    <div className="share-state-view">
+      <div className={`share-state-view__mark ${notice.status === 'loading' ? 'is-loading' : ''}`}>
+        {notice.status === 'loading' ? <MergeCellsOutlined /> : <RightOutlined />}
+      </div>
+      <h1>{notice.title}</h1>
+      <p>{notice.description}</p>
+      {notice.status === 'error' ? (
+        <a className="share-state-view__button" href={withLocale('/', locale)}>
+          <HomeOutlined />
+          {notice.actionLabel}
+        </a>
+      ) : null}
+    </div>
+  )
+}
+
+export function ChatPage({
+  auth,
+  locale,
+  mode = 'chat',
+  sharedSession,
+  shareNotice,
+}: {
+  auth?: SiteAuth
+  locale: Locale
+  mode?: 'chat' | 'share'
+  sharedSession?: ChatSession
+  shareNotice?: ShareNotice
+}) {
+  const { message } = AntApp.useApp()
   const copy = labels[locale]
+  const isShareMode = mode === 'share'
   const [sessions, setSessions] = useState<ChatSession[]>(readSessions)
   const [activeId, setActiveId] = useState(() => sessions[0]?.id ?? '')
   const [inputValue, setInputValue] = useState('')
@@ -282,12 +757,15 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
   const [apiModels, setApiModels] = useState<AiModel[]>([])
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
   const [enabledChannels, setEnabledChannels] = useState<Set<string>>(() => new Set())
+  const [collapseMap, setCollapseMap] = useState<Record<string, boolean>>({})
+  const [expandedMap, setExpandedMap] = useState<Record<string, boolean>>({})
 
   const channelItems = apiModels
 
-  const activeSession = sessions.find((session) => session.id === activeId)
+  const activeSession = isShareMode ? sharedSession : sessions.find((session) => session.id === activeId)
 
   useEffect(() => {
+    if (isShareMode) return
     let cancelled = false
     setModelsLoading(true)
     setModelsError('')
@@ -312,7 +790,7 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
     return () => {
       cancelled = true
     }
-  }, [copy.modelLoadFailed])
+  }, [copy.modelLoadFailed, isShareMode])
 
   const persist = (nextSessions: ChatSession[], nextActiveId = activeId) => {
     setSessions(nextSessions)
@@ -335,9 +813,28 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
     setMobileSidebarOpen(false)
   }
 
+  const updateSessionMessage = (sessionId: string, messageKey: string, patch: Partial<Pick<ChatMessage, 'content' | 'thinkResponse'>>) => {
+    setSessions((prev) => {
+      const nextSessions = prev.map((session) => (
+        session.id === sessionId
+          ? {
+              ...session,
+              updatedAt: Date.now(),
+              messages: session.messages.map((message) => (
+                message.key === messageKey ? { ...message, ...patch } : message
+              )),
+            }
+          : session
+      ))
+      writeSessions(nextSessions)
+      return nextSessions
+    })
+  }
+
   const submit = async (value: string) => {
     const question = value.trim()
     if (!question || isSending) return
+    if (!auth) return
     if (!auth.state.authenticated) {
       startGithubLogin()
       return
@@ -370,61 +867,75 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
     setInputValue('')
     setIsSending(true)
 
-    const historyMessages = baseSession.messages
-      .filter((message) => message.role === 'user' || !message.providerId)
-      .map((message) => ({ role: message.role, content: message.content }))
     const results = await Promise.all(selectedChannels.map(async (channel) => {
+      const pendingMessage = pendingMessages.find((message) => message.providerId === channel.id)
+      const pendingKey = pendingMessage?.key ?? `${baseSession.id}:${channel.id}:fallback`
       try {
-        const data = await fetchJson(`${API_BASE_URL}/api/ai/chat/completions`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            model: channel.id,
-            messages: [...historyMessages, { role: 'user', content: question }],
+        const historyMessages = buildChannelHistoryMessages(baseSession.messages, channel.id)
+        const result = await fetchChatCompletionStream({
+          model: channel.id,
+          messages: [...historyMessages, { role: 'user', content: question }],
+          deepThink,
+          onDelta: (message) => updateSessionMessage(nextSession.id, pendingKey, {
+            content: message.content || copy.thinking,
+            thinkResponse: message.thinkResponse,
           }),
         })
         return {
           channel,
-          content: readCompletionContent(data) || copy.requestFailed,
+          content: result.content || copy.requestFailed,
+          thinkResponse: result.thinkResponse,
         }
       } catch (error) {
+        const content = `**${copy.requestFailed}**\n\n${error instanceof Error ? error.message : copy.requestFailed}`
+        updateSessionMessage(nextSession.id, pendingKey, { content })
         return {
           channel,
-          content: `**${copy.requestFailed}**\n\n${error instanceof Error ? error.message : copy.requestFailed}`,
+          content,
+          thinkResponse: '',
         }
       }
     }))
 
-    const completedMessages: ChatMessage[] = results.map(({ channel, content }) => ({
+    const completedMessages: ChatMessage[] = results.map(({ channel, content, thinkResponse }) => ({
       key: `${baseSession.id}:${channel.id}:${Date.now()}`,
       role: 'assistant',
       providerId: channel.id,
       providerName: channel.name,
       content,
+      thinkResponse: thinkResponse || undefined,
     }))
     const successfulResults = results.filter((result) => !result.content.startsWith(`**${copy.requestFailed}**`))
     if (autoSummary && successfulResults.length >= 2) {
       try {
-        const summaryPrompt = successfulResults
-          .map((result) => `## ${result.channel.name}\n${result.content}`)
+        const responseParts = successfulResults
+          .map((result) => `【${result.channel.name} 的回答】\n${result.content}`)
           .join('\n\n')
+        const userContent = `【用户原始问题】\n${question}\n\n${responseParts}`
         const summary = await fetchJson(`${API_BASE_URL}/api/ai/chat/completions`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
             model: selectedChannels[0].id,
             messages: [
-              { role: 'system', content: '你是 AI Clash 的归纳总结助手。请对多个模型回答做简洁对比，提炼共识、分歧和最终建议。' },
-              { role: 'user', content: `用户问题：${question}\n\n模型回答：\n\n${summaryPrompt}` },
+              { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
+              { role: 'user', content: userContent },
             ],
+            temperature: 0.3,
+            extra_body: {
+              thinking: { type: 'enabled' },
+            },
           }),
         })
+        const summaryContent = readCompletionContent(summary) || copy.requestFailed
+        const parsedSummary = splitSummaryCompletion(summaryContent)
         completedMessages.push({
           key: `${baseSession.id}:summary:${Date.now()}`,
           role: 'assistant',
           providerId: 'summary',
           providerName: locale === 'zh' ? '归纳总结' : 'Summary',
-          content: readCompletionContent(summary) || copy.requestFailed,
+          content: parsedSummary.final,
+          analysisResponse: parsedSummary.analysis,
         })
       } catch (error) {
         completedMessages.push({
@@ -475,14 +986,6 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
     },
   })
 
-  const bubbleItems: BubbleListProps['items'] = (activeSession?.messages ?? []).map((message) => ({
-    key: message.key,
-    role: message.role,
-    content: message.content,
-    header: message.providerId ? <ProviderHeader providerId={message.providerId} providerName={message.providerName} /> : undefined,
-    style: message.providerId ? { paddingTop: 0, paddingBottom: 0 } : undefined,
-  }))
-
   const toggleChannel = (id: string) => {
     setEnabledChannels((prev) => {
       const next = new Set(prev)
@@ -500,6 +1003,7 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
     setEnabledChannels(allEnabled ? new Set() : new Set(channelItems.map((item) => item.id)))
   }
   const handleLogout = async () => {
+    if (!auth) return
     await logout()
     await auth.refresh()
   }
@@ -513,7 +1017,81 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
   const userMenuClick: MenuProps['onClick'] = (info) => {
     if (info.key === 'logout') void handleLogout()
   }
-  const userName = getUserName(auth)
+  const userName = auth ? getUserName(auth) : ''
+  const toggleCollapse = (key: string) => {
+    setCollapseMap((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+  const setExpanded = (key: string, expanded: boolean) => {
+    setExpandedMap((prev) => ({ ...prev, [key]: expanded }))
+  }
+  const copySummary = async () => {
+    const summary = activeSession?.messages.find((item) => item.providerId === 'summary')?.content ?? ''
+    const copied = await writeClipboard(summary)
+    if (copied) message.success(copy.copySuccess)
+    else message.info(copy.copyBlocked)
+  }
+  const bubbleItems: BubbleListProps['items'] = (activeSession?.messages ?? []).map((item) => {
+    if (item.role === 'user') {
+      return {
+        key: item.key,
+        role: item.role,
+        content: item.content,
+      }
+    }
+
+    const collapsed = !!collapseMap[item.key]
+    const hasRichContent = !!(item.thinkResponse || item.analysisResponse)
+
+    return {
+      key: item.key,
+      role: item.role,
+      content: item.content,
+      header: item.providerId ? (
+        <ProviderHeader
+          providerId={item.providerId}
+          providerName={item.providerName}
+          stats={item.stats}
+          collapsed={collapsed}
+          onToggle={isShareMode ? () => toggleCollapse(item.key) : undefined}
+          locale={locale}
+        />
+      ) : undefined,
+      style: item.providerId ? { paddingTop: 0, paddingBottom: 0 } : undefined,
+      className: collapsed ? 'share-bubble-content-hidden' : undefined,
+      contentRender: collapsed
+        ? () => null
+        : item.providerId === 'summary'
+          ? () => (
+              <SummaryThinkAndMarkdown
+                message={item}
+                markdownClassName="x-markdown-light"
+                expandedMap={expandedMap}
+                onExpandedChange={setExpanded}
+                locale={locale}
+              />
+            )
+        : hasRichContent
+          ? () => (
+              <ThinkAndMarkdown
+                message={item}
+                markdownClassName="x-markdown-light"
+                expandedMap={expandedMap}
+                onExpandedChange={setExpanded}
+                locale={locale}
+              />
+            )
+          : undefined,
+      footer:
+        isShareMode && item.providerId === 'summary' && !collapsed ? (
+          <Flex gap={8} align="center">
+            <button className="share-floating-btn-text" type="button" onClick={copySummary}>
+              <CopyOutlined />
+              {copy.copySummary}
+            </button>
+          </Flex>
+        ) : undefined,
+    }
+  })
 
   const renderSidebarContent = () => (
     <>
@@ -521,6 +1099,28 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
         <img src={assetPath('/logo.png')} alt="" />
         <span>AI 对撞机</span>
       </a>
+      {isShareMode ? (
+        <>
+          <div className="chat-sidebar-intro">
+            <h1>{sharedSession?.title || copy.sharedConversation}</h1>
+            <p>{copy.sharedReadonly}</p>
+          </div>
+          <div className="chat-history-empty">
+            <CommentOutlined />
+            <span>{copy.sharedConversation}</span>
+          </div>
+          <a className="chat-user-entry" href={withLocale('/', locale)}>
+            <span className="chat-user-avatar">
+              <HomeOutlined />
+            </span>
+            <span className="chat-user-meta">
+              <strong>{copy.backHome}</strong>
+              <small>AI Clash</small>
+            </span>
+          </a>
+        </>
+      ) : (
+      <>
       <div className="chat-sidebar-intro">
         <div className="chat-sidebar-actions">
           <Button block icon={<PlusOutlined />} type="primary" onClick={startNewChat}>
@@ -546,7 +1146,7 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
           <span>{copy.emptyHistory}</span>
         </div>
       )}
-      {auth.status === 'loading' ? (
+      {auth?.status === 'loading' ? (
         <button className="chat-user-entry" disabled type="button">
           <Avatar className="chat-user-avatar" icon={<UserOutlined />} size={32} />
           <span className="chat-user-meta">
@@ -554,7 +1154,7 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
             <small>AI Clash</small>
           </span>
         </button>
-      ) : auth.state.authenticated ? (
+      ) : auth?.state.authenticated ? (
         <Dropdown menu={{ items: userMenu, onClick: userMenuClick }} placement="topRight" trigger={['click']}>
           <button className="chat-user-entry" type="button">
             <Avatar className="chat-user-avatar" icon={<UserOutlined />} size={32} src={auth.state.user.avatarUrl} />
@@ -575,6 +1175,8 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
             <small>AI Clash</small>
           </span>
         </button>
+      )}
+      </>
       )}
     </>
   )
@@ -607,6 +1209,8 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
           <div className="chat-list">
           {bubbleItems.length ? (
             <Bubble.List className="chat-bubble-list" items={bubbleItems} role={bubbleRole} />
+          ) : shareNotice ? (
+            <ChatNotice notice={shareNotice} locale={locale} />
           ) : (
             <div className="chat-empty-state">
               <Welcome
@@ -692,6 +1296,7 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
           )}
           </div>
 
+          {isShareMode ? null : (
           <div className="chat-sender">
           <Flex gap="small" className="chat-option-row">
             <Button size="small" type={autoSummary ? 'primary' : 'default'} icon={<MergeCellsOutlined />} onClick={() => setAutoSummary(!autoSummary)}>
@@ -726,6 +1331,7 @@ export function ChatPage({ auth, locale }: { auth: SiteAuth; locale: Locale }) {
             }}
           />
           </div>
+          )}
         </div>
       </section>
     </main>

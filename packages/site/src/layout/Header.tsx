@@ -7,6 +7,7 @@ import {
   MessageOutlined,
   MoonOutlined,
   SunOutlined,
+  UserOutlined,
 } from '@ant-design/icons'
 import { Button, Drawer, Dropdown, Layout } from 'antd'
 import type { MenuProps } from 'antd'
@@ -27,6 +28,11 @@ const startChatLabels: Record<Locale, string> = {
   en: 'Start Chat',
 }
 
+const accountLabels: Record<Locale, string> = {
+  zh: '账号',
+  en: 'Account',
+}
+
 export function Header({
   locale,
   path,
@@ -43,6 +49,7 @@ export function Header({
   const [menuOpen, setMenuOpen] = useState(false)
   const pagePath = stripLocale(path)
   const startChatHref = withBasePath(withLocale('/chat', locale))
+  const accountHref = withBasePath(withLocale('/account', locale))
   const localeMenu: MenuProps['items'] = [
     {
       key: 'zh',
@@ -115,6 +122,15 @@ export function Header({
             onClick={onToggleTheme}
           />
           {!appMode ? (
+            <Button
+              aria-label={accountLabels[locale]}
+              className="account-nav-button"
+              href={accountHref}
+              icon={<UserOutlined />}
+              type="text"
+            />
+          ) : null}
+          {!appMode ? (
             <a
               className="icon-link"
               href="https://github.com/null-object-0000/ai-clash"
@@ -179,6 +195,14 @@ export function Header({
             {localeLabels.en}
           </a>
         </div>
+        <a
+          className="mobile-github-link"
+          href={accountHref}
+          onClick={() => setMenuOpen(false)}
+        >
+          <UserOutlined />
+          {accountLabels[locale]}
+        </a>
         <a
           className="mobile-github-link"
           href="https://github.com/null-object-0000/ai-clash"

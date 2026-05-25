@@ -168,6 +168,24 @@
   color: var(--vp-c-brand-1);
 }
 
+.account-nav-button.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 50%;
+  background: var(--vp-c-control);
+  color: var(--vp-c-text-2);
+}
+
+.account-nav-button.ant-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  background: var(--vp-c-control-hover);
+  color: var(--vp-c-brand-1);
+}
+
 .icon-link {
   display: inline-flex;
   align-items: center;
@@ -318,7 +336,8 @@
   }
 
   .locale-button.ant-btn,
-  .icon-link {
+  .icon-link,
+  .account-nav-button.ant-btn {
     display: none;
   }
 

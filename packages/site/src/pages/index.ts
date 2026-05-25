@@ -1,3 +1,4 @@
+export { AccountPage } from './AccountPage'
 export { ChangelogPage } from './ChangelogPage'
 export { ChatPage } from './ChatPage'
 export { DownloadPage } from './DownloadPage'

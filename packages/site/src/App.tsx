@@ -9,7 +9,7 @@ import { createAntTheme } from './app/theme'
 import type { ThemeMode } from './app/theme'
 import { Footer } from './layout/Footer'
 import { Header } from './layout/Header'
-import { ChangelogPage, ChatPage, DownloadPage, HomePage, PrivacyPage, SharePage } from './pages'
+import { AccountPage, ChangelogPage, ChatPage, DownloadPage, HomePage, PrivacyPage, SharePage } from './pages'
 
 const { Content } = Layout
 
@@ -17,6 +17,8 @@ function Page({ locale, page, auth }: { locale: Locale; page: string; auth: Site
   switch (page) {
     case '/chat':
       return <ChatPage auth={auth} locale={locale} />
+    case '/account':
+      return <AccountPage auth={auth} locale={locale} />
     case '/download':
       return <DownloadPage locale={locale} />
     case '/changelog':
@@ -39,7 +41,8 @@ export function App() {
   })
   const locale = getInitialLocale(path)
   const page = stripLocale(path)
-  const isAppPage = page === '/chat'
+  const isSharePage = page === '/share' || page.startsWith('/share/')
+  const isAppPage = page === '/chat' || isSharePage
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode
@@ -55,9 +58,9 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (isAppPage) void refreshAuth()
+    if (page === '/chat' || page === '/account') void refreshAuth()
     else setAuthStatus('ready')
-  }, [isAppPage, refreshAuth])
+  }, [page, refreshAuth])
 
   const antLocale = locale === 'en' ? enUS : zhCN
   const antTheme = createAntTheme(themeMode)
@@ -67,8 +70,8 @@ export function App() {
     refresh: refreshAuth,
   }), [authState, authStatus, refreshAuth])
   const pageContent =
-    page === '/share' || page.startsWith('/share/')
-      ? <SharePage locale={locale} themeMode={themeMode} shareId={page.startsWith('/share/') ? page.slice('/share/'.length) : undefined} />
+    isSharePage
+      ? <SharePage auth={auth} locale={locale} themeMode={themeMode} shareId={page.startsWith('/share/') ? page.slice('/share/'.length) : undefined} />
       : <Page auth={auth} locale={locale} page={page} />
 
   return (
