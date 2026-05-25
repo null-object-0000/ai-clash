@@ -83,7 +83,6 @@ export function AccountPage({ auth, locale }: { auth: SiteAuth; locale: Locale }
               <p>{copy.signedOutDescription}</p>
             </div>
             <Button
-              type="primary"
               size="large"
               icon={<Github size={16} />}
               loading={auth.status === 'loading'}

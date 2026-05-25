@@ -331,6 +331,28 @@ const useStyles = createStyles(({ token, css }) => ({
       white-space: nowrap;
     }
   `,
+  authPrompt: css`
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  `,
+  authPromptText: css`
+    margin: 0;
+    color: ${token.colorTextSecondary};
+    font-size: 14px;
+    line-height: 1.6;
+  `,
+  authPromptActions: css`
+    display: grid;
+    gap: 8px;
+
+    .ant-btn {
+      justify-content: center;
+      height: 38px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+  `,
 }));
 
 // ════════════════════════════════════════════════════════════════════
@@ -1167,22 +1189,27 @@ const App = () => {
 
     Modal.confirm({
       title: '登录后分享',
-      content: '登录后可生成公开分享链接，并在之后管理或撤回分享内容。',
-      okText: 'GitHub 登录',
-      cancelText: '取消',
-      onOk: () => startLogin('github', publishShare),
-      footer: (_, { OkBtn, CancelBtn }) => (
-        <>
-          <CancelBtn />
-          <Button icon={<Google.Color size={14} />} onClick={() => startLogin('google', publishShare)}>
-            Google 登录
-          </Button>
-          <Button icon={<Microsoft.Color size={14} />} onClick={() => startLogin('microsoft', publishShare)}>
-            Microsoft 登录
-          </Button>
-          <OkBtn />
-        </>
+      icon: <LoginOutlined />,
+      content: (
+        <div className={styles.authPrompt}>
+          <p className={styles.authPromptText}>
+            登录后可生成公开分享链接，并在之后管理或撤回分享内容。
+          </p>
+          <div className={styles.authPromptActions}>
+            <Button icon={<Google.Color size={16} />} onClick={() => startLogin('google', publishShare)}>
+              Google 登录
+            </Button>
+            <Button icon={<Microsoft.Color size={16} />} onClick={() => startLogin('microsoft', publishShare)}>
+              Microsoft 登录
+            </Button>
+            <Button icon={<LoginOutlined />} onClick={() => startLogin('github', publishShare)}>
+              GitHub 登录
+            </Button>
+          </div>
+        </div>
       ),
+      cancelText: '取消',
+      okButtonProps: { style: { display: 'none' } },
     });
     return false;
   };
