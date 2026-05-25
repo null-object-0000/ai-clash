@@ -3,9 +3,11 @@ package site.snewbie.aiclash.api.repository;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import site.snewbie.aiclash.api.model.AuthIdentity;
 import site.snewbie.aiclash.api.model.AuthenticatedUser;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 @Repository
 public class AuthRepository {
@@ -111,28 +113,74 @@ public class AuthRepository {
     jdbcTemplate.update("UPDATE users SET primary_email_id = ?, status = 'active' WHERE id = ?", emailId, userId);
   }
 
-  public void upsertIdentity(long userId, String provider, String providerUserId, String providerLogin, String providerEmail, boolean providerEmailVerified, String profile) {
+  public void upsertIdentity(
+      long userId,
+      String provider,
+      String providerUserId,
+      String providerLogin,
+      String providerEmail,
+      boolean providerEmailVerified,
+      String providerDisplayName,
+      String providerAvatarUrl,
+      String profile
+  ) {
     jdbcTemplate.update("""
         INSERT INTO user_identities
-          (user_id, provider, provider_user_id, provider_login, provider_email, provider_email_verified, profile, last_login_at)
+          (user_id, provider, provider_user_id, provider_login, provider_email, provider_email_verified, provider_display_name, provider_avatar_url, profile, last_login_at)
         VALUES
-          (?, ?, ?, ?, ?, ?, ?, NOW())
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
         ON DUPLICATE KEY UPDATE
           user_id = VALUES(user_id),
           provider_login = VALUES(provider_login),
           provider_email = VALUES(provider_email),
           provider_email_verified = VALUES(provider_email_verified),
+          provider_display_name = VALUES(provider_display_name),
+          provider_avatar_url = VALUES(provider_avatar_url),
           profile = VALUES(profile),
           last_login_at = NOW()
-        """, userId, provider, providerUserId, providerLogin, providerEmail, providerEmailVerified, profile);
+        """,
+        userId,
+        provider,
+        providerUserId,
+        providerLogin,
+        providerEmail,
+        providerEmailVerified,
+        providerDisplayName,
+        providerAvatarUrl,
+        profile
+    );
   }
 
-  public void updateLoginProfile(long userId, String displayName, String avatarUrl) {
+  public void touchUserLogin(long userId) {
+    jdbcTemplate.update("""
+        UPDATE users
+           SET last_login_at = NOW()
+         WHERE id = ?
+        """, userId);
+  }
+
+  public void initializeMissingUserProfile(long userId, String displayName, String avatarUrl) {
+    jdbcTemplate.update("""
+        UPDATE users
+           SET display_name = CASE
+                 WHEN display_name IS NULL OR display_name = '' THEN NULLIF(?, '')
+                 ELSE display_name
+               END,
+               avatar_url = CASE
+                 WHEN avatar_url IS NULL OR avatar_url = '' THEN NULLIF(?, '')
+                 ELSE avatar_url
+               END,
+               updated_at = NOW()
+         WHERE id = ?
+        """, displayName, avatarUrl, userId);
+  }
+
+  public void updateUserProfile(long userId, String displayName, String avatarUrl) {
     jdbcTemplate.update("""
         UPDATE users
            SET display_name = ?,
                avatar_url = ?,
-               last_login_at = NOW()
+               updated_at = NOW()
          WHERE id = ?
         """, displayName, avatarUrl, userId);
   }
@@ -183,5 +231,26 @@ public class AuthRepository {
 
   public void revokeSession(String sessionId) {
     jdbcTemplate.update("UPDATE auth_sessions SET revoked_at = NOW() WHERE id = ? AND revoked_at IS NULL", sessionId);
+  }
+
+  public List<AuthIdentity> findIdentitiesByUserId(long userId) {
+    return jdbcTemplate.query("""
+        SELECT provider,
+               provider_login,
+               provider_email,
+               provider_email_verified,
+               provider_display_name,
+               provider_avatar_url
+          FROM user_identities
+         WHERE user_id = ?
+         ORDER BY last_login_at DESC, id DESC
+        """, (rs, rowNum) -> new AuthIdentity(
+        rs.getString("provider"),
+        rs.getString("provider_login"),
+        rs.getString("provider_email"),
+        rs.getBoolean("provider_email_verified"),
+        rs.getString("provider_display_name"),
+        rs.getString("provider_avatar_url")
+    ), userId);
   }
 }

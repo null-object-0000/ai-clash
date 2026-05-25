@@ -1,6 +1,7 @@
 package site.snewbie.aiclash.api.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -29,11 +30,20 @@ public class AiController {
   }
 
   @PostMapping("/chat/completions")
-  public Map<String, Object> chatCompletions(
+  public Object chatCompletions(
       @RequestBody Map<String, Object> body,
-      HttpServletRequest request
+      HttpServletRequest request,
+      HttpServletResponse response
   ) {
     if (authService.currentUser(request) == null) throw new ApiException(401, "login required");
+    if (isStreamRequest(body)) {
+      aiProxyService.streamChatCompletion(body, response);
+      return null;
+    }
     return aiProxyService.createChatCompletion(body);
+  }
+
+  private static boolean isStreamRequest(Map<String, Object> body) {
+    return body != null && Boolean.TRUE.equals(body.get("stream"));
   }
 }

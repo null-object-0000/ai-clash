@@ -15,7 +15,7 @@ public class CorsConfig implements WebMvcConfigurer {
   @Override
   public void addCorsMappings(CorsRegistry registry) {
     var registration = registry.addMapping("/api/**")
-        .allowedMethods("GET", "POST", "DELETE", "OPTIONS")
+        .allowedMethods("GET", "POST", "PATCH", "DELETE", "OPTIONS")
         .allowedHeaders("content-type", "x-delete-token");
 
     if (properties.corsOrigins().contains("*")) {
@@ -23,6 +23,7 @@ public class CorsConfig implements WebMvcConfigurer {
     } else {
       registration
           .allowedOrigins(properties.corsOrigins().toArray(String[]::new))
+          .allowedOriginPatterns("chrome-extension://*")
           .allowCredentials(true);
     }
   }

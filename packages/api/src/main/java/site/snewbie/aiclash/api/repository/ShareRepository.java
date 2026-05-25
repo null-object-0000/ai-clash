@@ -16,15 +16,16 @@ public class ShareRepository {
     this.jdbcTemplate = jdbcTemplate;
   }
 
-  public ShareRecord findBySnapshotHash(String snapshotHash) {
+  public ShareRecord findBySnapshotHash(String snapshotHash, long ownerUserId) {
     try {
       return jdbcTemplate.queryForObject("""
           SELECT id, deleted_at
             FROM share_snapshots
            WHERE snapshot_hash = ?
+             AND owner_user_id = ?
            ORDER BY created_at ASC
            LIMIT 1
-          """, (rs, rowNum) -> new ShareRecord(rs.getString("id"), rs.getTimestamp("deleted_at")), snapshotHash);
+          """, (rs, rowNum) -> new ShareRecord(rs.getString("id"), rs.getTimestamp("deleted_at")), snapshotHash, ownerUserId);
     } catch (EmptyResultDataAccessException error) {
       return null;
     }
@@ -40,19 +41,20 @@ public class ShareRepository {
         """, expiresAt, deleteTokenHash, id);
   }
 
-  public void insertShare(String id, Object schemaVersion, String snapshotHash, String payload, Timestamp expiresAt, String deleteTokenHash) {
+  public void insertShare(String id, Object schemaVersion, String snapshotHash, String payload, Timestamp expiresAt, String deleteTokenHash, long ownerUserId) {
     jdbcTemplate.update("""
         INSERT INTO share_snapshots
-          (id, schema_version, snapshot_hash, payload, expires_at, delete_token_hash)
+          (id, schema_version, snapshot_hash, payload, expires_at, delete_token_hash, owner_user_id)
         VALUES
-          (?, ?, ?, ?, ?, ?)
+          (?, ?, ?, ?, ?, ?, ?)
         """,
         id,
         schemaVersion,
         snapshotHash,
         payload,
         expiresAt,
-        deleteTokenHash
+        deleteTokenHash,
+        ownerUserId
     );
   }
 
@@ -83,5 +85,15 @@ public class ShareRepository {
 
   public void markDeleted(String id) {
     jdbcTemplate.update("UPDATE share_snapshots SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL", id);
+  }
+
+  public int markDeletedByOwner(String id, long ownerUserId) {
+    return jdbcTemplate.update("""
+        UPDATE share_snapshots
+           SET deleted_at = NOW()
+         WHERE id = ?
+           AND owner_user_id = ?
+           AND deleted_at IS NULL
+        """, id, ownerUserId);
   }
 }

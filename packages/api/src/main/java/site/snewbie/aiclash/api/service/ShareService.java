@@ -38,7 +38,7 @@ public class ShareService {
     this.validator = validator;
   }
 
-  public Map<String, Object> createShare(Map<String, Object> body) {
+  public Map<String, Object> createShare(Map<String, Object> body, long ownerUserId) {
     var snapshot = validator.validate(body);
     var snapshotJson = writeJson(snapshot);
     var snapshotHash = hashSnapshot(snapshot);
@@ -46,7 +46,7 @@ public class ShareService {
     var deleteTokenHash = sha256(deleteToken);
     var expiresAt = expiresAt();
 
-    var existing = shareRepository.findBySnapshotHash(snapshotHash);
+    var existing = shareRepository.findBySnapshotHash(snapshotHash, ownerUserId);
     if (existing != null) {
       shareRepository.restoreShare(existing.id(), expiresAt, deleteTokenHash);
       var response = response(existing.id(), deleteToken);
@@ -63,7 +63,8 @@ public class ShareService {
             snapshotHash,
             snapshotJson,
             expiresAt,
-            deleteTokenHash
+            deleteTokenHash,
+            ownerUserId
         );
         return response(id, deleteToken);
       } catch (Exception error) {
@@ -88,8 +89,13 @@ public class ShareService {
     }
   }
 
-  public Map<String, Object> deleteShare(String id, String deleteToken) {
+  public Map<String, Object> deleteShare(String id, String deleteToken, Long ownerUserId) {
     if (!isValidId(id)) throw new ApiException(404, "share not found");
+
+    if (ownerUserId != null && shareRepository.markDeletedByOwner(id, ownerUserId) > 0) {
+      return Map.of("ok", true);
+    }
+
     if (deleteToken == null || deleteToken.isBlank()) throw new ApiException(401, "delete token is required");
 
     try {
