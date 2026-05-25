@@ -10,7 +10,7 @@ Spring Boot backend service for AI Clash server-side features.
 
 ## Local Development
 
-Copy `.env.example` to `.env`, fill in the MySQL dev database and GitHub OAuth values, then run:
+Copy `.env.example` to `.env`, fill in the MySQL dev database, GitHub OAuth values, and new-api proxy values, then run:
 
 ```bash
 cd packages/api
@@ -26,6 +26,8 @@ The service listens on `http://localhost:8080`.
 - `GET /api/auth/github/start`
 - `GET /api/auth/github/callback`
 - `POST /api/auth/logout`
+- `GET /api/ai/models`
+- `POST /api/ai/chat/completions`
 - `POST /api/shares`
 - `GET /api/shares/:id`
 - `DELETE /api/shares/:id`

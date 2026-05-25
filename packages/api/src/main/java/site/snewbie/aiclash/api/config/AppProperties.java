@@ -13,6 +13,7 @@ public class AppProperties {
   private final int maxShareBytes;
   private final int shareDefaultTtlDays;
   private final Auth auth;
+  private final NewApi newApi;
 
   public AppProperties(
       @Value("${app.public-site-url}") String publicSiteUrl,
@@ -25,7 +26,9 @@ public class AppProperties {
       @Value("${app.auth.allowed-return-origins}") String allowedReturnOrigins,
       @Value("${app.auth.session-days}") int sessionDays,
       @Value("${app.auth.session-cookie-name}") String sessionCookieName,
-      @Value("${app.auth.cookie-secure}") boolean cookieSecure
+      @Value("${app.auth.cookie-secure}") boolean cookieSecure,
+      @Value("${app.new-api.base-url}") String newApiBaseUrl,
+      @Value("${app.new-api.api-key}") String newApiKey
   ) {
     this.publicSiteUrl = trimTrailingSlash(publicSiteUrl);
     this.corsOrigins = splitCsv(corsOrigins);
@@ -43,6 +46,7 @@ public class AppProperties {
         sessionCookieName == null || sessionCookieName.isBlank() ? "ai_clash_session" : sessionCookieName.trim(),
         cookieSecure
     );
+    this.newApi = new NewApi(trimTrailingSlash(newApiBaseUrl), newApiKey == null ? "" : newApiKey.trim());
   }
 
   public String publicSiteUrl() {
@@ -63,6 +67,10 @@ public class AppProperties {
 
   public Auth auth() {
     return auth;
+  }
+
+  public NewApi newApi() {
+    return newApi;
   }
 
   private static List<String> splitCsv(String value) {
@@ -86,5 +94,10 @@ public class AppProperties {
       int sessionDays,
       String sessionCookieName,
       boolean cookieSecure
+  ) {}
+
+  public record NewApi(
+      String baseUrl,
+      String apiKey
   ) {}
 }
