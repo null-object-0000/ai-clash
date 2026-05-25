@@ -1,10 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { App as AntApp, ConfigProvider, Layout } from 'antd'
+import { App as AntApp, Button, ConfigProvider, Layout, Modal } from 'antd'
 import enUS from 'antd/locale/en_US'
 import zhCN from 'antd/locale/zh_CN'
+import { Github, Google, Microsoft } from '@lobehub/icons'
 import type { Locale } from './content'
-import { fetchAuthState, type AuthState, type SiteAuth } from './app/auth'
-import { getInitialLocale, stripBasePath, stripLocale } from './app/paths'
+import {
+  fetchAuthState,
+  startGithubLogin,
+  startGoogleLogin,
+  startMicrosoftLogin,
+  type AuthState,
+  type SiteAuth,
+} from './app/auth'
+import { getInitialLocale, stripBasePath, stripLocale, withBasePath, withLocale } from './app/paths'
 import { createAntTheme } from './app/theme'
 import type { ThemeMode } from './app/theme'
 import { Footer } from './layout/Footer'
@@ -13,10 +21,20 @@ import { AccountPage, ChangelogPage, ChatPage, DownloadPage, HomePage, PrivacyPa
 
 const { Content } = Layout
 
-function Page({ locale, page, auth }: { locale: Locale; page: string; auth: SiteAuth }) {
+function Page({
+  locale,
+  page,
+  auth,
+  onLoginRequired,
+}: {
+  locale: Locale
+  page: string
+  auth: SiteAuth
+  onLoginRequired: () => void
+}) {
   switch (page) {
     case '/chat':
-      return <ChatPage auth={auth} locale={locale} />
+      return <ChatPage auth={auth} locale={locale} onLoginRequired={onLoginRequired} />
     case '/account':
       return <AccountPage auth={auth} locale={locale} />
     case '/download':
@@ -31,9 +49,10 @@ function Page({ locale, page, auth }: { locale: Locale; page: string; auth: Site
 }
 
 export function App() {
-  const path = useMemo(() => stripBasePath(window.location.pathname), [])
+  const [path, setPath] = useState(() => stripBasePath(window.location.pathname))
   const [authState, setAuthState] = useState<AuthState>({ authenticated: false })
   const [authStatus, setAuthStatus] = useState<SiteAuth['status']>('loading')
+  const [loginOpen, setLoginOpen] = useState(false)
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
     const saved = window.localStorage.getItem('ai-clash-site-theme')
     if (saved === 'dark' || saved === 'light') return saved
@@ -43,6 +62,12 @@ export function App() {
   const page = stripLocale(path)
   const isSharePage = page === '/share' || page.startsWith('/share/')
   const isAppPage = page === '/chat' || isSharePage
+
+  useEffect(() => {
+    const updatePath = () => setPath(stripBasePath(window.location.pathname))
+    window.addEventListener('popstate', updatePath)
+    return () => window.removeEventListener('popstate', updatePath)
+  }, [])
 
   useEffect(() => {
     document.documentElement.dataset.theme = themeMode
@@ -58,9 +83,15 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (page === '/chat' || page === '/account') void refreshAuth()
-    else setAuthStatus('ready')
+    void refreshAuth()
   }, [page, refreshAuth])
+
+  useEffect(() => {
+    if (page !== '/account' || authStatus !== 'ready' || authState.authenticated) return
+    window.history.replaceState(null, '', withBasePath(withLocale('/', locale)))
+    setPath(stripBasePath(window.location.pathname))
+    setLoginOpen(true)
+  }, [authState.authenticated, authStatus, locale, page])
 
   const antLocale = locale === 'en' ? enUS : zhCN
   const antTheme = createAntTheme(themeMode)
@@ -72,7 +103,7 @@ export function App() {
   const pageContent =
     isSharePage
       ? <SharePage auth={auth} locale={locale} themeMode={themeMode} shareId={page.startsWith('/share/') ? page.slice('/share/'.length) : undefined} />
-      : <Page auth={auth} locale={locale} page={page} />
+      : <Page auth={auth} locale={locale} page={page} onLoginRequired={() => setLoginOpen(true)} />
 
   return (
     <ConfigProvider locale={antLocale} theme={antTheme}>
@@ -83,11 +114,39 @@ export function App() {
               locale={locale}
               path={path}
               themeMode={themeMode}
+              auth={auth}
               onToggleTheme={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
+              onLoginRequired={() => setLoginOpen(true)}
             />
           ) : null}
           <Content>{pageContent}</Content>
           {isAppPage ? null : <Footer />}
+          <Modal
+            centered
+            footer={null}
+            open={loginOpen}
+            title={locale === 'zh' ? '登录 AI 对撞机' : 'Sign in to AI Clash'}
+            onCancel={() => setLoginOpen(false)}
+          >
+            <div className="site-login-modal">
+              <p>
+                {locale === 'zh'
+                  ? '登录后可以使用在线对话、管理公开分享和绑定更多登录方式。'
+                  : 'Sign in to chat online, manage public shares, and link more login methods.'}
+              </p>
+              <div className="site-login-modal__actions">
+                <Button block icon={<Github size={16} />} onClick={startGithubLogin}>
+                  {locale === 'zh' ? 'GitHub 登录' : 'Continue with GitHub'}
+                </Button>
+                <Button block icon={<Google.Color size={16} />} onClick={startGoogleLogin}>
+                  {locale === 'zh' ? 'Google 登录' : 'Continue with Google'}
+                </Button>
+                <Button block icon={<Microsoft.Color size={16} />} onClick={startMicrosoftLogin}>
+                  {locale === 'zh' ? 'Microsoft 登录' : 'Continue with Microsoft'}
+                </Button>
+              </div>
+            </div>
+          </Modal>
         </AntApp>
       </Layout>
     </ConfigProvider>

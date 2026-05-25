@@ -14,6 +14,7 @@ import type { MenuProps } from 'antd'
 import { homePages, navItems } from '../content'
 import type { Locale } from '../content'
 import type { ThemeMode } from '../app/theme'
+import type { SiteAuth } from '../app/auth'
 import { assetPath, normalizePath, stripLocale, withBasePath, withLocale } from '../app/paths'
 
 const { Header: AntHeader } = Layout
@@ -37,19 +38,24 @@ export function Header({
   locale,
   path,
   themeMode,
+  auth,
   onToggleTheme,
+  onLoginRequired,
   appMode = false,
 }: {
   locale: Locale
   path: string
   themeMode: ThemeMode
+  auth?: SiteAuth
   onToggleTheme: () => void
+  onLoginRequired?: () => void
   appMode?: boolean
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const pagePath = stripLocale(path)
   const startChatHref = withBasePath(withLocale('/chat', locale))
   const accountHref = withBasePath(withLocale('/account', locale))
+  const isSignedIn = auth?.state.authenticated === true
   const localeMenu: MenuProps['items'] = [
     {
       key: 'zh',
@@ -125,9 +131,10 @@ export function Header({
             <Button
               aria-label={accountLabels[locale]}
               className="account-nav-button"
-              href={accountHref}
+              href={isSignedIn ? accountHref : undefined}
               icon={<UserOutlined />}
               type="text"
+              onClick={isSignedIn ? undefined : onLoginRequired}
             />
           ) : null}
           {!appMode ? (
@@ -198,7 +205,12 @@ export function Header({
         <a
           className="mobile-github-link"
           href={accountHref}
-          onClick={() => setMenuOpen(false)}
+          onClick={(event) => {
+            setMenuOpen(false)
+            if (isSignedIn) return
+            event.preventDefault()
+            onLoginRequired?.()
+          }}
         >
           <UserOutlined />
           {accountLabels[locale]}

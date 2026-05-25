@@ -26,10 +26,10 @@ import type { BubbleListProps, ConversationsProps } from '@ant-design/x'
 import XMarkdown from '@ant-design/x-markdown'
 import { App as AntApp, Avatar, Button, Drawer, Dropdown, Flex, Modal, Switch, Tag } from 'antd'
 import type { MenuProps } from 'antd'
-import { DeepSeek, Doubao, Github, Google, Microsoft, Qwen, Yuanbao } from '@lobehub/icons'
+import { DeepSeek, Doubao, Qwen, Yuanbao } from '@lobehub/icons'
 import type { Locale } from '../content'
 import { API_BASE_URL } from '../app/api'
-import { logout, startGithubLogin, startGoogleLogin, startMicrosoftLogin, type SiteAuth } from '../app/auth'
+import { logout, type SiteAuth } from '../app/auth'
 import { assetPath, withLocale } from '../app/paths'
 
 export type ProviderStats = {
@@ -741,12 +741,14 @@ export function ChatPage({
   mode = 'chat',
   sharedSession,
   shareNotice,
+  onLoginRequired,
 }: {
   auth?: SiteAuth
   locale: Locale
   mode?: 'chat' | 'share'
   sharedSession?: ChatSession
   shareNotice?: ShareNotice
+  onLoginRequired?: () => void
 }) {
   const { message } = AntApp.useApp()
   const copy = labels[locale]
@@ -842,7 +844,7 @@ export function ChatPage({
     if (!question || isSending) return
     if (!auth) return
     if (!auth.state.authenticated) {
-      startGithubLogin()
+      onLoginRequired?.()
       return
     }
 
@@ -1023,16 +1025,6 @@ export function ChatPage({
   const userMenuClick: MenuProps['onClick'] = (info) => {
     if (info.key === 'logout') void handleLogout()
   }
-  const loginMenuItems: MenuProps['items'] = [
-    { key: 'github', icon: <Github size={14} />, label: copy.loginGithub },
-    { key: 'google', icon: <Google.Color size={14} />, label: copy.loginGoogle },
-    { key: 'microsoft', icon: <Microsoft.Color size={14} />, label: copy.loginMicrosoft },
-  ]
-  const loginMenuClick: MenuProps['onClick'] = (info) => {
-    if (info.key === 'github') startGithubLogin()
-    if (info.key === 'google') startGoogleLogin()
-    if (info.key === 'microsoft') startMicrosoftLogin()
-  }
   const userName = auth ? getUserName(auth) : ''
   const toggleCollapse = (key: string) => {
     setCollapseMap((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -1182,17 +1174,15 @@ export function ChatPage({
           </button>
         </Dropdown>
       ) : (
-        <Dropdown menu={{ items: loginMenuItems, onClick: loginMenuClick }} placement="topRight" trigger={['click']}>
-          <button className="chat-user-entry" type="button">
-            <span className="chat-user-avatar">
-              <LoginOutlined />
-            </span>
-            <span className="chat-user-meta">
-              <strong>{copy.login}</strong>
-              <small>GitHub / Google / Microsoft</small>
-            </span>
-          </button>
-        </Dropdown>
+        <button className="chat-user-entry" type="button" onClick={onLoginRequired}>
+          <span className="chat-user-avatar">
+            <LoginOutlined />
+          </span>
+          <span className="chat-user-meta">
+            <strong>{copy.login}</strong>
+            <small>GitHub / Google / Microsoft</small>
+          </span>
+        </button>
       )}
       </>
       )}
