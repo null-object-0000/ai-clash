@@ -13,3 +13,4 @@ playwright-report
 .env
 .env.local
 *.log
+*.tsbuildinfo

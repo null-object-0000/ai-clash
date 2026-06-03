@@ -6,12 +6,14 @@
     "version": "1.2.1",
     "type": "module",
     "workspaces": [
-        "packages/inject"
+        "packages/inject",
+        "packages/site"
     ],
     "scripts": {
         "dev": "bun run build:inject && tsc --noEmit && vite build --watch",
-        "dev:site": "cd site && bun dev",
-        "build:site": "cd site && bun run build",
+        "dev:site": "cd packages/site && bun dev",
+        "dev:api": "cd packages/api && mvn spring-boot:run",
+        "build:site": "cd packages/site && bun run build",
         "typecheck": "tsc --noEmit && (cd packages/inject && bun run typecheck)",
         "build:inject": "bun --filter @ai-clash/inject build",
         "build:api": "docker build -f packages/api/Dockerfile -t ai-clash-api:local .",

@@ -175,11 +175,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
 
   const client = createOpenAIClient(apiConfig, apiKey);
 
-  // 按模型取默认 max_tokens，settings 中显式传值时优先使用
-  // 从 models 数组中查找模型的 maxTokens 配置
   const modelConfig = apiConfig.models?.find(m => m.id === model);
-  const defaultMaxTokens = modelConfig?.maxTokens ?? 4096;
-  const maxTokens = settings.max_tokens ?? defaultMaxTokens;
 
   // 深度思考开关：模型默认开启思考时，关闭状态也需要显式传 disabled
   const supportsThinkingExtraBody = modelConfig?.supportThinking ?? false;
@@ -206,7 +202,6 @@ async function handleApiRequest(provider, prompt, settings = {}) {
       messages,
       stream: true,
       temperature: settings.temperature ?? 0.7,
-      max_tokens: maxTokens,
       ...(extraBody ? { extra_body: extraBody } : {}),
     });
 
@@ -256,7 +251,6 @@ async function testApiKey(providerId, apiKey) {
     await client.chat.completions.create({
       model: apiConfig.defaultModel,
       messages: [{ role: 'user', content: 'hi' }],
-      max_tokens: 10,
       stream: false,
     });
     return { success: true, message: 'API Key 有效' };
@@ -416,9 +410,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
   const client = createOpenAIClient(provider.apiConfig, apiKey);
   const effectiveModel = model || provider.apiConfig.defaultModel;
-  // 从 models 数组中查找模型的 maxTokens 配置
   const modelConfig = provider.apiConfig.models?.find(m => m.id === effectiveModel);
-  const maxTokens = modelConfig?.maxTokens ?? 8192;
   const supportsThinkingExtraBody = modelConfig?.supportThinking ?? false;
   const extraBody = supportsThinkingExtraBody
     ? { thinking: { type: 'enabled' } }
@@ -446,7 +438,6 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
       ],
       stream: true,
       temperature: 0.3,
-      max_tokens: maxTokens,
       ...(extraBody ? { extra_body: extraBody } : {}),
     });
 
