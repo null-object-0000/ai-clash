@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.1] - 2026-06-03
+
+### ✨ Features
+
+- **Updated Model Lists**: Xiaomi MIMO now includes `mimo-v2.5-pro` / `mimo-v2.5`, and LongCat now defaults to `LongCat-2.0-Preview`.
+
+### 🛠️ Fixes & Improvements
+
+- **Official Site Experience**: Improved mobile navigation and page polish for a smoother experience on phones.
+- **More Compatible API Mode**: Requests no longer force a fixed `max_tokens` value, and some experimental API settings were simplified.
+- **Stability Improvements**: Fixed site styling/build details and updated related dependencies.
+
 ## [1.2.0] - 2026-04-25
 
 ### 🎉 Major
