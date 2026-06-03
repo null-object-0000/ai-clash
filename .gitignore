@@ -9,7 +9,6 @@ test-results
 playwright-report
 .vscode
 .idea
-docs/.vitepress/cache
 .codex
 .env
 .env.local

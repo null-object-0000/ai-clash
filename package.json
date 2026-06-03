@@ -23,20 +23,20 @@
         "test:ui": "playwright test --ui"
     },
     "dependencies": {
-        "@ant-design/icons": "^6.2.3",
+        "@ant-design/icons": "^6.2.5",
         "@ant-design/x": "^2.7.0",
         "@ant-design/x-markdown": "^2.7.0",
         "@ant-design/x-sdk": "^2.7.0",
-        "@lobehub/icons": "^5.8.0",
+        "@lobehub/icons": "^5.10.0",
         "antd": "^6.4.3",
         "antd-style": "^4.1.0",
-        "dayjs": "^1.11.20",
+        "dayjs": "^1.11.21",
         "motion": "^12.40.0",
-        "openai": "^6.39.0",
-        "react": "^19.2.6",
-        "react-dom": "^19.2.6",
+        "openai": "^6.41.0",
+        "react": "^19.2.7",
+        "react-dom": "^19.2.7",
         "react-markdown": "^10.1.0",
-        "zustand": "^5.0.13"
+        "zustand": "^5.0.14"
     },
     "sideEffects": false,
     "devDependencies": {
@@ -44,12 +44,12 @@
         "@playwright/test": "^1.60.0",
         "@types/chrome": "^0.1.42",
         "@types/node": "^24.12.4",
-        "@types/react": "^19.2.15",
+        "@types/react": "^19.2.16",
         "@types/react-dom": "^19.2.3",
         "@vitejs/plugin-react-swc": "^4.3.1",
         "cross-env": "^10.1.0",
         "typescript": "~5.9.3",
-        "vite": "^7.3.3",
+        "vite": "^7.3.5",
         "vite-plugin-compression": "^0.5.1",
         "vite-plugin-zip-pack": "^1.2.4"
     }
