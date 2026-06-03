@@ -16,7 +16,7 @@ on:
     branches:
       - main  # 可以根据需要修改分支名
     paths:
-      - 'site/**'
+      - 'packages/site/**'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
@@ -33,10 +33,10 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: cd site && bun install
+        run: cd packages/site && bun install
 
       - name: Build site
-        run: cd site && bun run build
+        run: cd packages/site && bun run build
         env:
           BASE_URL: /
 
@@ -51,11 +51,17 @@ jobs:
             chmod +x ossutil
             sudo mv ossutil /usr/local/bin/
           else
-            echo "检测到非阿里云 OSS，安装 AWS CLI"
-            # 安装 AWS CLI
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip -q awscliv2.zip
-            sudo ./aws/install --update
+            echo "检测到非阿里云 OSS，检查 AWS CLI 是否已安装"
+            if command -v aws &> /dev/null; then
+              echo "AWS CLI 已安装，跳过下载与安装步骤"
+              aws --version
+            else
+              echo "AWS CLI 未安装，开始安装 AWS CLI"
+              # 安装 AWS CLI
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip -q awscliv2.zip
+              sudo ./aws/install --update
+            fi
           fi
 
       - name: Upload to OSS
@@ -81,13 +87,12 @@ jobs:
             fi
             
             # 使用 ossutil sync 同步文件（类似 aws s3 sync）
-            # sync 命令会自动递归，支持 --update 和 --delete
             # --update 只上传更新的文件
-            # --delete 删除目标中不存在的文件（确保目标与源完全一致）
+            # --delete 删除目标中不存在的文件（确保目标与源完全一致，在同步过程中删除以保证零停机部署）
             # -e 指定 endpoint
             # -i 指定 AccessKey ID
             # -k 指定 AccessKey Secret
-            ossutil sync site/dist/ ${OSS_TARGET} \
+            ossutil sync packages/site/dist/ ${OSS_TARGET} \
               --update \
               --delete \
               -e ${OSS_ENDPOINT} \
@@ -105,8 +110,8 @@ jobs:
             
             # 上传文件到 S3 兼容的 OSS
             # --endpoint-url 使用基础端点（不包含 bucket 名称）
-            # --delete 参数会删除目标中不存在的文件
-            aws s3 sync site/dist/ ${S3_PATH} \
+            # --delete 参数会在同步过程中/完成后自动删除目标中不存在的文件，实现零停机部署
+            aws s3 sync packages/site/dist/ ${S3_PATH} \
               --endpoint-url ${OSS_ENDPOINT} \
               --delete \
               --region ${AWS_DEFAULT_REGION}
