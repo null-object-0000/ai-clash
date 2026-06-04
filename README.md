@@ -13,7 +13,7 @@
 > 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言 | Xiaomi MIMO
 
 <p align="center">
-  <img src="docs/public/动画.gif" width="100%" alt="演示动画">
+  <img src="packages/site/public/动画.gif" width="100%" alt="演示动画">
 </p>
 
 ## ✨ 为什么你一定要用这个工具？
