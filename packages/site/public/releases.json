@@ -1,31 +1,31 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-04-28",
-  "recommended": "store",
+  "updatedAt": "2026-06-04",
+  "recommended": "github",
   "changelogUrl": "https://ai-clash.snewbie.site/changelog.html",
   "channels": {
     "chrome": {
       "label": "Chrome Web Store",
       "version": "1.2.0",
-      "pendingVersion": "",
-      "status": "published",
+      "pendingVersion": "1.2.1",
+      "status": "reviewing",
       "url": "https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai",
-      "note": "v1.2.0 已正式上架 Chrome 应用商店，可直接更新。"
+      "note": "v1.2.1 即将提交 Chrome Web Store 审核，审核通过后可自动更新。"
     },
     "edge": {
       "label": "Edge Add-ons",
       "version": "1.2.0",
-      "pendingVersion": "",
-      "status": "published",
+      "pendingVersion": "1.2.1",
+      "status": "reviewing",
       "url": "https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm",
-      "note": "v1.2.0 已正式上架 Edge Add-ons，可直接更新。"
+      "note": "v1.2.1 即将提交 Edge Add-ons 审核，审核通过后可自动更新。"
     },
     "github": {
       "label": "官网先行版",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "status": "preview",
       "url": "https://github.com/null-object-0000/ai-clash/releases/latest",
-      "note": "适合手动安装或想提前体验新功能的用户。"
+      "note": "v1.2.1 已发布，适合手动安装或想提前体验新版本的用户。"
     }
   }
 }
