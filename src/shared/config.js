@@ -47,12 +47,6 @@ export function getModelOptions(providerId) {
   return provider.apiConfig.models.map(model => {
     let label = `${model.id}`;
     if (model.desc) label += `（${model.desc}）`;
-    if (model.maxTokens) {
-      const tokensLabel = model.maxTokens >= 1024
-        ? `${(model.maxTokens / 1024).toFixed(0)}K`
-        : `${model.maxTokens}`;
-      label += `，输出最大 ${tokensLabel}`;
-    }
     return { value: model.id, label };
   });
 }
@@ -95,16 +89,6 @@ export function getModelIds(providerId) {
   const provider = getProvider(providerId);
   if (!provider?.apiConfig?.models) return [];
   return provider.apiConfig.models.map(m => m.id);
-}
-
-/**
- * 获取模型的 maxTokens 配置
- */
-export function getModelMaxTokens(providerId, modelId) {
-  const provider = getProvider(providerId);
-  if (!provider?.apiConfig?.models) return undefined;
-  const model = provider.apiConfig.models.find(m => m.id === modelId);
-  return model?.maxTokens;
 }
 
 /**

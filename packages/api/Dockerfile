@@ -1,4 +1,4 @@
-FROM maven:3.9-eclipse-temurin-25 AS build
+FROM maven:4.0.0-rc-5-eclipse-temurin-25 AS build
 WORKDIR /workspace
 COPY packages/api/pom.xml .
 COPY packages/api/src ./src

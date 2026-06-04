@@ -25,7 +25,6 @@ export const PROVIDERS = [
         {
           id: 'summarizer-v1',
           desc: '内置总结服务',
-          maxTokens: 327680,
         },
       ],
     }
@@ -46,13 +45,11 @@ export const PROVIDERS = [
         {
           id: 'deepseek-v4-flash',
           desc: 'DeepSeek-V4-Flash',
-          maxTokens: 393216,
           supportThinking: true,
         },
         {
           id: 'deepseek-v4-pro',
           desc: 'DeepSeek-V4-Pro',
-          maxTokens: 393216,
           supportThinking: true,
         },
       ],
@@ -63,140 +60,46 @@ export const PROVIDERS = [
     name: '豆包',
     matchPattern: 'https://www.doubao.com/*',
     startUrl: 'https://www.doubao.com/chat/',
-    region: 'cn', // 字节豆包 - 中国
-    // API 模式配置
-    apiConfig: {
-      enabled: true,
-      baseURL: 'https://ark.cn-beijing.volces.com/api/coding/v3',
-      defaultModel: 'ark-code-latest',
-      apiKeyLink: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
-      apiNote: '暂仅支持火山方舟 Coding Plan 模式',
-      models: [
-        {
-          id: 'ark-code-latest',
-          desc: 'Coding Plan',
-          maxTokens: 16384,
-        },
-      ],
-    }
+    region: 'cn',
   },
   {
     id: 'qianwen',
     name: '通义千问',
     matchPattern: 'https://www.qianwen.com/*',
     startUrl: 'https://www.qianwen.com/',
-    region: 'cn', // 阿里云通义千问 - 中国
-    // API 模式配置
-    apiConfig: {
-      enabled: true,
-      baseURL: 'https://coding.dashscope.aliyuncs.com/v1',
-      defaultModel: 'qwen3.5-plus',
-      apiKeyLink: 'https://bailian.console.aliyun.com/cn-beijing/?tab=coding-plan#/efm/detail',
-      apiNote: '暂仅支持阿里云百炼 Coding Plan 模式',
-      models: [
-        {
-          id: 'qwen3.5-plus',
-          desc: '推荐 · 深度思考 · 图片理解',
-          maxTokens: 16384,
-          supportThinking: true,
-        },
-        {
-          id: 'kimi-k2.5',
-          desc: '推荐 · 深度思考 · 图片理解',
-          maxTokens: 16384,
-          supportThinking: true,
-        },
-        {
-          id: 'glm-5',
-          desc: '推荐 · 深度思考',
-          maxTokens: 16384,
-          supportThinking: true,
-        },
-        {
-          id: 'MiniMax-M2.5',
-          desc: '推荐 · 深度思考',
-          maxTokens: 16384,
-          supportThinking: true,
-        },
-        {
-          id: 'deepseek-v3.2',
-          desc: '推荐',
-          maxTokens: 16384,
-        },
-        {
-          id: 'qwen3-max-2026-01-23',
-          desc: '旗舰 · 深度思考',
-          maxTokens: 16384,
-          supportThinking: true,
-        },
-        {
-          id: 'qwen3-coder-next',
-          desc: '编程专用',
-          maxTokens: 32768,
-        },
-        {
-          id: 'qwen3-coder-plus',
-          desc: '编程专用·轻量',
-          maxTokens: 16384,
-        },
-        {
-          id: 'glm-4.7',
-          desc: '深度思考',
-          maxTokens: 16384,
-          supportThinking: true,
-        },
-      ],
-    }
+    region: 'cn',
   },
   {
     id: 'yuanbao',
     name: '元宝',
     matchPattern: 'https://yuanbao.tencent.com/*',
     startUrl: 'https://yuanbao.tencent.com/chat/',
-    region: 'cn', // 腾讯元宝 - 中国
-    // 元宝不支持 API 模式，无需 apiConfig
+    region: 'cn',
   },
   {
     id: 'wenxin',
     name: '文心一言',
     matchPattern: 'https://yiyan.baidu.com/*',
     startUrl: 'https://yiyan.baidu.com/chat/',
-    region: 'cn', // 百度文心一言 - 中国
-    // 文心目前优先集成网页端
+    region: 'cn',
   },
   {
     id: 'longcat',
     name: 'LongCat',
     matchPattern: 'https://longcat.chat/*',
     startUrl: 'https://longcat.chat/',
-    region: 'cn', // 长猫 - 中国
+    region: 'cn',
     enabled: false, // 暂时禁用，回归测试中
     // API 模式配置
     apiConfig: {
       enabled: true,
       baseURL: 'https://api.longcat.chat/openai/v1',
-      defaultModel: 'LongCat-Flash-Lite',
+      defaultModel: 'LongCat-2.0-Preview',
       apiKeyLink: 'https://longcat.chat/platform/api_keys',
       models: [
         {
-          id: 'LongCat-Flash-Lite',
-          desc: '高效轻量 MoE',
-          maxTokens: 327680,
-        },
-        {
-          id: 'LongCat-Flash-Chat',
-          desc: '通用对话',
-          maxTokens: 131072,
-        },
-        {
-          id: 'LongCat-Flash-Thinking',
-          desc: '深度思考',
-          maxTokens: 262144,
-        },
-        {
-          id: 'LongCat-Flash-Thinking-2601',
-          desc: '升级版深度思考',
-          maxTokens: 262144,
+          id: 'LongCat-2.0-Preview',
+          desc: '高性能 Agentic 模型',
         },
       ],
     }
@@ -211,23 +114,28 @@ export const PROVIDERS = [
     apiConfig: {
       enabled: true,
       baseURL: 'https://api.xiaomimimo.com/v1',
-      defaultModel: 'mimo-v2-pro',
+      defaultModel: 'mimo-v2-flash',
       apiKeyLink: 'https://platform.xiaomimimo.com/#/console/api-keys',
       models: [
         {
+          id: 'mimo-v2.5-pro',
+          desc: '万亿参数，高效架构',
+        },
+        {
+          id: 'mimo-v2.5',
+          desc: '原生全模态感知 + 1M 上下文',
+        },
+        {
           id: 'mimo-v2-pro',
           desc: '面向 Agent 时代的旗舰基座',
-          maxTokens: 262144,
         },
         {
           id: 'mimo-v2-omni',
           desc: '看得清，听得懂，能动手的全模态 Agent 基座',
-          maxTokens: 262144,
         },
         {
           id: 'mimo-v2-flash',
           desc: '高效推理、代码与 Agent 基座模型',
-          maxTokens: 262144,
         },
       ],
     }

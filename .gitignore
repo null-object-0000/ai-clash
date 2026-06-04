@@ -9,7 +9,8 @@ test-results
 playwright-report
 .vscode
 .idea
-site-dev.*.log
-docs/.vitepress/cache
 .codex
-packages/api/.env
+.env
+.env.local
+*.log
+*.tsbuildinfo
