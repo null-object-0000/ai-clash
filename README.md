@@ -1,7 +1,7 @@
 # AI 对撞机 (AI Clash)
 
 <p align="center">
-  <img src="docs/public/logo.png" width="120" alt="AI 对撞机 Logo">
+  <img src="public/logo.png" width="120" alt="AI 对撞机 Logo">
 </p>
 
 [![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)](https://github.com/null-object-0000/ai-clash/releases)
