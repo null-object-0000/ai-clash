@@ -20,11 +20,11 @@
       "note": "v1.2.1 即将提交 Edge Add-ons 审核，审核通过后可自动更新。"
     },
     "github": {
-      "label": "官网先行版",
+      "label": "官网离线包",
       "version": "1.2.1",
       "status": "preview",
-      "url": "https://github.com/null-object-0000/ai-clash/releases/latest",
-      "note": "v1.2.1 已发布，适合手动安装或想提前体验新版本的用户。"
+      "url": "https://ai-clash.snewbie.site/downloads/ai-clash-v1.2.1.zip",
+      "note": "v1.2.1 已发布，可从官网直连下载离线包并手动安装。"
     }
   }
 }

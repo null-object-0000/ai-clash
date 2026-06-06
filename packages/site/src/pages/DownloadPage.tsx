@@ -1,5 +1,6 @@
 import { downloads } from '../content'
 import type { Locale } from '../content'
+import { withBasePath } from '../app/paths'
 import { Article } from './Article'
 
 export function DownloadPage({ locale }: { locale: Locale }) {
@@ -25,7 +26,7 @@ export function DownloadPage({ locale }: { locale: Locale }) {
       <p>{content.offlineIntro}</p>
       <h3>{content.stepDownload}</h3>
       <p>
-        <a href="https://github.com/null-object-0000/ai-clash/releases/latest">
+        <a href={withBasePath(content.releaseHref)}>
           {content.releaseLink}
         </a>{' '}
         {content.releaseNote}

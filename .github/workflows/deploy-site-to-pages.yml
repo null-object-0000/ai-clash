@@ -44,6 +44,22 @@ jobs:
         env:
           BASE_URL: /ai-clash/
 
+      - name: Add offline package to site assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          ASSET_NAME="crx-ai-clash-${VERSION}.zip"
+          DOWNLOAD_NAME="ai-clash-v${VERSION}.zip"
+          RELEASE_DIR="/tmp/ai-clash-release"
+
+          mkdir -p "$RELEASE_DIR" packages/site/dist/downloads
+          if ! gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" --dir "$RELEASE_DIR"; then
+            gh release download --repo "$GITHUB_REPOSITORY" --pattern "$ASSET_NAME" --dir "$RELEASE_DIR"
+          fi
+
+          cp "${RELEASE_DIR}/${ASSET_NAME}" "packages/site/dist/downloads/${DOWNLOAD_NAME}"
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
