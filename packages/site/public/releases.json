@@ -1,16 +1,15 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-04",
+  "updatedAt": "2026-06-06",
   "recommended": "github",
   "changelogUrl": "https://ai-clash.snewbie.site/changelog.html",
   "channels": {
     "chrome": {
       "label": "Chrome Web Store",
-      "version": "1.2.0",
-      "pendingVersion": "1.2.1",
-      "status": "reviewing",
+      "version": "1.2.1",
+      "status": "published",
       "url": "https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai",
-      "note": "v1.2.1 即将提交 Chrome Web Store 审核，审核通过后可自动更新。"
+      "note": "v1.2.1 已通过 Chrome Web Store 审核，Chrome 用户可自动更新。"
     },
     "edge": {
       "label": "Edge Add-ons",
