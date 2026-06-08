@@ -143,18 +143,14 @@ export const changelogs = {
         {
           title: '✨ 新增特性 (Features)',
           items: [
-            '<strong>公开分享页</strong>：侧边栏生成分享链接后，现在可以在官网打开只读分享页，展示问题、各通道回答、归纳总结和基础耗时统计。',
-            '<strong>分享页增长入口</strong>：分享页新增 Chrome 商店、Edge 商店和离线 ZIP 安装入口，方便看到分享的人直接安装 AI 对撞机。',
-            '<strong>匿名使用统计</strong>：复用官网现有 Umami 埋点，新增插件侧匿名事件，用于统计安装来源、使用漏斗、分享转化和故障类型。',
-            '<strong>语言基础支持</strong>：新增英文、繁体中文扩展商店文案，并为内置总结提示词提供简中、繁中、英文版本。',
+            '<strong>公开分享页</strong>：侧边栏生成分享链接后，可以在官网打开只读分享页，展示问题、各通道回答和归纳总结。',
+            '<strong>语言基础支持</strong>：新增英文、繁体中文扩展文案，并为内置总结提示词提供简中、繁中、英文版本。',
           ],
         },
         {
           title: '🛠️ 优化与修复 (Fixes & Improvements)',
           items: [
-            '<strong>隐私说明更新</strong>：补充公开分享会上传本次分享内容，以及匿名统计不会上传问题、回答正文、API Key 或账号标识。',
-            '<strong>统计可关闭</strong>：全局设置新增「匿名数据统计」开关，关闭后插件侧不再发送匿名统计事件。',
-            '<strong>官网路由修复</strong>：修复 /share/:id 分享链接落到首页的问题。',
+            '<strong>隐私与设置更新</strong>：补充公开分享和匿名统计说明，并在全局设置中新增「匿名数据统计」开关。',
           ],
         },
       ],
@@ -233,18 +229,14 @@ export const changelogs = {
         {
           title: '✨ Features',
           items: [
-            '<strong>Public Share Pages</strong>: Shared links now open a read-only site page with the question, model answers, summary, and basic timing stats.',
-            '<strong>Growth CTA on Shares</strong>: Share pages now include Chrome Web Store, Edge Add-ons, and offline ZIP install entries.',
-            '<strong>Anonymous Product Analytics</strong>: The extension now reuses the existing site Umami setup for anonymous install source, funnel, share conversion, and failure-type events.',
-            '<strong>Language Foundation</strong>: Added English and Traditional Chinese extension store metadata, plus Simplified Chinese, Traditional Chinese, and English built-in summary prompts.',
+            '<strong>Public Share Pages</strong>: Shared links now open a read-only site page with the question, model answers, and summary.',
+            '<strong>Language Foundation</strong>: Added English and Traditional Chinese extension copy, plus Simplified Chinese, Traditional Chinese, and English built-in summary prompts.',
           ],
         },
         {
           title: '🛠️ Fixes & Improvements',
           items: [
-            '<strong>Privacy Policy Updated</strong>: Clarified what public sharing uploads and that analytics do not include prompts, answer text, API keys, or account identifiers.',
-            '<strong>Analytics Opt-out</strong>: Global settings now include an anonymous analytics toggle. When disabled, extension-side analytics stop sending events.',
-            '<strong>Share Route Fixed</strong>: /share/:id links now render the share page instead of falling back to the homepage.',
+            '<strong>Privacy & Settings Update</strong>: Clarified public sharing and anonymous analytics, and added an anonymous analytics toggle in global settings.',
           ],
         },
       ],
