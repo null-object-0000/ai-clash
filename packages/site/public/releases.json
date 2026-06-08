@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-06",
+  "updatedAt": "2026-06-08",
   "recommended": "github",
   "changelogUrl": "https://ai-clash.snewbie.site/changelog.html",
   "channels": {
@@ -21,10 +21,10 @@
     },
     "github": {
       "label": "官网离线包",
-      "version": "1.2.1",
+      "version": "1.2.2",
       "status": "preview",
-      "url": "https://ai-clash.snewbie.site/downloads/ai-clash-v1.2.1.zip",
-      "note": "v1.2.1 已发布，可从官网直连下载离线包并手动安装。"
+      "url": "https://ai-clash.snewbie.site/downloads/ai-clash-v1.2.2.zip",
+      "note": "v1.2.2 已发布，可从官网直连下载离线包并手动安装。"
     }
   }
 }

@@ -3,6 +3,7 @@ import { MSG_TYPES } from '../shared/messages.js';
 import { SUMMARY_SYSTEM_PROMPT } from '../shared/summaryPrompt.js';
 import { PROVIDERS, getProvider, deriveProviderConfig } from './providers.js';
 import logger from '../shared/logger.js';
+import { trackEvent } from '../shared/analytics.js';
 
 // Service Worker 保活机制 - 单个持久化心跳 alarm
 const KEEPALIVE_ALARM_NAME = 'aiclash-sw-keepalive';
@@ -134,6 +135,10 @@ async function saveApiConfig(config) {
 }
 
 function sendProviderError(providerId, message, errorType = 'system_error') {
+  trackEvent(providerId === '_summary' ? 'summary_failed' : 'provider_failed', {
+    provider_id: providerId,
+    error_type: errorType,
+  }, providerId === '_summary' ? '/extension/summary' : '/extension/provider');
   chrome.runtime.sendMessage({
     type: MSG_TYPES.ERROR,
     payload: {
@@ -229,6 +234,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
       type: MSG_TYPES.TASK_COMPLETED,
       payload: { provider: provider.id }
     });
+    trackEvent('provider_completed', { provider_id: provider.id, mode: 'api' }, '/extension/provider');
 
   } catch (error) {
     sendProviderError(provider.id, error.message || 'API请求失败');
@@ -407,6 +413,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
     type: MSG_TYPES.TASK_STATUS_UPDATE,
     payload: { provider: '_summary', text: '正在归纳总结各通道回答...' }
   });
+  trackEvent('summary_started', { provider_id: providerId }, '/extension/summary');
 
   const client = createOpenAIClient(provider.apiConfig, apiKey);
   const effectiveModel = model || provider.apiConfig.defaultModel;
@@ -458,12 +465,14 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
       type: MSG_TYPES.TASK_COMPLETED,
       payload: { provider: '_summary' }
     });
+    trackEvent('summary_completed', { provider_id: providerId }, '/extension/summary');
 
   } catch (error) {
     chrome.runtime.sendMessage({
       type: MSG_TYPES.ERROR,
       payload: { provider: '_summary', message: error.message || '归纳总结请求失败' }
     });
+    trackEvent('summary_failed', { provider_id: providerId, error_type: 'summary_error' }, '/extension/summary');
   } finally {
     endRequest();
   }
@@ -474,12 +483,35 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
 
 // 点击图标打开侧边栏
 chrome.action.onClicked.addListener((tab) => {
+    trackEvent('sidepanel_opened', { source: 'action_click' }, '/extension/sidepanel');
     chrome.sidePanel.open({ windowId: tab.windowId });
 });
 
+chrome.runtime.onInstalled.addListener((details) => {
+    trackEvent(details.reason === 'install' ? 'extension_installed' : 'extension_updated', {
+        reason: details.reason,
+        previous_version: details.previousVersion || '',
+    }, '/extension/install');
+});
 
 // 监听派发任务
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.type === MSG_TYPES.TASK_COMPLETED) {
+        const providerId = request.payload?.provider;
+        if (providerId && providerId !== '_summary') {
+            trackEvent('provider_completed', { provider_id: providerId, mode: 'web' }, '/extension/provider');
+        }
+    }
+
+    if (request.type === MSG_TYPES.ERROR) {
+        const providerId = request.payload?.provider;
+        if (providerId && providerId !== '_summary') {
+            trackEvent('provider_failed', {
+                provider_id: providerId,
+                error_type: request.payload?.errorType || 'provider_error',
+            }, '/extension/provider');
+        }
+    }
 
     // ---- 在 MAIN world 注入 debug 代理（绕过 CSP）----
     if (request.type === MSG_TYPES.INJECT_DEBUG_GLOBAL && sender.tab?.id) {
@@ -533,6 +565,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
 
         logger.log(`[AI Clash] DISPATCH_TASK: 收到任务派发请求 provider=${providerId}`);
+        trackEvent('provider_started', { provider_id: providerId, mode: mode || 'stored' }, '/extension/provider');
 
         // 立即返回响应，避免 sidepanel 超时（5 秒）
         sendResponse({ status: 'routed' });

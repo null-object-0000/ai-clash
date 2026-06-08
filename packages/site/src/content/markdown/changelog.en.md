@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.2] - 2026-06-08
+
+### ✨ Features
+
+- **Public Share Pages**: Shared links now open a read-only site page with the question, model answers, summary, and basic timing stats.
+- **Growth CTA on Shares**: Share pages now include Chrome Web Store, Edge Add-ons, and offline ZIP install entries.
+- **Anonymous Product Analytics**: The extension now reuses the existing site Umami setup for anonymous install source, funnel, share conversion, and failure-type events.
+- **Language Foundation**: Added English and Traditional Chinese extension store metadata, plus Simplified Chinese, Traditional Chinese, and English built-in summary prompts.
+
+### 🛠️ Fixes & Improvements
+
+- **Privacy Policy Updated**: Clarified what public sharing uploads and that analytics do not include prompts, answer text, API keys, or account identifiers.
+- **Analytics Opt-out**: Global settings now include an anonymous analytics toggle. When disabled, extension-side analytics stop sending events.
+- **Share Route Fixed**: `/share/:id` links now render the share page instead of falling back to the homepage.
+
 ## [1.2.1] - 2026-06-03
 
 ### ✨ Features

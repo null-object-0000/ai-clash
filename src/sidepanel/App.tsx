@@ -30,6 +30,7 @@ import { Button, Dropdown, Flex, message, Modal, Popconfirm, Tooltip } from 'ant
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers, PROVIDER_META } from './store';
+import { trackEvent } from '../shared/analytics.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type ProviderStats, type StageType,
@@ -901,6 +902,7 @@ const App = () => {
   // ==================== Init ====================
   useEffect(() => {
     const cleanup = useStore.getState().init();
+    trackEvent('sidepanel_opened', { source: 'sidepanel_mount' }, '/extension/sidepanel');
 
     // 监听通道完成事件，触发队列检查
     const messageListener = (request: any) => {
@@ -1031,6 +1033,10 @@ const App = () => {
     }
 
     setShareLoading(true);
+    trackEvent('share_started', {
+      provider_count: snapshot.providers.length,
+      has_summary: Boolean(snapshot.summary),
+    }, '/extension/share');
     try {
       const res = await fetch(`${API_BASE_URL}/api/shares`, {
         method: 'POST',
@@ -1058,7 +1064,14 @@ const App = () => {
           okText: '知道了',
         });
       }
+      trackEvent('share_created', {
+        provider_count: snapshot.providers.length,
+        has_summary: Boolean(snapshot.summary),
+      }, '/extension/share');
     } catch (error) {
+      trackEvent('share_failed', {
+        reason: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
+      }, '/extension/share');
       message.error(error instanceof Error ? error.message : '分享失败，请稍后重试');
     } finally {
       setShareLoading(false);
@@ -1084,8 +1097,13 @@ const App = () => {
         delete next[summaryCurrentVersion];
         return next;
       });
+      trackEvent('share_deleted', {}, '/extension/share');
       message.success('已取消分享');
     } catch (error) {
+      trackEvent('share_failed', {
+        action: 'delete',
+        reason: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
+      }, '/extension/share');
       message.error(error instanceof Error ? error.message : '取消分享失败，请稍后重试');
     } finally {
       setShareLoading(false);
@@ -1590,6 +1608,11 @@ const App = () => {
   // ==================== Event ====================
   const handleUserSubmit = async (val: string) => {
     if (!val.trim()) return;
+    trackEvent('question_submitted', {
+      enabled_provider_count: PROVIDER_IDS.filter(id => enabledMap[id]).length,
+      has_previous_question: hasAsked,
+      summary_enabled: isSummaryEnabled,
+    }, '/extension/question');
 
     // 多通道模式下的追问拦截：当已有对话内容且启用通道数 >= 2 时，需要确认
     const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;

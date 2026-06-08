@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Flex, Modal, Select, Switch, Tag } from 'antd';
 import pkg from '../../../package.json';
 import { useStore } from '../store';
+import type { AppLocale } from '../store/types';
 import { getDefaultModel } from '../../shared/config.js';
 
 interface Props {
@@ -99,6 +100,8 @@ function getStatusTag(status: ChannelStatus) {
 
 const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 }) => {
   const isDebugEnabled = useStore(s => s.isDebugEnabled);
+  const isAnalyticsEnabled = useStore(s => s.isAnalyticsEnabled);
+  const locale = useStore(s => s.locale);
   const summaryProviderId = useStore(s => s.summaryProviderId);
   const summaryModel = useStore(s => s.summaryModel);
   const summaryCustomPrompt = useStore(s => s.summaryCustomPrompt);
@@ -107,7 +110,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
   const [releaseError, setReleaseError] = useState('');
 
   const {
-    toggleDebug, setSummaryProviderId, setSummaryModel,
+    toggleDebug, toggleAnalytics, setLocale, setSummaryProviderId, setSummaryModel,
     setSummaryCustomPrompt, resetSummaryPrompt,
   } = useStore.getState();
 
@@ -284,6 +287,32 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
             <span style={{ fontSize: 12, color: '#999' }}>开启后在控制台输出详细日志</span>
           </Flex>
           <Switch checked={isDebugEnabled} onChange={toggleDebug} size="small" />
+        </Flex>
+
+        <Flex justify="space-between" align="center">
+          <Flex vertical gap={2}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>匿名数据统计</span>
+            <span style={{ fontSize: 12, color: '#999' }}>仅统计使用漏斗和故障，不上传问题、回答或 API Key</span>
+          </Flex>
+          <Switch checked={isAnalyticsEnabled} onChange={toggleAnalytics} size="small" />
+        </Flex>
+
+        <Flex vertical gap={8}>
+          <Flex vertical gap={2}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>界面语言</span>
+            <span style={{ fontSize: 12, color: '#999' }}>会影响默认总结提示词；侧边栏 UI 将逐步完整本地化</span>
+          </Flex>
+          <Select
+            value={locale}
+            onChange={(value) => setLocale(value as AppLocale)}
+            options={[
+              { value: 'system', label: '跟随浏览器' },
+              { value: 'zh-CN', label: '简体中文' },
+              { value: 'zh-TW', label: '繁體中文' },
+              { value: 'en', label: 'English' },
+            ]}
+            style={{ width: '100%' }}
+          />
         </Flex>
 
         <Flex vertical gap={12} style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>

@@ -100,9 +100,9 @@ export const downloads = {
     offlineTitle: '方式二：离线 ZIP 包开发者模式安装 (国内可直连)',
     offlineIntro: '无法访问应用商店时，可以直接从官网下载离线包，再按以下 3 步安装。',
     stepDownload: '1. 下载最新版 ZIP 包',
-    releaseHref: '/downloads/ai-clash-v1.2.1.zip',
-    releaseLink: '👉 直接下载 AI 对撞机 v1.2.1 离线包',
-    releaseNote: '(下载 ai-clash-v1.2.1.zip；开发者模式安装不会自动更新，推荐优先使用 Chrome/Edge 应用商店)',
+    releaseHref: '/downloads/ai-clash-v1.2.2.zip',
+    releaseLink: '👉 直接下载 AI 对撞机 v1.2.2 离线包',
+    releaseNote: '(下载 ai-clash-v1.2.2.zip；开发者模式安装不会自动更新，推荐优先使用 Chrome/Edge 应用商店)',
     stepUnzip: '2. 解压文件',
     unzip: '将下载的 ZIP 文件解压到电脑上的一个常用文件夹中（请不要删除该文件夹）。',
     stepLoad: '3. 在浏览器中加载',
@@ -121,9 +121,9 @@ export const downloads = {
     offlineTitle: 'Method 2: Offline ZIP Installation (Developer Mode)',
     offlineIntro: 'If you cannot access the stores, download the offline package directly from this site and install it in 3 steps.',
     stepDownload: '1. Download the Latest ZIP',
-    releaseHref: '/downloads/ai-clash-v1.2.1.zip',
-    releaseLink: '👉 Directly Download AI Clash v1.2.1 Offline Package',
-    releaseNote: '(Downloads ai-clash-v1.2.1.zip; developer-mode installs do not update automatically, so prefer the Chrome/Edge stores when available)',
+    releaseHref: '/downloads/ai-clash-v1.2.2.zip',
+    releaseLink: '👉 Directly Download AI Clash v1.2.2 Offline Package',
+    releaseNote: '(Downloads ai-clash-v1.2.2.zip; developer-mode installs do not update automatically, so prefer the Chrome/Edge stores when available)',
     stepUnzip: '2. Unzip Files',
     unzip: 'Extract the downloaded ZIP file to a folder on your computer (please do not delete this folder later).',
     stepLoad: '3. Load in Browser',
@@ -137,6 +137,28 @@ export const downloads = {
 
 export const changelogs = {
   zh: [
+    {
+      version: '[1.2.2] - 2026-06-08',
+      groups: [
+        {
+          title: '✨ 新增特性 (Features)',
+          items: [
+            '<strong>公开分享页</strong>：侧边栏生成分享链接后，现在可以在官网打开只读分享页，展示问题、各通道回答、归纳总结和基础耗时统计。',
+            '<strong>分享页增长入口</strong>：分享页新增 Chrome 商店、Edge 商店和离线 ZIP 安装入口，方便看到分享的人直接安装 AI 对撞机。',
+            '<strong>匿名使用统计</strong>：复用官网现有 Umami 埋点，新增插件侧匿名事件，用于统计安装来源、使用漏斗、分享转化和故障类型。',
+            '<strong>语言基础支持</strong>：新增英文、繁体中文扩展商店文案，并为内置总结提示词提供简中、繁中、英文版本。',
+          ],
+        },
+        {
+          title: '🛠️ 优化与修复 (Fixes & Improvements)',
+          items: [
+            '<strong>隐私说明更新</strong>：补充公开分享会上传本次分享内容，以及匿名统计不会上传问题、回答正文、API Key 或账号标识。',
+            '<strong>统计可关闭</strong>：全局设置新增「匿名数据统计」开关，关闭后插件侧不再发送匿名统计事件。',
+            '<strong>官网路由修复</strong>：修复 /share/:id 分享链接落到首页的问题。',
+          ],
+        },
+      ],
+    },
     {
       version: '[1.2.0] - 待发布',
       groups: [
@@ -206,6 +228,28 @@ export const changelogs = {
   ],
   en: [
     {
+      version: '[1.2.2] - 2026-06-08',
+      groups: [
+        {
+          title: '✨ Features',
+          items: [
+            '<strong>Public Share Pages</strong>: Shared links now open a read-only site page with the question, model answers, summary, and basic timing stats.',
+            '<strong>Growth CTA on Shares</strong>: Share pages now include Chrome Web Store, Edge Add-ons, and offline ZIP install entries.',
+            '<strong>Anonymous Product Analytics</strong>: The extension now reuses the existing site Umami setup for anonymous install source, funnel, share conversion, and failure-type events.',
+            '<strong>Language Foundation</strong>: Added English and Traditional Chinese extension store metadata, plus Simplified Chinese, Traditional Chinese, and English built-in summary prompts.',
+          ],
+        },
+        {
+          title: '🛠️ Fixes & Improvements',
+          items: [
+            '<strong>Privacy Policy Updated</strong>: Clarified what public sharing uploads and that analytics do not include prompts, answer text, API keys, or account identifiers.',
+            '<strong>Analytics Opt-out</strong>: Global settings now include an anonymous analytics toggle. When disabled, extension-side analytics stop sending events.',
+            '<strong>Share Route Fixed</strong>: /share/:id links now render the share page instead of falling back to the homepage.',
+          ],
+        },
+      ],
+    },
+    {
       version: '[1.1.0] - 2026-04-17',
       groups: [
         {
@@ -257,12 +301,14 @@ export const changelogs = {
 export const privacyPages = {
   zh: {
     title: 'AI 对撞机隐私政策',
-    updated: '最后更新时间：2026年4月16日',
+    updated: '最后更新时间：2026年6月8日',
     sections: [
       {
         title: '1. 数据收集',
         body: [
           'AI 对撞机是一款纯正的浏览器端工具。所有 AI 模型交互均直接发生在您的浏览器和相应的 AI 服务提供商（例如 DeepSeek、Kimi 等）之间。我们<strong>不会</strong>收集、存储或向我们自己的服务器传输您的对话、提示词或任何个人数据。',
+          '当您主动生成公开分享链接时，本次问题、各通道回答、归纳总结和基础耗时统计会上传到 AI 对撞机后端，用于生成公开可访问的分享页面。您可以使用删除令牌取消该分享。',
+          '我们会默认启用匿名产品统计，用于了解安装来源、功能使用漏斗和故障类型。统计事件不会包含您的问题、回答正文、API Key、账号标识或完整 URL 参数，您可以在扩展设置中关闭匿名数据统计。',
         ],
       },
       {
@@ -277,7 +323,7 @@ export const privacyPages = {
       },
       {
         title: '3. 第三方服务',
-        body: ['此扩展程序会与第三方 AI 网站进行交互。您对这些服务的使用受其各自隐私政策的约束。'],
+        body: ['此扩展程序会与第三方 AI 网站进行交互。您对这些服务的使用受其各自隐私政策的约束。官网和扩展的匿名使用统计复用 Umami Analytics。'],
       },
       {
         title: '4. 联系我们',
@@ -287,12 +333,14 @@ export const privacyPages = {
   },
   en: {
     title: 'Privacy Policy for AI Clash',
-    updated: 'Last updated: April 16, 2026',
+    updated: 'Last updated: June 8, 2026',
     sections: [
       {
         title: '1. Data Collection',
         body: [
           'AI Clash is a browser-side tool. All AI model interactions happen directly between your browser and the respective AI service providers (e.g., DeepSeek, Kimi, etc.). We do <strong>NOT</strong> collect, store, or transmit your conversations, prompts, or personal data to our own servers.',
+          'When you explicitly create a public share link, the question, model answers, summary, and basic timing stats for that session are uploaded to the AI Clash backend so the public share page can be generated. You can revoke the share with its delete token.',
+          'Anonymous product analytics are enabled by default to understand install sources, product funnels, and failure types. Analytics events do not include your prompts, answers, API keys, account identifiers, or full URL query strings. You can disable anonymous analytics in the extension settings.',
         ],
       },
       {
@@ -307,7 +355,7 @@ export const privacyPages = {
       },
       {
         title: '3. Third-Party Services',
-        body: ['This extension interacts with third-party AI websites. Your use of those services is governed by their respective privacy policies.'],
+        body: ['This extension interacts with third-party AI websites. Your use of those services is governed by their respective privacy policies. Website and extension analytics reuse Umami Analytics.'],
       },
       {
         title: '4. Contact',

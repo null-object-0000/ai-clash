@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "AI Clash - Compare and Summarize Top AI Models",
+    "description": "Extension name"
+  },
+  "extensionDescription": {
+    "message": "Ask once and compare answers from DeepSeek, Doubao, Qwen, Tencent Yuanbao, Wenxin Yiyan, and more side by side. Use native web AI power at zero API cost, then let the built-in AI judge summarize the best answer.",
+    "description": "Extension description"
+  }
+}

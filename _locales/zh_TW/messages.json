@@ -1,0 +1,10 @@
+{
+  "extensionName": {
+    "message": "AI 對撞機 - 頂級大模型同屏對比與歸納神器",
+    "description": "擴充功能名稱"
+  },
+  "extensionDescription": {
+    "message": "一次提問，DeepSeek、豆包、通義千問、騰訊元寶、文心一言等多款滿血 AI 同屏對撞！零成本調用網頁原生算力進行交叉驗證，自帶 AI 裁判一鍵總結最優解，告別頻繁切網頁的效率內耗。",
+    "description": "擴充功能描述"
+  }
+}

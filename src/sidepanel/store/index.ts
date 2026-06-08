@@ -2,8 +2,9 @@ import { create } from 'zustand';
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
+import { setAnalyticsEnabled, trackEvent } from '../../shared/analytics.js';
 import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions } from '../../shared/config.js';
-import { SUMMARY_SYSTEM_PROMPT } from '../../shared/summaryPrompt.js';
+import { SUMMARY_SYSTEM_PROMPT, SUMMARY_SYSTEM_PROMPTS, getSummarySystemPrompt } from '../../shared/summaryPrompt.js';
 import {
   PROVIDER_IDS, PROVIDER_NAME_MAP,
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
@@ -12,7 +13,7 @@ import {
   type SingleChannelHistoryItem, type ErrorType,
 } from '../types';
 import {
-  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY,
+  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ANALYTICS_STORAGE_KEY, ENABLED_PROVIDERS_KEY,
   HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE,
   MAX_HISTORY_COUNT, CHARS_PER_FRAME,
   createSessionId, createDefaultRecord,
@@ -48,6 +49,8 @@ export const useStore = create<AppStore>()((set, get) => {
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
         isFocusFollowEnabled: s.isFocusFollowEnabled,
+        isAnalyticsEnabled: s.isAnalyticsEnabled,
+        locale: s.locale,
         hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
         hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
         isChannelListExpanded: s.isChannelListExpanded,
@@ -92,6 +95,18 @@ export const useStore = create<AppStore>()((set, get) => {
     const modelIds = getModelIds(providerId);
     if (!modelIds.length) return '';
     return modelIds.includes(model) ? model : getDefaultModel(providerId);
+  };
+
+  const defaultLocale = (): 'zh-CN' | 'zh-TW' | 'en' => {
+    const language = chrome.i18n?.getUILanguage?.() || navigator.language || '';
+    if (language.toLowerCase().startsWith('zh-tw') || language.toLowerCase().startsWith('zh-hk')) return 'zh-TW';
+    if (language.toLowerCase().startsWith('en')) return 'en';
+    return 'zh-CN';
+  };
+
+  const effectiveLocale = () => {
+    const locale = get().locale;
+    return locale === 'system' ? defaultLocale() : locale;
   };
 
   const saveHistory = (list: ChatHistoryItem[]) => {
@@ -393,6 +408,8 @@ export const useStore = create<AppStore>()((set, get) => {
     isDebugEnabled: false,
     isSummaryEnabled: false,
     isFocusFollowEnabled: false,
+    isAnalyticsEnabled: true,
+    locale: 'system',
     hasCustomizedSummaryEnabled: false,
     hasCustomizedFocusFollowEnabled: false,
     isChannelListExpanded: false,
@@ -497,10 +514,31 @@ export const useStore = create<AppStore>()((set, get) => {
       saveSettings();
     },
 
+    toggleAnalytics: () => {
+      set(prev => {
+        const next = !prev.isAnalyticsEnabled;
+        setAnalyticsEnabled(next);
+        if (next) trackEvent('analytics_enabled', {}, '/extension/settings');
+        return { isAnalyticsEnabled: next };
+      });
+      saveSettings();
+    },
+
+    setLocale: (locale) => {
+      const currentPrompt = get().summaryCustomPrompt;
+      const wasDefaultPrompt = Object.values(SUMMARY_SYSTEM_PROMPTS).includes(currentPrompt);
+      set({
+        locale,
+        ...(wasDefaultPrompt ? { summaryCustomPrompt: getSummarySystemPrompt(locale === 'system' ? defaultLocale() : locale) } : {}),
+      });
+      saveSettings();
+      if (wasDefaultPrompt) saveSummaryPrompt();
+    },
+
     setSummaryProviderId: (v) => { set({ summaryProviderId: v }); saveSummaryConfig(); },
     setSummaryModel: (v) => { set({ summaryModel: v }); saveSummaryConfig(); },
     setSummaryCustomPrompt: (v) => { set({ summaryCustomPrompt: v }); saveSummaryPrompt(); },
-    resetSummaryPrompt: () => { set({ summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT }); saveSummaryPrompt(); },
+    resetSummaryPrompt: () => { set({ summaryCustomPrompt: getSummarySystemPrompt(effectiveLocale()) }); saveSummaryPrompt(); },
     setChannelListExpanded: (expanded) => {
       set({ isChannelListExpanded: expanded });
       saveSettings();
@@ -1201,10 +1239,13 @@ export const useStore = create<AppStore>()((set, get) => {
 
     init: () => {
       chrome.storage?.local.get(
-        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
+        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ANALYTICS_STORAGE_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
         async (result) => {
           const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
           const debugVal = saved.isDebugEnabled ?? false;
+          const rawAnalyticsVal = result?.[ANALYTICS_STORAGE_KEY] ?? saved.isAnalyticsEnabled;
+          const analyticsVal = rawAnalyticsVal === false ? false : true;
+          setAnalyticsEnabled(analyticsVal);
           setDebugEnabled(debugVal);
 
           const apiConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
@@ -1326,13 +1367,15 @@ export const useStore = create<AppStore>()((set, get) => {
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
             ...autoModeSettings,
             isDebugEnabled: debugVal,
+            isAnalyticsEnabled: analyticsVal,
+            locale: saved.locale ?? 'system',
             hasCustomizedSummaryEnabled,
             hasCustomizedFocusFollowEnabled,
             isChannelListExpanded: saved.isChannelListExpanded ?? false,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer',
             summaryModel: normalizeStoredModel(sc.providerId || 'summarizer', sc.model) || getDefaultModel(sc.providerId || 'summarizer'),
-            summaryCustomPrompt: customPrompt ?? SUMMARY_SYSTEM_PROMPT,
+            summaryCustomPrompt: customPrompt ?? getSummarySystemPrompt((saved.locale ?? 'system') === 'system' ? defaultLocale() : saved.locale),
             enabledMap: newEnabled,
             historyList: allHistory,
           });

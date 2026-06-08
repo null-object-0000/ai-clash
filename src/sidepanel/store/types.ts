@@ -9,10 +9,13 @@ export type SidepanelSettings = {
   isSummaryEnabled?: boolean;
   isDebugEnabled?: boolean;
   isFocusFollowEnabled?: boolean;
+  isAnalyticsEnabled?: boolean;
+  locale?: AppLocale;
   hasCustomizedSummaryEnabled?: boolean;
   hasCustomizedFocusFollowEnabled?: boolean;
   isChannelListExpanded?: boolean;
 };
+export type AppLocale = 'system' | 'zh-CN' | 'zh-TW' | 'en';
 export type SummaryConfig = { providerId?: string; model?: string };
 export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
 
@@ -23,6 +26,8 @@ export interface AppState {
   isDebugEnabled: boolean;
   isSummaryEnabled: boolean;
   isFocusFollowEnabled: boolean;
+  isAnalyticsEnabled: boolean;
+  locale: AppLocale;
   hasCustomizedSummaryEnabled: boolean;
   hasCustomizedFocusFollowEnabled: boolean;
   isChannelListExpanded: boolean;
@@ -90,6 +95,8 @@ export interface AppActions {
   toggleDebug: () => void;
   toggleSummary: () => void;
   toggleFocusFollow: () => void;
+  toggleAnalytics: () => void;
+  setLocale: (locale: AppLocale) => void;
   setSummaryProviderId: (v: string) => void;
   setSummaryModel: (v: string) => void;
   setSummaryCustomPrompt: (v: string) => void;
