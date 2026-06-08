@@ -4,7 +4,7 @@ Spring Boot backend service for AI Clash server-side features.
 
 ## Requirements
 
-- JDK 25
+- JDK 21
 - Maven 4.0.0-rc-5+
 - MySQL 8+
 
