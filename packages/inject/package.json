@@ -57,7 +57,7 @@
     "vite": "^7.3.5"
   },
   "peerDependencies": {
-    "@types/chrome": "^0.1.42"
+    "@types/chrome": "^0.1.43"
   },
   "peerDependenciesMeta": {
     "@types/chrome": {

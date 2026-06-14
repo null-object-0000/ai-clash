@@ -1,30 +1,53 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-06-08",
+  "updatedAt": "2026-06-14",
   "recommended": "github",
   "changelogUrl": "https://ai-clash.snewbie.site/changelog.html",
   "channels": {
     "chrome": {
       "label": "Chrome Web Store",
+      "labels": {
+        "zh-CN": "Chrome 应用商店",
+        "en": "Chrome Web Store"
+      },
       "version": "1.2.1",
       "status": "published",
       "url": "https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai",
-      "note": "v1.2.1 已通过 Chrome Web Store 审核，Chrome 用户可自动更新。"
+      "note": "v1.2.1 已通过 Chrome Web Store 审核，Chrome 用户可自动更新。",
+      "notes": {
+        "zh-CN": "v1.2.1 已通过 Chrome 应用商店审核，Chrome 用户可自动更新。",
+        "en": "v1.2.1 has passed Chrome Web Store review. Chrome users can update automatically."
+      }
     },
     "edge": {
       "label": "Edge Add-ons",
-      "version": "1.2.0",
-      "pendingVersion": "1.2.1",
-      "status": "reviewing",
+      "labels": {
+        "zh-CN": "Edge 外接程序",
+        "en": "Edge Add-ons"
+      },
+      "version": "1.2.1",
+      "status": "published",
       "url": "https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm",
-      "note": "v1.2.1 即将提交 Edge Add-ons 审核，审核通过后可自动更新。"
+      "note": "v1.2.1 已通过 Edge Add-ons 审核，可自动更新。",
+      "notes": {
+        "zh-CN": "v1.2.1 已通过 Edge 外接程序审核，可自动更新。",
+        "en": "v1.2.1 has passed Edge Add-ons review. It can update automatically."
+      }
     },
     "github": {
       "label": "官网离线包",
+      "labels": {
+        "zh-CN": "官网离线包",
+        "en": "Website offline package"
+      },
       "version": "1.2.2",
       "status": "preview",
       "url": "https://ai-clash.snewbie.site/downloads/ai-clash-v1.2.2.zip",
-      "note": "v1.2.2 已发布，可从官网直连下载离线包并手动安装。"
+      "note": "v1.2.2 已发布，可从官网直连下载离线包并手动安装。",
+      "notes": {
+        "zh-CN": "v1.2.2 已发布，可从官网直连下载离线包并手动安装。",
+        "en": "v1.2.2 is available as a direct offline package download from the website."
+      }
     }
   }
 }

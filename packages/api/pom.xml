@@ -19,7 +19,7 @@
   <description>AI Clash backend API service</description>
 
   <properties>
-    <java.version>21</java.version>
+    <java.version>25</java.version>
   </properties>
 
   <dependencies>
