@@ -5,7 +5,7 @@ import changelogZh from '../content/markdown/changelog.zh.md?raw'
 import { Article } from './Article'
 
 export function ChangelogPage({ locale }: { locale: Locale }) {
-  const markdown = locale === 'zh' ? changelogZh : changelogEn
+  const markdown = locale === 'en' ? changelogEn : changelogZh
 
   return (
     <Article title="">

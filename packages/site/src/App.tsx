@@ -46,8 +46,7 @@ export function App() {
   })
   const locale = getInitialLocale(path)
   const page = stripLocale(path)
-  const isSharePage = page === '/share' || page.startsWith('/share/')
-  const isAppPage = page === '/chat' || isSharePage
+  const isAppPage = page === '/chat'
 
   useEffect(() => {
     const updatePath = () => setPath(stripBasePath(window.location.pathname))

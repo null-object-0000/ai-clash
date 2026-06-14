@@ -1,11 +1,11 @@
 # Changelog
 
-## [1.2.2] - 2026-06-08
+## [1.2.2] - 2026-06-14
 
 ### ✨ Features
 
 - **Public Share Pages**: Shared links now open a read-only site page with the question, model answers, and summary.
-- **Language Foundation**: Added English and Traditional Chinese extension copy, plus Simplified Chinese, Traditional Chinese, and English built-in summary prompts.
+- **Language Foundation**: Added English extension copy, plus Simplified Chinese and English built-in summary prompts.
 
 ### 🛠️ Fixes & Improvements
 

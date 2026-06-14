@@ -1,9 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Button, Result, Spin, Tag } from 'antd'
-import { ChromeOutlined, DownloadOutlined, ShareAltOutlined } from '@ant-design/icons'
+import { useEffect, useState } from 'react'
+import { Button, Result, Spin } from 'antd'
+import { ChromeOutlined, DownloadOutlined, MergeCellsOutlined, RightOutlined } from '@ant-design/icons'
+import { Bubble } from '@ant-design/x'
 import XMarkdown from '@ant-design/x-markdown'
+import { DeepSeek, Doubao, Qwen, Yuanbao, XiaomiMiMo, Wenxin } from '@lobehub/icons'
+import type { ComponentType, CSSProperties, ReactNode } from 'react'
 import type { Locale } from '../content'
 import { downloads } from '../content'
+import { shareLabelsZh } from '../content/source'
 import { API_BASE_URL } from '../app/api'
 import { trackSiteEvent } from '../app/analytics'
 import { withBasePath, withLocale } from '../app/paths'
@@ -42,24 +46,10 @@ type LoadState =
   | { status: 'loaded'; snapshot: ShareSnapshot }
   | { status: 'error'; error: string }
 
+type AiIcon = ComponentType<{ size?: number | string; className?: string; style?: CSSProperties }>
+
 const labels = {
-  zh: {
-    loading: '正在打开分享',
-    missingTitle: '分享不存在或已取消',
-    missingDesc: '这条分享链接可能已经取消、过期，或者链接地址不完整。',
-    backHome: '返回首页',
-    question: '问题',
-    summary: '归纳总结',
-    providerAnswers: '多模型回答',
-    thinking: '思考过程',
-    stats: '统计',
-    growthTitle: '用 AI 对撞机生成你自己的多模型对比',
-    growthDesc: '安装浏览器插件后，一次提问即可同时唤起多个 AI 通道，并生成可分享的对比结果。',
-    chrome: 'Chrome 商店安装',
-    edge: 'Edge 商店安装',
-    offline: '离线 ZIP 安装',
-    upcoming: '官网在线多模型对话正在准备中，当前推荐先安装插件使用。',
-  },
+  zh: shareLabelsZh,
   en: {
     loading: 'Opening share',
     missingTitle: 'Share not found',
@@ -79,6 +69,20 @@ const labels = {
   },
 } satisfies Record<Locale, Record<string, string>>
 
+const chromeStoreUrl = 'https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai'
+const edgeStoreUrl = 'https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm'
+const summarySectionTitles = ['核心共识', '觀點對撞', '观点对撞', '裁判取舍', '裁判取捨']
+
+const providerIcons: Record<string, AiIcon> = {
+  deepseek: DeepSeek.Color as AiIcon,
+  doubao: Doubao.Color as AiIcon,
+  qianwen: Qwen.Color as AiIcon,
+  yuanbao: Yuanbao.Color as AiIcon,
+  wenxin: Wenxin.Color as AiIcon,
+  xiaomi: XiaomiMiMo as AiIcon,
+  summary: MergeCellsOutlined as unknown as AiIcon,
+}
+
 function formatStats(stats?: ProviderStats | null) {
   if (!stats) return ''
   return `${Math.round(stats.totalTime)}ms · ${stats.charCount} chars · ${stats.charsPerSec.toFixed(1)} chars/s`
@@ -86,6 +90,111 @@ function formatStats(stats?: ProviderStats | null) {
 
 function markdown(content = '') {
   return <XMarkdown className="x-markdown-light" content={content} />
+}
+
+function stripSummaryFinalTitle(content = '') {
+  return content.replace(/^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议|終極建議|最終建議|最終結論|建議)\s*\n+/, '').trimStart()
+}
+
+function splitSummaryAnalysis(content = '') {
+  const sections = content
+    .split(/(?=^#{1,6}\s+)/m)
+    .map((part) => {
+      const match = part.match(/^#{1,6}\s+(.+?)\s*\n([\s\S]*)$/)
+      if (!match) return null
+      const title = match[1].trim()
+      if (!summarySectionTitles.includes(title)) return null
+      return { title, content: match[2].trim() }
+    })
+    .filter((section): section is { title: string; content: string } => Boolean(section?.content))
+
+  return sections
+}
+
+function ProviderHeader({
+  providerId,
+  label,
+  stats,
+  status,
+}: {
+  providerId: string
+  label: string
+  stats?: ProviderStats | null
+  status?: string
+}) {
+  const Icon = providerIcons[providerId] || providerIcons.summary
+  return (
+    <div className="share-bubble-header">
+      <span className="share-bubble-header__chevron">
+        <RightOutlined />
+      </span>
+      <div className="share-bubble-header__content">
+        {Icon ? <Icon size={16} /> : null}
+        <span className="share-bubble-header__name">{label}</span>
+        {stats ? <span className="share-bubble-header__meta">{formatStats(stats)}</span> : null}
+        {!stats && status ? <span className="share-bubble-header__meta">{status}</span> : null}
+      </div>
+    </div>
+  )
+}
+
+function CollapsibleContent({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <details className="share-think">
+      <summary>{title}</summary>
+      <div className="share-think__content">{children}</div>
+    </details>
+  )
+}
+
+function AnswerContent({
+  response,
+  thinkResponse,
+}: {
+  response: string
+  thinkResponse?: string
+}) {
+  return (
+    <>
+      {thinkResponse ? (
+        <CollapsibleContent title="深度思考完成">
+          {markdown(thinkResponse)}
+        </CollapsibleContent>
+      ) : null}
+      {markdown(response)}
+    </>
+  )
+}
+
+function SummaryContent({ summary }: { summary: NonNullable<ShareSnapshot['summary']> }) {
+  const analysisSections = splitSummaryAnalysis(summary.analysisResponse)
+  return (
+    <>
+      {summary.thinkResponse ? (
+        <CollapsibleContent title="深度思考完成">
+          {markdown(summary.thinkResponse)}
+        </CollapsibleContent>
+      ) : null}
+      {analysisSections.length ? (
+        analysisSections.map((section) => (
+          <CollapsibleContent key={section.title} title={section.title}>
+            {markdown(section.content)}
+          </CollapsibleContent>
+        ))
+      ) : summary.analysisResponse ? (
+        <CollapsibleContent title="归纳总结过程完成">
+          {markdown(summary.analysisResponse)}
+        </CollapsibleContent>
+      ) : null}
+      {markdown(stripSummaryFinalTitle(summary.response))}
+    </>
+  )
 }
 
 export function SharePage({ locale, shareId }: { locale: Locale; shareId?: string }) {
@@ -114,7 +223,13 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
         return data.snapshot
       })
       .then((snapshot) => {
-        if (!ignore) setState({ status: 'loaded', snapshot })
+        if (!ignore) {
+          trackSiteEvent('share_loaded', {
+            provider_count: snapshot.providers.length,
+            has_summary: Boolean(snapshot.summary),
+          }, `/share/${shareId}`)
+          setState({ status: 'loaded', snapshot })
+        }
       })
       .catch((error) => {
         if (!ignore) {
@@ -128,7 +243,6 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
     }
   }, [shareId])
 
-  const installHref = useMemo(() => withLocale('/download', locale), [locale])
   const download = downloads[locale]
 
   if (state.status === 'loading') {
@@ -154,59 +268,70 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
   }
 
   const snapshot = state.snapshot
+  const conversationItems = [
+    {
+      key: 'question',
+      role: 'user',
+      className: 'share-bubble-user',
+      placement: 'end' as const,
+      variant: 'filled' as const,
+      content: snapshot.question,
+    },
+    ...snapshot.providers.map((provider) => ({
+      key: `provider-${provider.providerId}`,
+      role: 'assistant',
+      className: 'share-bubble-assistant',
+      placement: 'start' as const,
+      variant: 'filled' as const,
+      content: provider.response,
+      header: (
+        <ProviderHeader
+          providerId={provider.providerId}
+          label={provider.providerName}
+          stats={provider.stats}
+          status={provider.status}
+        />
+      ),
+      contentRender: () => (
+        <AnswerContent response={provider.response} thinkResponse={provider.thinkResponse} />
+      ),
+    })),
+    ...(snapshot.summary ? [{
+      key: 'summary',
+      role: 'assistant',
+      className: 'share-bubble-assistant',
+      placement: 'start' as const,
+      variant: 'filled' as const,
+      content: snapshot.summary.response,
+      header: (
+        <ProviderHeader
+          providerId="summary"
+          label={text.summary}
+          stats={snapshot.summary.stats}
+          status="completed"
+        />
+      ),
+      contentRender: () => <SummaryContent summary={snapshot.summary!} />,
+    }] : []),
+  ]
 
   return (
     <main className="share-page">
-      <section className="share-hero">
-        <div>
-          <Tag icon={<ShareAltOutlined />} color="blue">AI Clash Share</Tag>
-          <h1>{snapshot.title || snapshot.question.slice(0, 56)}</h1>
-          <p>{new Date(snapshot.createdAt).toLocaleString(locale === 'en' ? 'en-US' : 'zh-CN')}</p>
-        </div>
-        <Button type="primary" href={withBasePath(installHref)} onClick={() => trackSiteEvent('install_cta_clicked', { source: 'share_hero' })}>
-          {text.chrome}
-        </Button>
-      </section>
-
-      <section className="share-section">
-        <h2>{text.question}</h2>
-        <div className="share-question">{snapshot.question}</div>
-      </section>
-
-      {snapshot.summary ? (
-        <section className="share-section share-summary">
-          <h2>{text.summary}</h2>
-          {snapshot.summary.analysisResponse ? (
-            <details>
-              <summary>{text.thinking}</summary>
-              {markdown(snapshot.summary.analysisResponse)}
-            </details>
-          ) : null}
-          {markdown(snapshot.summary.response)}
-          {formatStats(snapshot.summary.stats) ? <p className="share-stats">{formatStats(snapshot.summary.stats)}</p> : null}
-        </section>
-      ) : null}
-
-      <section className="share-section">
-        <h2>{text.providerAnswers}</h2>
-        <div className="share-provider-list">
-          {snapshot.providers.map((provider) => (
-            <article className="share-provider" key={provider.providerId}>
-              <header>
-                <strong>{provider.providerName}</strong>
-                <Tag color={provider.status === 'error' ? 'red' : 'green'}>{provider.status}</Tag>
-              </header>
-              {provider.thinkResponse ? (
-                <details>
-                  <summary>{text.thinking}</summary>
-                  {markdown(provider.thinkResponse)}
-                </details>
-              ) : null}
-              {markdown(provider.response)}
-              {formatStats(provider.stats) ? <p className="share-stats">{formatStats(provider.stats)}</p> : null}
-            </article>
-          ))}
-        </div>
+      <section className="share-conversation" aria-label={text.providerAnswers}>
+        <Bubble.List
+          className="share-bubble-list"
+          items={conversationItems}
+          role={{
+            user: {
+              placement: 'end',
+              variant: 'filled',
+            },
+            assistant: {
+              placement: 'start',
+              variant: 'filled',
+            },
+          }}
+        />
       </section>
 
       <section className="share-growth">
@@ -217,13 +342,13 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
           <Button
             type="primary"
             icon={<ChromeOutlined />}
-            href="https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai"
+            href={chromeStoreUrl}
             onClick={() => trackSiteEvent('install_cta_clicked', { source: 'share_bottom', channel: 'chrome' })}
           >
             {text.chrome}
           </Button>
           <Button
-            href="https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm"
+            href={edgeStoreUrl}
             onClick={() => trackSiteEvent('install_cta_clicked', { source: 'share_bottom', channel: 'edge' })}
           >
             {text.edge}

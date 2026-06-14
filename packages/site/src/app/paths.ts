@@ -28,7 +28,8 @@ export function assetPath(path: string) {
 }
 
 export function getLocale(pathname: string): Locale {
-  return pathname === '/en' || pathname.startsWith('/en/') ? 'en' : 'zh'
+  if (pathname === '/en' || pathname.startsWith('/en/')) return 'en'
+  return 'zh'
 }
 
 export function getInitialLocale(pathname: string): Locale {
