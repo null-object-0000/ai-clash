@@ -93,6 +93,18 @@ export const PROVIDERS = [
     supportedLocales: ['zh-CN'],
   },
   {
+    id: 'qwen',
+    name: 'Qwen',
+    names: {
+      'zh-CN': 'Qwen 国际版',
+      en: 'Qwen',
+    },
+    matchPattern: 'https://chat.qwen.ai/*',
+    startUrl: 'https://chat.qwen.ai/',
+    region: 'global',
+    supportedLocales: ['zh-CN', 'en'],
+  },
+  {
     id: 'yuanbao',
     name: '元宝',
     names: {

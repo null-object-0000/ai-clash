@@ -138,6 +138,7 @@ export const PROVIDER_THEME_MAP: Record<ProviderId, ThemeColor> = Object.fromEnt
         deepseek: 'blue',
         doubao: 'amber',
         qianwen: 'emerald',
+        qwen: 'emerald',
         longcat: 'violet',
         yuanbao: 'teal',
         wenxin: 'blue',

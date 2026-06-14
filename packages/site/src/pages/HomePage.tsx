@@ -11,7 +11,8 @@ type AiIcon = ComponentType<{ size?: number | string; className?: string; style?
 const aiProviders = [
   { names: { zh: 'DeepSeek', en: 'DeepSeek' }, href: 'https://chat.deepseek.com/', Icon: DeepSeek.Color as AiIcon },
   { names: { zh: '豆包', en: 'Doubao' }, href: 'https://www.doubao.com/chat/', Icon: Doubao.Color as AiIcon },
-  { names: { zh: '通义千问', en: 'Qwen' }, href: 'https://www.qianwen.com/', Icon: Qwen.Color as AiIcon },
+  { names: { zh: '通义千问', en: 'Qwen China' }, href: 'https://www.qianwen.com/', Icon: Qwen.Color as AiIcon },
+  { names: { zh: 'Qwen 国际版', en: 'Qwen' }, href: 'https://chat.qwen.ai/', Icon: Qwen.Color as AiIcon },
   { names: { zh: '腾讯元宝', en: 'Tencent Yuanbao' }, href: 'https://yuanbao.tencent.com/chat/', Icon: Yuanbao.Color as AiIcon },
   { names: { zh: '文心一言', en: 'ERNIE Bot' }, href: 'https://yiyan.baidu.com/chat/', Icon: Wenxin.Color as AiIcon },
   { names: { zh: 'Xiaomi MIMO', en: 'Xiaomi MIMO' }, href: 'https://aistudio.xiaomimimo.com/#/c', Icon: XiaomiMiMo as AiIcon },

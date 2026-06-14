@@ -79,6 +79,7 @@ const providerIcons: Record<string, AiIcon> = {
   deepseek: DeepSeek.Color as AiIcon,
   doubao: Doubao.Color as AiIcon,
   qianwen: Qwen.Color as AiIcon,
+  qwen: Qwen.Color as AiIcon,
   yuanbao: Yuanbao.Color as AiIcon,
   wenxin: Wenxin.Color as AiIcon,
   xiaomi: XiaomiMiMo as AiIcon,

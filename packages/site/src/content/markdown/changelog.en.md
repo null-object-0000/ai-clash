@@ -5,7 +5,7 @@
 ### ✨ Features
 
 - **Public Sharing**: Create a share link for a multi-model comparison and view the question, answers, and summary on the website.
-- **English UI**: Added English interface copy. DeepSeek is now available in the English UI.
+- **English UI**: Added English interface copy. DeepSeek and Qwen are now available in the English UI.
 
 ### 🛠️ Fixes & Improvements
 

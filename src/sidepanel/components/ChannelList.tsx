@@ -156,7 +156,16 @@ export default function ChannelList() {
 
   const cnProviders = getProvidersByRegion('cn', effectiveLocale).filter((p: any) => p.id !== 'summarizer');
   const globalProviders = getProvidersByRegion('global', effectiveLocale).filter((p: any) => p.id !== 'summarizer');
-  const allProviders = [...cnProviders, ...globalProviders];
+  const providerSections = effectiveLocale === 'en'
+    ? [
+      { key: 'global', title: text.channelList.global, providers: globalProviders, empty: text.channelList.noGlobal, emptyHint: text.channelList.noGlobalHint },
+      { key: 'cn', title: text.channelList.cn, providers: cnProviders },
+    ]
+    : [
+      { key: 'cn', title: text.channelList.cn, providers: cnProviders },
+      { key: 'global', title: text.channelList.global, providers: globalProviders, empty: text.channelList.noGlobal, emptyHint: text.channelList.noGlobalHint },
+    ];
+  const allProviders = providerSections.flatMap(section => section.providers);
   const enabledCount = allProviders.filter((p: any) => enabledMap[p.id as ProviderId]).length;
   const allEnabled = allProviders.length > 0 && enabledCount === allProviders.length;
 
@@ -320,27 +329,24 @@ export default function ChannelList() {
                   {text.channelList.noLocaleSupportHint}
                 </div>
               </div>
-            ) : cnProviders.length > 0 && (
-              <>
-                <div className={styles.sectionHeader}>{text.channelList.cn}</div>
-                {renderListItems(cnProviders)}
-              </>
-            )}
-
-            {allProviders.length > 0 && (
-              <>
-                <div className={styles.sectionHeader}>{text.channelList.global}</div>
-                {globalProviders.length > 0 ? (
-                  renderListItems(globalProviders)
-                ) : (
-                  <div style={{ padding: '24px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.25)', fontSize: '13px' }}>
-                    {text.channelList.noGlobal}
-                    <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.75 }}>
-                      {text.channelList.noGlobalHint}
+            ) : (
+              providerSections.map((section) => (
+                <React.Fragment key={section.key}>
+                  <div className={styles.sectionHeader}>{section.title}</div>
+                  {section.providers.length > 0 ? (
+                    renderListItems(section.providers)
+                  ) : section.empty ? (
+                    <div style={{ padding: '24px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.25)', fontSize: '13px' }}>
+                      {section.empty}
+                      {section.emptyHint ? (
+                        <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.75 }}>
+                          {section.emptyHint}
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                )}
-              </>
+                  ) : null}
+                </React.Fragment>
+              ))
             )}
                 </div>
         </div>

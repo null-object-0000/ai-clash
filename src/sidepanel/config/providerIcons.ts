@@ -26,6 +26,7 @@ const PROVIDER_ICON_MAP: Record<string, IconComponent | { Color: IconComponent }
   deepseek: DeepSeek,
   doubao: Doubao,
   qianwen: Qwen,
+  qwen: Qwen,
   yuanbao: Yuanbao,
   wenxin: Wenxin,
   longcat: LongCat,
