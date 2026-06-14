@@ -4,12 +4,13 @@
 
 ### ✨ Features
 
-- **Public Share Pages**: Shared links now open a read-only site page with the question, model answers, and summary.
-- **Language Foundation**: Added English extension copy, plus Simplified Chinese and English built-in summary prompts.
+- **Public Sharing**: Create a share link for a multi-model comparison and view the question, answers, and summary on the website.
+- **English UI**: Added English interface copy. DeepSeek is now available in the English UI.
 
 ### 🛠️ Fixes & Improvements
 
-- **Privacy & Settings Update**: Clarified public sharing and anonymous analytics, and added an anonymous analytics toggle in global settings.
+- **Anonymous Analytics**: Added a settings toggle and clarified that questions, answers, and API keys are not uploaded.
+- **Experience Improvements & Fixes**: Improved share pages, share status retention, single-channel history follow-ups, and version info display.
 
 ## [1.2.1] - 2026-06-03
 

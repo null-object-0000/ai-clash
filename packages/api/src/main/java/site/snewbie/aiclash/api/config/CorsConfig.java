@@ -16,7 +16,8 @@ public class CorsConfig implements WebMvcConfigurer {
   public void addCorsMappings(CorsRegistry registry) {
     var registration = registry.addMapping("/api/**")
         .allowedMethods("GET", "POST", "DELETE", "OPTIONS")
-        .allowedHeaders("content-type", "x-delete-token");
+        .allowedHeaders("*")
+        .allowCredentials(true);
 
     if (properties.corsOrigins().contains("*")) {
       registration.allowedOriginPatterns("*");
