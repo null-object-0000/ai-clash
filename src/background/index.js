@@ -231,6 +231,7 @@ function sendProviderError(providerId, message, errorType = 'system_error') {
       provider: providerId,
       message,
       errorType,
+      analyticsTracked: true,
     }
   });
 }
@@ -321,7 +322,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
 
     chrome.runtime.sendMessage({
       type: MSG_TYPES.TASK_COMPLETED,
-      payload: { provider: provider.id }
+      payload: { provider: provider.id, mode: 'api', analyticsTracked: true }
     });
     trackEvent('provider_completed', { provider_id: provider.id, mode: 'api' }, '/extension/provider');
 
@@ -593,14 +594,17 @@ chrome.runtime.onInstalled.addListener((details) => {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === MSG_TYPES.TASK_COMPLETED) {
         const providerId = request.payload?.provider;
-        if (providerId && providerId !== '_summary') {
-            trackEvent('provider_completed', { provider_id: providerId, mode: 'web' }, '/extension/provider');
+        if (providerId && providerId !== '_summary' && !request.payload?.analyticsTracked) {
+            trackEvent('provider_completed', {
+                provider_id: providerId,
+                mode: request.payload?.mode || 'web',
+            }, '/extension/provider');
         }
     }
 
     if (request.type === MSG_TYPES.ERROR) {
         const providerId = request.payload?.provider;
-        if (providerId && providerId !== '_summary') {
+        if (providerId && providerId !== '_summary' && !request.payload?.analyticsTracked) {
             trackEvent('provider_failed', {
                 provider_id: providerId,
                 error_type: request.payload?.errorType || 'provider_error',

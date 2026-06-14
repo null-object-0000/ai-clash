@@ -925,16 +925,17 @@ const App = () => {
     if (!question) return;
 
     const s = useStore.getState();
+    const activeProviderIds = getAvailableProviderIds(s.locale);
     // 查找正在运行但已经开始输出的通道（responding 状态）
     // 只要有通道开始输出，就可以提交下一个新通道
-    const respondingChannels = availableProviderIds.filter(id =>
+    const respondingChannels = activeProviderIds.filter(id =>
       s.statusMap[id] === 'running' && s.stageMap[id] === 'responding'
     );
 
     // 如果没有通道在 responding 状态，检查是否有刚刚启用但还没提交的通道
     if (respondingChannels.length === 0) {
       // 查找已启用但状态为 idle 的通道（可能是刚添加的）
-      const idleEnabledChannels = availableProviderIds.filter(id =>
+      const idleEnabledChannels = activeProviderIds.filter(id =>
         s.enabledMap[id] && s.statusMap[id] === 'idle' && !buffers.fullText[id]
       );
 

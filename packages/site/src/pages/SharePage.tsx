@@ -59,6 +59,8 @@ const labels = {
     summary: 'Summary',
     providerAnswers: 'Model answers',
     thinking: 'Reasoning',
+    thinkingDone: 'Reasoning complete',
+    summaryAnalysisDone: 'Summary analysis complete',
     stats: 'Stats',
     growthTitle: 'Create your own multi-model comparison with AI Clash',
     growthDesc: 'Install the browser extension to ask once, compare multiple AI channels, and share the result.',
@@ -156,14 +158,16 @@ function CollapsibleContent({
 function AnswerContent({
   response,
   thinkResponse,
+  thinkingTitle,
 }: {
   response: string
   thinkResponse?: string
+  thinkingTitle: string
 }) {
   return (
     <>
       {thinkResponse ? (
-        <CollapsibleContent title="深度思考完成">
+        <CollapsibleContent title={thinkingTitle}>
           {markdown(thinkResponse)}
         </CollapsibleContent>
       ) : null}
@@ -172,12 +176,20 @@ function AnswerContent({
   )
 }
 
-function SummaryContent({ summary }: { summary: NonNullable<ShareSnapshot['summary']> }) {
+function SummaryContent({
+  summary,
+  thinkingTitle,
+  analysisTitle,
+}: {
+  summary: NonNullable<ShareSnapshot['summary']>
+  thinkingTitle: string
+  analysisTitle: string
+}) {
   const analysisSections = splitSummaryAnalysis(summary.analysisResponse)
   return (
     <>
       {summary.thinkResponse ? (
-        <CollapsibleContent title="深度思考完成">
+        <CollapsibleContent title={thinkingTitle}>
           {markdown(summary.thinkResponse)}
         </CollapsibleContent>
       ) : null}
@@ -188,7 +200,7 @@ function SummaryContent({ summary }: { summary: NonNullable<ShareSnapshot['summa
           </CollapsibleContent>
         ))
       ) : summary.analysisResponse ? (
-        <CollapsibleContent title="归纳总结过程完成">
+        <CollapsibleContent title={analysisTitle}>
           {markdown(summary.analysisResponse)}
         </CollapsibleContent>
       ) : null}
@@ -293,7 +305,11 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
         />
       ),
       contentRender: () => (
-        <AnswerContent response={provider.response} thinkResponse={provider.thinkResponse} />
+        <AnswerContent
+          response={provider.response}
+          thinkResponse={provider.thinkResponse}
+          thinkingTitle={text.thinkingDone}
+        />
       ),
     })),
     ...(snapshot.summary ? [{
@@ -311,7 +327,13 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
           status="completed"
         />
       ),
-      contentRender: () => <SummaryContent summary={snapshot.summary!} />,
+      contentRender: () => (
+        <SummaryContent
+          summary={snapshot.summary!}
+          thinkingTitle={text.thinkingDone}
+          analysisTitle={text.summaryAnalysisDone}
+        />
+      ),
     }] : []),
   ]
 

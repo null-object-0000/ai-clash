@@ -97,6 +97,8 @@ export const shareLabelsZh = {
   summary: '归纳总结',
   providerAnswers: '多模型回答',
   thinking: '思考过程',
+  thinkingDone: '深度思考完成',
+  summaryAnalysisDone: '归纳总结过程完成',
   stats: '统计',
   growthTitle: '用 AI 对撞机生成你自己的多模型对比',
   growthDesc: '安装浏览器插件后，一次提问即可同时唤起多个 AI 通道，并生成可分享的对比结果。',
