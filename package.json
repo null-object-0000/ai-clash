@@ -1,6 +1,6 @@
 {
     "name": "ai-clash",
-    "description": "💥 你的赛博董事会。一次提问，多款满血 AI 同屏对撞。零成本利用网页原生算力进行交叉验证，自带 AI 裁判一键归纳最优解，专治模型偏科与幻觉。",
+    "description": "AI Clash / AI 对撞机：一次提问，多款网页 AI 同屏对比；支持中英文界面，内置 AI 裁判总结共识、分歧和最优答案。",
     "license": "GPL-3.0-or-later",
     "private": true,
     "version": "1.2.2",

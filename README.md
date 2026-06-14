@@ -7,14 +7,23 @@
 [![GitHub Release](https://img.shields.io/github/v/release/null-object-0000/ai-clash?style=for-the-badge)](https://github.com/null-object-0000/ai-clash/releases)
 [![Chrome Web Store Version](https://img.shields.io/chrome-web-store/v/ggngmgpjdklmkpoldbfahmeefpnfhhai?style=for-the-badge)](https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai)
 [![Edge Add-ons Version](https://img.shields.io/badge/dynamic/json?label=Edge%20Add-ons&prefix=v&query=%24.version&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Fkhjmihaeihajagobgbdhlbjeobdpmfkm&style=for-the-badge&logo=microsoftedge)](https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm)
+![Languages](https://img.shields.io/badge/Languages-中文%20%7C%20English-blue?style=for-the-badge)
 
 > 💥 一个问题问 N 个 AI，答案互相对撞，直接拿最优解！
 >
 > 🔥 已支持：DeepSeek | 豆包 | 通义千问 | 腾讯元宝 | 文心一言 | Xiaomi MIMO
+>
+> 🌐 已支持中文与英文界面。英文界面下 DeepSeek 与 Qwen 国际版已可使用，更多通道正在适配中。
 
 <p align="center">
   <img src="packages/site/public/动画.gif" width="100%" alt="演示动画">
 </p>
+
+## English
+
+AI Clash is a browser extension for comparing multiple AI models side by side. Ask once, let several logged-in web AI providers answer in parallel, and use the built-in AI judge to summarize consensus, differences, and the best final answer.
+
+The extension now supports both Simplified Chinese and English. DeepSeek and Qwen are available in the English UI today, while the full Chinese provider lineup remains available in the Simplified Chinese UI.
 
 ## ✨ 为什么你一定要用这个工具？
 
@@ -38,7 +47,7 @@
 
 ### 方式一：商店安装
 
-1. 打开 Chrome/Edge 应用商店，搜索「AI 对撞机」
+1. 打开 Chrome/Edge 应用商店，搜索「AI 对撞机」或「AI Clash」
 2. 点击「添加到 Chrome/Edge」，1秒安装完成
 
 ### 方式二：手动安装（现在就能用）
@@ -62,6 +71,8 @@
 ### 第 2 步：呼出对撞机
 
 点击浏览器右上角的「AI 对撞机」扩展图标，召唤出魔法侧边栏。
+
+如果你想使用英文界面，可以在全局设置里把语言切换为 English。
 
 ### 第 3 步：提问，然后看戏
 
@@ -101,6 +112,10 @@
 ### 🧩 回答中途加通道
 
 如果你已经发出问题，临时想让另一个 AI 也参与对比，可以直接开启新通道加入当前轮次，不需要复制问题重新开始。
+
+### 🌐 中英文界面支持
+
+插件侧边栏、设置、关于/版本更新和内置总结提示词均已支持简体中文与英文。英文界面当前可使用 DeepSeek 与 Qwen 国际版；如果需要使用豆包、腾讯元宝、文心一言、Xiaomi MIMO 等中文通道，请切换到简体中文界面。
 
 ### ♻️ 失败通道单独重试
 
