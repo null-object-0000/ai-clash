@@ -10,13 +10,13 @@
         "zh-CN": "Chrome 应用商店",
         "en": "Chrome Web Store"
       },
-      "version": "1.2.1",
-      "status": "published",
+      "version": "1.2.2",
+      "status": "reviewing",
       "url": "https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai",
-      "note": "v1.2.1 已通过 Chrome Web Store 审核，Chrome 用户可自动更新。",
+      "note": "v1.2.2 已提交 Chrome 应用商店审核，审核通过后 Chrome 用户可自动更新。",
       "notes": {
-        "zh-CN": "v1.2.1 已通过 Chrome 应用商店审核，Chrome 用户可自动更新。",
-        "en": "v1.2.1 has passed Chrome Web Store review. Chrome users can update automatically."
+        "zh-CN": "v1.2.2 已提交 Chrome 应用商店审核，审核通过后 Chrome 用户可自动更新。",
+        "en": "v1.2.2 has been submitted to Chrome Web Store review. Chrome users can update automatically after approval."
       }
     },
     "edge": {
@@ -25,13 +25,13 @@
         "zh-CN": "Edge 外接程序",
         "en": "Edge Add-ons"
       },
-      "version": "1.2.1",
-      "status": "published",
+      "version": "1.2.2",
+      "status": "reviewing",
       "url": "https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm",
-      "note": "v1.2.1 已通过 Edge Add-ons 审核，可自动更新。",
+      "note": "v1.2.2 已提交 Edge 外接程序审核，审核通过后可自动更新。",
       "notes": {
-        "zh-CN": "v1.2.1 已通过 Edge 外接程序审核，可自动更新。",
-        "en": "v1.2.1 has passed Edge Add-ons review. It can update automatically."
+        "zh-CN": "v1.2.2 已提交 Edge 外接程序审核，审核通过后可自动更新。",
+        "en": "v1.2.2 has been submitted to Edge Add-ons review. It can update automatically after approval."
       }
     },
     "github": {
