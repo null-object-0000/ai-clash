@@ -100,12 +100,24 @@
 
 .share-bubble-header {
   display: flex;
+  width: calc(100% + 24px);
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
   margin: -8px -12px 8px;
+  border: 0;
   border-radius: 8px 8px 0 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
   user-select: none;
+}
+
+.share-bubble-header:focus-visible {
+  outline: 2px solid var(--vp-c-brand);
+  outline-offset: -2px;
 }
 
 .share-bubble-header__chevron {
@@ -115,6 +127,19 @@
   color: var(--vp-c-text-2);
   font-size: 12px;
   transform: rotate(90deg);
+  transition: transform 0.16s ease;
+}
+
+.share-bubble-header.is-collapsed {
+  margin-bottom: -8px;
+}
+
+.share-bubble-header.is-collapsed .share-bubble-header__chevron {
+  transform: rotate(0deg);
+}
+
+.share-bubble-list .share-bubble-assistant--collapsed .ant-bubble-content {
+  padding-bottom: 8px;
 }
 
 .share-bubble-header__content {

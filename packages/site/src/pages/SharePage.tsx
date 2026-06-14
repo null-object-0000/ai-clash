@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button, Result, Spin } from 'antd'
 import { ChromeOutlined, DownloadOutlined, MergeCellsOutlined, RightOutlined } from '@ant-design/icons'
 import { Bubble } from '@ant-design/x'
@@ -128,16 +128,25 @@ function ProviderHeader({
   label,
   stats,
   status,
+  collapsed,
+  onClick,
 }: {
   providerId: string
   label: string
   stats?: ProviderStats | null
   status?: string
+  collapsed?: boolean
+  onClick?: () => void
 }) {
   const Icon = providerIcons[providerId] || providerIcons.summary
   return (
-    <div className="share-bubble-header">
-      <span className="share-bubble-header__chevron">
+    <button
+      type="button"
+      className={`share-bubble-header${collapsed ? ' is-collapsed' : ''}`}
+      onClick={onClick}
+      aria-expanded={!collapsed}
+    >
+      <span className="share-bubble-header__chevron" aria-hidden="true">
         <RightOutlined />
       </span>
       <div className="share-bubble-header__content">
@@ -146,7 +155,7 @@ function ProviderHeader({
         {stats ? <span className="share-bubble-header__meta">{formatStats(stats)}</span> : null}
         {!stats && status ? <span className="share-bubble-header__meta">{status}</span> : null}
       </div>
-    </div>
+    </button>
   )
 }
 
@@ -224,6 +233,11 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
   const [state, setState] = useState<LoadState>(() => (
     shareId ? { status: 'loading' } : { status: 'error', error: 'missing share id' }
   ))
+  const [collapsedMap, setCollapsedMap] = useState<Record<string, boolean>>({})
+
+  const toggleCollapsed = useCallback((key: string) => {
+    setCollapsedMap((current) => ({ ...current, [key]: !current[key] }))
+  }, [])
 
   useEffect(() => {
     trackSiteEvent('share_page_viewed', { has_id: Boolean(shareId) }, shareId ? `/share/${shareId}` : '/share')
@@ -250,6 +264,10 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
             provider_count: snapshot.providers.length,
             has_summary: Boolean(snapshot.summary),
           }, `/share/${shareId}`)
+          setCollapsedMap({
+            ...Object.fromEntries(snapshot.providers.map((provider) => [`provider-${provider.providerId}`, true])),
+            ...(snapshot.summary ? { summary: false } : {}),
+          })
           setState({ status: 'loaded', snapshot })
         }
       })
@@ -299,52 +317,63 @@ export function SharePage({ locale, shareId }: { locale: Locale; shareId?: strin
       variant: 'filled' as const,
       content: snapshot.question,
     },
-    ...snapshot.providers.map((provider) => ({
-      key: `provider-${provider.providerId}`,
-      role: 'assistant',
-      className: 'share-bubble-assistant',
-      placement: 'start' as const,
-      variant: 'filled' as const,
-      content: provider.response,
-      header: (
-        <ProviderHeader
-          providerId={provider.providerId}
-          label={provider.providerName}
-          stats={provider.stats}
-          status={provider.status}
-        />
-      ),
-      contentRender: () => (
-        <AnswerContent
-          response={provider.response}
-          thinkResponse={provider.thinkResponse}
-          thinkingTitle={text.thinkingDone}
-        />
-      ),
-    })),
-    ...(snapshot.summary ? [{
-      key: 'summary',
-      role: 'assistant',
-      className: 'share-bubble-assistant',
-      placement: 'start' as const,
-      variant: 'filled' as const,
-      content: snapshot.summary.response,
-      header: (
-        <ProviderHeader
-          providerId="summary"
-          label={text.summary}
-          stats={snapshot.summary.stats}
-          status="completed"
-        />
-      ),
-      contentRender: () => (
-        <SummaryContent
-          summary={snapshot.summary!}
-          thinkingTitle={text.thinkingDone}
-          analysisTitle={text.summaryAnalysisDone}
-        />
-      ),
-    }] : []),
+    ...snapshot.providers.map((provider) => {
+      const key = `provider-${provider.providerId}`
+      const collapsed = collapsedMap[key] ?? true
+      return {
+        key,
+        role: 'assistant',
+        className: `share-bubble-assistant${collapsed ? ' share-bubble-assistant--collapsed' : ''}`,
+        placement: 'start' as const,
+        variant: 'filled' as const,
+        content: provider.response,
+        header: (
+          <ProviderHeader
+            providerId={provider.providerId}
+            label={provider.providerName}
+            stats={provider.stats}
+            status={provider.status}
+            collapsed={collapsed}
+            onClick={() => toggleCollapsed(key)}
+          />
+        ),
+        contentRender: () => collapsed ? null : (
+          <AnswerContent
+            response={provider.response}
+            thinkResponse={provider.thinkResponse}
+            thinkingTitle={text.thinkingDone}
+          />
+        ),
+      }
+    }),
+    ...(snapshot.summary ? (() => {
+      const collapsed = collapsedMap.summary ?? false
+      return [{
+        key: 'summary',
+        role: 'assistant',
+        className: `share-bubble-assistant${collapsed ? ' share-bubble-assistant--collapsed' : ''}`,
+        placement: 'start' as const,
+        variant: 'filled' as const,
+        content: snapshot.summary.response,
+        header: (
+          <ProviderHeader
+            providerId="summary"
+            label={text.summary}
+            stats={snapshot.summary.stats}
+            status="completed"
+            collapsed={collapsed}
+            onClick={() => toggleCollapsed('summary')}
+          />
+        ),
+        contentRender: () => collapsed ? null : (
+          <SummaryContent
+            summary={snapshot.summary!}
+            thinkingTitle={text.thinkingDone}
+            analysisTitle={text.summaryAnalysisDone}
+          />
+        ),
+      }]
+    })() : []),
   ]
 
   return (

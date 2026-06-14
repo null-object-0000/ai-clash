@@ -43,10 +43,10 @@
       "version": "1.2.2",
       "status": "preview",
       "url": "https://ai-clash.snewbie.site/downloads/ai-clash-v1.2.2.zip",
-      "note": "v1.2.2 已发布，可从官网直连下载离线包并手动安装。",
+      "note": "v1.2.2 已发布，新增英文界面与英文总结提示词，英文界面下 DeepSeek 与 Qwen 国际版可用。",
       "notes": {
-        "zh-CN": "v1.2.2 已发布，可从官网直连下载离线包并手动安装。",
-        "en": "v1.2.2 is available as a direct offline package download from the website."
+        "zh-CN": "v1.2.2 已发布，新增英文界面与英文总结提示词，英文界面下 DeepSeek 与 Qwen 国际版可用。",
+        "en": "v1.2.2 is available now with the English UI, English summary prompts, and DeepSeek/Qwen support in English."
       }
     }
   }
