@@ -1,5 +1,5 @@
 /**
- * UI 配置导出层 - 从 providers.js 读取并格式化 UI 所需数据
+ * UI 配置导出层 - 从 providers.js 读取并格式化 UI 所需 data
  *
  * 新增通道/模型只需在 providers.js 中添加，此处自动同步
  */
@@ -14,6 +14,8 @@ export const PROVIDER_META = PROVIDERS
   .map(provider => ({
     id: provider.id,
     name: provider.name,
+    names: provider.names || {},
+    supportedLocales: provider.supportedLocales || ['zh-CN'],
     supportsApi: !!provider.apiConfig?.enabled,
     region: provider.region ?? 'cn', // 地区：cn（中国）| global（海外）
     apiKeyLink: provider.apiConfig?.apiKeyLink || undefined,
@@ -23,8 +25,40 @@ export const PROVIDER_META = PROVIDERS
 /**
  * 按地区过滤的 Provider 元数据
  */
-export function getProvidersByRegion(region) {
-  return PROVIDER_META.filter(p => p.region === region);
+export function normalizeLocale(locale = 'zh-CN') {
+  let loc = locale;
+  if (loc === 'system') {
+    loc = (typeof chrome !== 'undefined' && chrome.i18n?.getUILanguage?.()) || (typeof navigator !== 'undefined' && navigator.language) || 'zh-CN';
+  }
+  const normalized = String(loc).toLowerCase();
+  if (normalized.startsWith('en')) return 'en';
+  return 'zh-CN';
+}
+
+export function isProviderSupportedLocale(provider, locale = 'zh-CN') {
+  const supportedLocales = provider?.supportedLocales || ['zh-CN'];
+  return supportedLocales.includes(normalizeLocale(locale));
+}
+
+export function isProviderAvailableForLocale(providerId, locale = 'zh-CN') {
+  const provider = getProvider(providerId);
+  if (!provider || provider.enabled === false) return false;
+  return isProviderSupportedLocale(provider, locale);
+}
+
+export function getProviderIdsForLocale(locale = 'zh-CN', options = {}) {
+  const { includeSummarizer = false } = options;
+  return PROVIDERS
+    .filter(provider => provider.enabled !== false)
+    .filter(provider => includeSummarizer || provider.id !== 'summarizer')
+    .filter(provider => isProviderSupportedLocale(provider, locale))
+    .map(provider => provider.id);
+}
+
+export function getProvidersByRegion(region, locale) {
+  return PROVIDER_META
+    .filter(p => p.region === region)
+    .filter(p => locale == null || isProviderSupportedLocale(p, locale));
 }
 
 /**
@@ -38,15 +72,26 @@ export function getAvailableRegions() {
 /**
  * 获取模型选项列表 - 从 providers.js 动态生成
  */
-export function getModelOptions(providerId) {
+export function getModelOptions(providerId, locale = 'zh-CN') {
   const provider = getProvider(providerId);
+  const normalized = normalizeLocale(locale);
   if (!provider || !provider.apiConfig?.models) {
-    return [{ value: '', label: '默认模型（仅支持网页模式）' }];
+    const defaultLabel = normalized === 'en' ? 'Default model (Web mode only)' : '默认模型（仅支持网页模式）';
+    return [{ value: '', label: defaultLabel }];
   }
 
   return provider.apiConfig.models.map(model => {
     let label = `${model.id}`;
-    if (model.desc) label += `（${model.desc}）`;
+    const desc = typeof model.desc === 'object'
+      ? (model.desc[normalized] || model.desc['zh-CN'] || '')
+      : (model.desc || '');
+    if (desc) {
+      if (normalized === 'en') {
+        label += ` (${desc})`;
+      } else {
+        label += `（${desc}）`;
+      }
+    }
     return { value: model.id, label };
   });
 }
@@ -62,8 +107,10 @@ export function getDefaultModel(providerId) {
 /**
  * 获取提供者的显示名称
  */
-export function getProviderName(providerId) {
-  return getProvider(providerId)?.name || providerId;
+export function getProviderName(providerId, locale = 'zh-CN') {
+  const provider = getProvider(providerId);
+  const key = normalizeLocale(locale);
+  return provider?.names?.[key] || provider?.names?.['zh-CN'] || provider?.name || providerId;
 }
 
 /**

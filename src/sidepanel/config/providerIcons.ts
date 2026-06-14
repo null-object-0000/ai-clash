@@ -4,8 +4,14 @@
  * 所有 Provider 图标定义集中管理，避免多处维护
  */
 
-import { MergeCellsOutlined } from '@ant-design/icons';
-import { DeepSeek, Doubao, Qwen, LongCat, Yuanbao, XiaomiMiMo, Wenxin } from '@lobehub/icons';
+import MergeCellsOutlined from '@ant-design/icons/MergeCellsOutlined';
+import DeepSeek from '@lobehub/icons/es/DeepSeek';
+import Doubao from '@lobehub/icons/es/Doubao';
+import Qwen from '@lobehub/icons/es/Qwen';
+import LongCat from '@lobehub/icons/es/LongCat';
+import Yuanbao from '@lobehub/icons/es/Yuanbao';
+import XiaomiMiMo from '@lobehub/icons/es/XiaomiMiMo';
+import Wenxin from '@lobehub/icons/es/Wenxin';
 import type { ProviderId } from '../types';
 import type { ComponentType } from 'react';
 

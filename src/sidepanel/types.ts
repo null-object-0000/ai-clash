@@ -1,5 +1,7 @@
 // 从 providers.js 动态导入提供者配置，确保 UI 与 manifest 同步
 import { PROVIDERS } from '../background/providers.js';
+import { getProviderIdsForLocale, getProviderName as getLocalizedProviderName } from '../shared/config.js';
+import { resolveLocale } from './i18n';
 
 // 仅包含已启用的提供者 ID 列表（排除 summarizer，因为它是内置总结服务，不是回答通道）
 export const PROVIDER_IDS = Object.freeze(
@@ -25,6 +27,12 @@ export interface ProviderStats {
   totalTime: number;
   charCount: number;
   charsPerSec: number;
+}
+
+export interface PublishedShare {
+  id: string;
+  url: string;
+  deleteToken: string;
 }
 
 export interface ProviderResult {
@@ -69,6 +77,7 @@ export interface SummaryVersionEntry {
   analysisResponse?: string;
   stats: ProviderStats | null;
   createdAt: number;  // 版本生成时间戳
+  share?: PublishedShare;
 }
 
 // 总结历史记录（支持多版本）
@@ -144,3 +153,13 @@ export const PROVIDER_NAME_MAP: Record<ProviderId, string> = Object.fromEntries(
     .filter(p => p.enabled !== false && p.id !== 'summarizer')
     .map(p => [p.id, p.name])
 ) as Record<ProviderId, string>;
+
+export function getProviderDisplayName(providerId: ProviderId | string, locale?: string) {
+  const effectiveLocale = locale === 'system' ? resolveLocale(locale) : locale;
+  return getLocalizedProviderName(providerId, effectiveLocale) || providerId;
+}
+
+export function getAvailableProviderIds(locale?: string) {
+  const effectiveLocale = locale === 'system' ? resolveLocale(locale) : locale;
+  return getProviderIdsForLocale(effectiveLocale) as ProviderId[];
+}

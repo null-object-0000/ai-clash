@@ -1,6 +1,7 @@
 import type {
   ProviderId, ProviderMode, ProviderStatus, StageType,
-  ProviderStats, CompletedTurn, ChatHistoryItem, ErrorType,
+  ProviderStats, CompletedTurn, ChatHistoryItem, ErrorType, SummaryVersionEntry,
+  PublishedShare,
 } from '../types';
 
 export type SidepanelSettings = {
@@ -15,7 +16,7 @@ export type SidepanelSettings = {
   hasCustomizedFocusFollowEnabled?: boolean;
   isChannelListExpanded?: boolean;
 };
-export type AppLocale = 'system' | 'zh-CN' | 'zh-TW' | 'en';
+export type AppLocale = 'system' | 'zh-CN' | 'en';
 export type SummaryConfig = { providerId?: string; model?: string };
 export type ApiConfig = { mode?: ProviderMode; apiKey?: string; model?: string; enabled?: boolean };
 
@@ -72,7 +73,7 @@ export interface AppState {
   summaryStats: ProviderStats | null;
   summaryCustomPrompt: string;  // 自定义总结提示词
   // 总结历史版本（运行时状态，非持久化）
-  summaryVersions: Array<{ response: string; thinkResponse: string; analysisResponse?: string; stats: ProviderStats | null; createdAt: number }>;
+  summaryVersions: SummaryVersionEntry[];
   summaryCurrentVersion: number;  // 当前查看的版本索引
 
   // ─── UI Panels ───
@@ -150,6 +151,7 @@ export interface AppActions {
 
   // ─── Summary Versions ───
   switchSummaryVersion: (index: number) => void;  // 切换查看的总结版本
+  setSummaryVersionShare: (share: PublishedShare | null) => void;
 
   // ─── Derived getters ───
   getEnabledProviderIds: () => ProviderId[];

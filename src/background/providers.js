@@ -11,9 +11,14 @@ export const PROVIDERS = [
   {
     id: 'summarizer',
     name: 'AI 对撞机总结',
+    names: {
+      'zh-CN': 'AI 对撞机总结',
+      en: 'AI Clash Summary',
+    },
     matchPattern: 'https://ai-clash-service.snewbie.site/*',
     startUrl: 'https://ai-clash-service.snewbie.site/',
     region: 'cn', // 地区：cn（中国）| global（海外）
+    supportedLocales: ['zh-CN', 'en'],
     hasContentScript: false,
     // API 模式配置 - 内置总结服务
     apiConfig: {
@@ -24,7 +29,10 @@ export const PROVIDERS = [
       models: [
         {
           id: 'summarizer-v1',
-          desc: '内置总结服务',
+          desc: {
+            'zh-CN': '内置总结服务',
+            en: 'Built-in Summary Service',
+          },
         },
       ],
     }
@@ -32,9 +40,14 @@ export const PROVIDERS = [
   {
     id: 'deepseek',
     name: 'DeepSeek',
+    names: {
+      'zh-CN': 'DeepSeek',
+      en: 'DeepSeek',
+    },
     matchPattern: 'https://chat.deepseek.com/*',
     startUrl: 'https://chat.deepseek.com/',
     region: 'cn', // 深度求索 - 中国
+    supportedLocales: ['zh-CN', 'en'],
     // API 模式配置
     apiConfig: {
       enabled: true,
@@ -58,37 +71,62 @@ export const PROVIDERS = [
   {
     id: 'doubao',
     name: '豆包',
+    names: {
+      'zh-CN': '豆包',
+      en: 'Doubao',
+    },
     matchPattern: 'https://www.doubao.com/*',
     startUrl: 'https://www.doubao.com/chat/',
     region: 'cn',
+    supportedLocales: ['zh-CN'],
   },
   {
     id: 'qianwen',
     name: '通义千问',
+    names: {
+      'zh-CN': '通义千问',
+      en: 'Qwen',
+    },
     matchPattern: 'https://www.qianwen.com/*',
     startUrl: 'https://www.qianwen.com/',
     region: 'cn',
+    supportedLocales: ['zh-CN'],
   },
   {
     id: 'yuanbao',
     name: '元宝',
+    names: {
+      'zh-CN': '腾讯元宝',
+      en: 'Tencent Yuanbao',
+    },
     matchPattern: 'https://yuanbao.tencent.com/*',
     startUrl: 'https://yuanbao.tencent.com/chat/',
     region: 'cn',
+    supportedLocales: ['zh-CN'],
   },
   {
     id: 'wenxin',
     name: '文心一言',
+    names: {
+      'zh-CN': '文心一言',
+      en: 'ERNIE Bot',
+    },
     matchPattern: 'https://yiyan.baidu.com/*',
     startUrl: 'https://yiyan.baidu.com/chat/',
     region: 'cn',
+    supportedLocales: ['zh-CN'],
   },
   {
     id: 'longcat',
     name: 'LongCat',
+    names: {
+      'zh-CN': 'LongCat',
+      en: 'LongCat',
+    },
     matchPattern: 'https://longcat.chat/*',
     startUrl: 'https://longcat.chat/',
     region: 'cn',
+    supportedLocales: ['zh-CN'],
     enabled: false, // 暂时禁用，回归测试中
     // API 模式配置
     apiConfig: {
@@ -107,9 +145,14 @@ export const PROVIDERS = [
   {
     id: 'xiaomi',
     name: 'Xiaomi MIMO',
+    names: {
+      'zh-CN': 'Xiaomi MIMO',
+      en: 'Xiaomi MIMO',
+    },
     matchPattern: 'https://aistudio.xiaomimimo.com/*',
     startUrl: 'https://aistudio.xiaomimimo.com/#/c',
     region: 'cn', // 小米 MIMO - 中国
+    supportedLocales: ['zh-CN'],
     // API 模式配置
     apiConfig: {
       enabled: true,

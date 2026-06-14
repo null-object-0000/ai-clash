@@ -118,6 +118,92 @@ async function saveProviderTabMap() {
 // API配置存储键名
 const API_CONFIG_KEY = 'aiclash.api.config';
 
+// 侧边栏设置存储键名
+const SETTINGS_KEY = 'aiclash.sidepanel.settings';
+
+// 获取当前语言环境，返回 'zh-CN' 或 'en'
+async function getActiveLocale() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get([SETTINGS_KEY], (result) => {
+      const locale = result?.[SETTINGS_KEY]?.locale || 'system';
+      if (locale === 'system') {
+        const lang = chrome.i18n?.getUILanguage?.() || 'zh-CN';
+        resolve(lang.toLowerCase().startsWith('en') ? 'en' : 'zh-CN');
+      } else {
+        resolve(locale === 'en' ? 'en' : 'zh-CN');
+      }
+    });
+  });
+}
+
+// 状态和错误信息翻译字典
+const STATUS_TEXTS = {
+  'zh-CN': {
+    waitingStart: (name) => `等待启动${name}...`,
+    starting: (name) => `正在启动${name}...`,
+    cannotOpen: (name) => `无法打开${name}页面`,
+    waitingLoad: (name) => `正在等待${name}页面加载完成...`,
+    readySending: (name) => `${name} 已就绪，正在发送消息...`,
+    sentWaiting: (name) => `消息已发送，等待${name}响应...`,
+    reloading: (name) => `正在重新加载${name}页面...`,
+    sentWaitingReload: (name) => `消息已发送（重载后），等待${name}响应...`,
+    reloadFailed: (name, err) => `${name} 页面重载后仍无法连接：${err}`,
+    summarizing: '正在归纳总结各通道回答...',
+    apiConfigInvalid: '归纳总结 API 配置无效，请在设置中选择有效通道',
+    apiNeedKey: (name) => `请先配置 ${name} 的 API Key`,
+    noValidAnswers: '没有有效的 AI 回答可供总结',
+    apiModeUnsupported: (name) => `${name} 暂不支持 API 模式`,
+    apiDispatchFailed: '任务派发失败',
+    contentScriptNotReady: 'content script 未就绪',
+    contentScriptError: 'content script 返回错误',
+    pageReloadTimeout: '页面重载超时',
+    summaryFailed: '归纳总结请求失败',
+    summaryDispatchFailed: '归纳总结失败',
+    apiRequestFailed: 'API请求失败',
+    channelUnsupportedApi: '该通道不支持API模式',
+    unknownProvider: '未知的provider',
+    createdTabFailed: '创建tab失败',
+    apiKeyValid: 'API Key 有效',
+    apiKeyInvalid: 'API Key 无效',
+    requestTimeout: '请求超时',
+    requestFailed: '请求失败',
+    focusSwitch: (completed, next) => `✅ ${completed} 完成，正为您切换至等候中的 ${next}...`,
+    loginUnknown: '无法确认登录状态',
+  },
+  'en': {
+    waitingStart: (name) => `Waiting for ${name} to start...`,
+    starting: (name) => `Starting ${name}...`,
+    cannotOpen: (name) => `Unable to open ${name} page`,
+    waitingLoad: (name) => `Waiting for ${name} page to load...`,
+    readySending: (name) => `${name} is ready, sending message...`,
+    sentWaiting: (name) => `Message sent, waiting for ${name} response...`,
+    reloading: (name) => `Reloading ${name} page...`,
+    sentWaitingReload: (name) => `Message sent (after reload), waiting for ${name} response...`,
+    reloadFailed: (name, err) => `${name} is still unreachable after reload: ${err}`,
+    summarizing: 'Summarizing answers from each channel...',
+    apiConfigInvalid: 'Invalid summary API configuration, please select a valid channel in settings',
+    apiNeedKey: (name) => `Please configure API Key for ${name} first`,
+    noValidAnswers: 'No valid AI answers available to summarize',
+    apiModeUnsupported: (name) => `${name} does not support API mode yet`,
+    apiDispatchFailed: 'Task dispatch failed',
+    contentScriptNotReady: 'content script is not ready',
+    contentScriptError: 'content script returned an error',
+    pageReloadTimeout: 'Page reload timeout',
+    summaryFailed: 'Summarization request failed',
+    summaryDispatchFailed: 'Summarization failed',
+    apiRequestFailed: 'API request failed',
+    channelUnsupportedApi: 'This channel does not support API mode',
+    unknownProvider: 'Unknown provider',
+    createdTabFailed: 'Failed to create tab',
+    apiKeyValid: 'API Key is valid',
+    apiKeyInvalid: 'API Key is invalid',
+    requestTimeout: 'Request timeout',
+    requestFailed: 'Request failed',
+    focusSwitch: (completed, next) => `✅ ${completed} completed, switching to waiting ${next}...`,
+    loginUnknown: 'Unable to confirm login status',
+  }
+};
+
 // 加载API配置
 async function loadApiConfig() {
   return new Promise((resolve) => {
@@ -162,9 +248,12 @@ function createOpenAIClient(apiConfig, apiKey) {
 
 // 处理API模式请求（统一使用 OpenAI SDK）
 async function handleApiRequest(provider, prompt, settings = {}) {
+  const locale = await getActiveLocale();
+  const texts = STATUS_TEXTS[locale];
+
   const apiConfig = provider.apiConfig;
   if (!apiConfig || !apiConfig.enabled) {
-    throw new Error(`Provider ${provider.id} 不支持API模式`);
+    throw new Error(texts.apiModeUnsupported(provider.id));
   }
 
   const userConfig = await loadApiConfig();
@@ -175,7 +264,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
   const model = configuredModelExists ? configuredModel : apiConfig.defaultModel;
 
   if (!apiKey) {
-    throw new Error(`请先配置 ${provider.name} 的API Key`);
+    throw new Error(texts.apiNeedKey(provider.name));
   }
 
   const client = createOpenAIClient(apiConfig, apiKey);
@@ -237,7 +326,7 @@ async function handleApiRequest(provider, prompt, settings = {}) {
     trackEvent('provider_completed', { provider_id: provider.id, mode: 'api' }, '/extension/provider');
 
   } catch (error) {
-    sendProviderError(provider.id, error.message || 'API请求失败');
+    sendProviderError(provider.id, error.message || texts.apiRequestFailed);
   } finally {
     endRequest();
   }
@@ -245,9 +334,12 @@ async function handleApiRequest(provider, prompt, settings = {}) {
 
 // 测试API Key有效性（统一使用 OpenAI SDK）
 async function testApiKey(providerId, apiKey) {
+  const locale = await getActiveLocale();
+  const texts = STATUS_TEXTS[locale];
+
   const provider = getProvider(providerId);
   if (!provider || !provider.apiConfig || !provider.apiConfig.enabled) {
-    return { success: false, error: '该通道不支持API模式' };
+    return { success: false, error: texts.channelUnsupportedApi };
   }
 
   const apiConfig = provider.apiConfig;
@@ -259,16 +351,16 @@ async function testApiKey(providerId, apiKey) {
       messages: [{ role: 'user', content: 'hi' }],
       stream: false,
     });
-    return { success: true, message: 'API Key 有效' };
+    return { success: true, message: texts.apiKeyValid };
   } catch (error) {
     const status = error?.status;
     if (status === 401 || status === 403) {
-      return { success: false, error: 'API Key 无效' };
+      return { success: false, error: texts.apiKeyInvalid };
     }
     if (error.name === 'AbortError' || error.code === 'ERR_CANCELED') {
-      return { success: false, error: '请求超时' };
+      return { success: false, error: texts.requestTimeout };
     }
-    return { success: false, error: error.message || '请求失败' };
+    return { success: false, error: error.message || texts.requestFailed };
   }
 }
 
@@ -386,10 +478,13 @@ function createSummaryAnalysisRouter() {
  * @param {{providerId: string, model: string, customPrompt?: string}} summaryConfig - 归纳总结配置
  */
 async function handleSummaryRequest(question, responses, summaryConfig) {
+  const locale = await getActiveLocale();
+  const texts = STATUS_TEXTS[locale];
+
   const { providerId, model, customPrompt } = summaryConfig;
   const provider = getProvider(providerId);
   if (!provider || !provider.apiConfig?.enabled) {
-    throw new Error('归纳总结 API 配置无效，请在设置中选择有效通道');
+    throw new Error(texts.apiConfigInvalid);
   }
 
   // summarizer 是内置服务，不需要 API Key
@@ -400,18 +495,18 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
     const userConfig = await loadApiConfig();
     apiKey = userConfig[providerId]?.apiKey;
     if (!apiKey) {
-      throw new Error(`请先配置 ${provider.name} 的 API Key`);
+      throw new Error(texts.apiNeedKey(provider.name));
     }
   }
 
   const validResponses = responses.filter(r => r.text && r.text.trim());
   if (!validResponses.length) {
-    throw new Error('没有有效的 AI 回答可供总结');
+    throw new Error(texts.noValidAnswers);
   }
 
   chrome.runtime.sendMessage({
     type: MSG_TYPES.TASK_STATUS_UPDATE,
-    payload: { provider: '_summary', text: '正在归纳总结各通道回答...' }
+    payload: { provider: '_summary', text: texts.summarizing }
   });
   trackEvent('summary_started', { provider_id: providerId }, '/extension/summary');
 
@@ -470,7 +565,7 @@ async function handleSummaryRequest(question, responses, summaryConfig) {
   } catch (error) {
     chrome.runtime.sendMessage({
       type: MSG_TYPES.ERROR,
-      payload: { provider: '_summary', message: error.message || '归纳总结请求失败' }
+      payload: { provider: '_summary', message: error.message || texts.summaryFailed }
     });
     trackEvent('summary_failed', { provider_id: providerId, error_type: 'summary_error' }, '/extension/summary');
   } finally {
@@ -572,6 +667,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
         // 异步处理任务派发
         (async () => {
+            const locale = await getActiveLocale();
+            const texts = STATUS_TEXTS[locale];
             try {
                 logger.log(`[AI Clash] DISPATCH_TASK: 开始处理 ${providerId}`);
                 const userConfig = await loadApiConfig();
@@ -582,12 +679,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
                 if (effectiveMode === 'api') {
                     if (!provider.apiConfig?.enabled) {
-                        sendProviderError(provider.id, provider.name + ' 暂不支持 API 模式');
+                        sendProviderError(provider.id, texts.apiModeUnsupported(provider.name));
                         return;
                     }
 
                     if (!providerConfig.apiKey) {
-                        sendProviderError(provider.id, '请先配置 ' + provider.name + ' 的 API Key');
+                        sendProviderError(provider.id, texts.apiNeedKey(provider.name));
                         return;
                     }
 
@@ -603,7 +700,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }, `dispatch:${providerId}`);
             } catch (error) {
                 logger.error(`[AI Clash] DISPATCH_TASK: ${providerId} 失败:`, error);
-                sendProviderError(providerId, error.message || '任务派发失败');
+                sendProviderError(providerId, error.message || texts.apiDispatchFailed);
             }
         })();
 
@@ -614,12 +711,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // ---- 归纳总结 ----
     if (request.type === MSG_TYPES.DISPATCH_SUMMARY) {
         const { question, responses, summaryConfig } = request.payload;
-        handleSummaryRequest(question, responses, summaryConfig).catch((error) => {
-            chrome.runtime.sendMessage({
-                type: MSG_TYPES.ERROR,
-                payload: { provider: '_summary', message: error.message || '归纳总结失败' }
+        (async () => {
+            const locale = await getActiveLocale();
+            const texts = STATUS_TEXTS[locale];
+            handleSummaryRequest(question, responses, summaryConfig).catch((error) => {
+                chrome.runtime.sendMessage({
+                    type: MSG_TYPES.ERROR,
+                    payload: { provider: '_summary', message: error.message || texts.summaryDispatchFailed }
+                });
             });
-        });
+        })();
         sendResponse({ status: 'dispatched' });
         return true;
     }
@@ -707,10 +808,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         const { providerId } = request.payload || {};
         getProviderLoginState(providerId).then((state) => {
             sendResponse({ success: true, state });
-        }).catch((err) => {
+        }).catch(async (err) => {
+            const locale = await getActiveLocale();
+            const texts = STATUS_TEXTS[locale];
             sendResponse({
                 success: false,
-                state: { status: 'unknown', message: err.message || '无法确认登录状态' },
+                state: { status: 'unknown', message: err.message || texts.loginUnknown },
             });
         });
         return true;
@@ -734,7 +837,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     if (!currentActiveTab || currentActiveTab.id !== completedTabId) return;
 
                     // Get running providers from sidepanel
-                    chrome.runtime.sendMessage({ type: MSG_TYPES.GET_RUNNING_PROVIDERS }, (res) => {
+                    chrome.runtime.sendMessage({ type: MSG_TYPES.GET_RUNNING_PROVIDERS }, async (res) => {
                         const runningIds = res?.runningIds || [];
                         if (runningIds.length > 0) {
                             const nextId = runningIds[0];
@@ -744,9 +847,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                 chrome.tabs.update(nextTabId, { active: true });
                                 const completedName = getProvider(completedProvider)?.name || completedProvider;
                                 const nextName = getProvider(nextId)?.name || nextId;
+                                const locale = await getActiveLocale();
+                                const texts = STATUS_TEXTS[locale];
                                 chrome.runtime.sendMessage({
                                     type: MSG_TYPES.SHOW_TOAST,
-                                    payload: { message: `✅ ${completedName} 完成，正为您切换至等候中的 ${nextName}...` }
+                                    payload: { message: texts.focusSwitch(completedName, nextName) }
                                 }).catch(() => {});
                             }
                         }
@@ -762,34 +867,37 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 // 核心路由逻辑：寻找或新建标签页
 async function injectContentScriptAndSendMessage(tabId, provider, msg) {
+    const locale = await getActiveLocale();
+    const texts = STATUS_TEXTS[locale];
+
     try {
         // 先尝试直接发送消息，并等待 content script 响应
         const response = await chrome.tabs.sendMessage(tabId, msg);
         if (!response?.ok) {
-            throw new Error('content script 返回错误');
+            throw new Error(texts.contentScriptError);
         }
         // 消息发送成功，更新为 sending 阶段
         chrome.runtime.sendMessage({
             type: MSG_TYPES.TASK_STATUS_UPDATE,
-            payload: { provider: provider.id, stage: 'sending', text: `消息已发送，等待${provider.name}响应...` }
+            payload: { provider: provider.id, stage: 'sending', text: texts.sentWaiting(provider.name) }
         }).catch(() => {});
         logger.log(`[AI Clash] ${provider.id} 消息发送成功，等待执行...`);
     } catch {
         // 发送失败，说明 content script 已失效（常见于扩展重新加载后旧 Tab 的孤儿上下文）
         // 不能用 executeScript({ files }) 重注入——那会以普通脚本执行 ES Module 文件，导致 import 报错
-        // 正确做法：重载该 Tab，让 manifest 声明的 content script 自动重新注入
+        // 正确做法：重载该 Tab，让 manifest 声明 of content script 自动重新注入
         logger.log(`[AI Clash] ${provider.id} content script 未响应，正在重载页面以重新注入...`);
 
         chrome.runtime.sendMessage({
             type: MSG_TYPES.TASK_STATUS_UPDATE,
-            payload: { provider: provider.id, stage: 'loading', text: `正在重新加载${provider.name}页面...` }
+            payload: { provider: provider.id, stage: 'loading', text: texts.reloading(provider.name) }
         }).catch(() => {});
 
         try {
             await new Promise((resolve, reject) => {
                 const timeoutId = setTimeout(() => {
                     chrome.tabs.onUpdated.removeListener(listener);
-                    reject(new Error('页面重载超时'));
+                    reject(new Error(texts.pageReloadTimeout));
                 }, 30000);
 
                 function listener(updatedTabId, info) {
@@ -806,22 +914,22 @@ async function injectContentScriptAndSendMessage(tabId, provider, msg) {
 
             const readyResult = await waitForPageReady(tabId, provider);
             if (!readyResult.success) {
-                throw new Error(readyResult.error || 'content script 未就绪');
+                throw new Error(readyResult.error || texts.contentScriptNotReady);
             }
 
             const response = await chrome.tabs.sendMessage(tabId, msg);
             if (!response?.ok) {
-                throw new Error('content script 返回错误');
+                throw new Error(texts.contentScriptError);
             }
             // 消息发送成功（重载后），更新为 sending 阶段
             chrome.runtime.sendMessage({
                 type: MSG_TYPES.TASK_STATUS_UPDATE,
-                payload: { provider: provider.id, stage: 'sending', text: `消息已发送（重载后），等待${provider.name}响应...` }
+                payload: { provider: provider.id, stage: 'sending', text: texts.sentWaitingReload(provider.name) }
             }).catch(() => {});
             logger.log(`[AI Clash] ${provider.id} 消息发送成功（重载后），等待执行...`);
         } catch (err) {
             logger.error(`[AI Clash] Failed to send message to ${provider.id} after reload:`, err);
-            sendProviderError(provider.id, `${provider.name} 页面重载后仍无法连接：${err.message}`);
+            sendProviderError(provider.id, texts.reloadFailed(provider.name, err.message));
         }
     }
 }
@@ -968,8 +1076,9 @@ async function waitForPageReady(tabId, provider, maxWaitTime = 30000) {
 }
 
 // 打开或激活 provider 对应的 tab，并返回 tab id
-async function openAndActivateTab(provider) {
-    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} start`);
+// targetUrl: 单通道续聊时希望 tab 最终所在的 URL（历史会话 URL）
+async function openAndActivateTab(provider, targetUrl) {
+    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} start, targetUrl=${targetUrl || 'none'}`);
     const rememberedTabId = providerTabMap[provider.id];
     logger.log(`[AI Clash] openAndActivateTab: ${provider.id} rememberedTabId=${rememberedTabId}`);
 
@@ -980,12 +1089,23 @@ async function openAndActivateTab(provider) {
         await chrome.tabs.update(rememberedTabId, { active: true });
         const tab = await chrome.tabs.get(rememberedTabId);
         await chrome.windows.update(tab.windowId, { focused: true });
+
+        // 单通道续聊：若 tab 当前 URL 与历史会话 URL 不一致，先导航过去
+        if (targetUrl && tab.url && tab.url !== targetUrl) {
+            logger.log(`[AI Clash] openAndActivateTab: ${provider.id} URL 不匹配，导航到历史会话 URL: ${targetUrl}`);
+            await chrome.tabs.update(rememberedTabId, { url: targetUrl });
+            await waitForTabComplete(rememberedTabId);
+            logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 已导航到历史会话 URL`);
+        }
+
         return { success: true, tabId: rememberedTabId };
     }
 
     // 没有有效绑定的 tab，新建一个
-    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 创建新 tab`);
-    const newTab = await chrome.tabs.create({ url: provider.startUrl, active: true });
+    // 单通道续聊时直接打开历史会话 URL，否则打开主页
+    const openUrl = targetUrl || provider.startUrl;
+    logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 创建新 tab, url=${openUrl}`);
+    const newTab = await chrome.tabs.create({ url: openUrl, active: true });
     logger.log(`[AI Clash] openAndActivateTab: ${provider.id} 新 tab id=${newTab.id}, url=${newTab.url}`);
     if (newTab.id) {
         providerTabMap[provider.id] = newTab.id;
@@ -993,6 +1113,7 @@ async function openAndActivateTab(provider) {
     }
     return { success: true, tabId: newTab.id };
 }
+
 
 // 等待页面加载完成
 async function waitForTabComplete(tabId, timeout = 30000) {
@@ -1067,6 +1188,9 @@ function getTabPromise(tabId) {
 
 // 提交任务到指定 provider 的 tab
 async function routeToTab(provider, prompt, settings) {
+    const locale = await getActiveLocale();
+    const texts = STATUS_TEXTS[locale];
+
     const msg = { type: MSG_TYPES.EXECUTE_PROMPT, payload: { prompt, settings } };
 
     logger.log(`[AI Clash] ${provider.id} routeToTab 开始执行`);
@@ -1077,7 +1201,7 @@ async function routeToTab(provider, prompt, settings) {
         payload: {
             provider: provider.id,
             stage: 'waiting',
-            text: `等待启动${provider.name}...`
+            text: texts.waitingStart(provider.name)
         }
     }).catch(() => {});
 
@@ -1088,31 +1212,30 @@ async function routeToTab(provider, prompt, settings) {
         payload: {
             provider: provider.id,
             stage: 'opening',
-            text: `正在启动${provider.name}...`
+            text: texts.starting(provider.name)
         }
     }).catch(() => {});
 
-    const tabResult = await openAndActivateTab(provider);
+    const tabResult = await openAndActivateTab(provider, settings?.targetUrl && settings?.isNewConversation === false ? settings.targetUrl : undefined);
     logger.log(`[AI Clash] ${provider.id} openAndActivateTab 完成：`, tabResult);
     if (!tabResult.success || !tabResult.tabId) {
-        sendProviderError(provider.id, `无法打开${provider.name}页面`);
+        sendProviderError(provider.id, texts.cannotOpen(provider.name));
         return;
     }
 
     const tabId = tabResult.tabId;
 
-    // 2. 等待页面加载完成
+    // 2. 等待页面加载完成（若 openAndActivateTab 内部已导航，此处再等一次确保完整）
     logger.log(`[AI Clash] ${provider.id} 等待页面加载完成 (tabId: ${tabId})`);
     await waitForTabComplete(tabId);
     logger.log(`[AI Clash] ${provider.id} 页面加载完成`);
-
     // 3. 发送状态更新
     chrome.runtime.sendMessage({
         type: MSG_TYPES.TASK_STATUS_UPDATE,
         payload: {
             provider: provider.id,
             stage: 'loading',
-            text: `正在等待${provider.name}页面加载完成...`
+            text: texts.waitingLoad(provider.name)
         }
     });
 
@@ -1121,7 +1244,7 @@ async function routeToTab(provider, prompt, settings) {
     const readyResult = await waitForPageReady(tabId, provider);
     logger.log(`[AI Clash] ${provider.id} waitForPageReady 结果：`, readyResult);
     if (!readyResult.success) {
-        throw new Error(readyResult.error || 'content script 未就绪');
+        throw new Error(readyResult.error || texts.contentScriptNotReady);
     }
 
     // 5. 连接通道成功，准备发送消息
@@ -1130,7 +1253,7 @@ async function routeToTab(provider, prompt, settings) {
         payload: {
             provider: provider.id,
             stage: 'connecting',
-            text: `${provider.name} 已就绪，正在发送消息...`
+            text: texts.readySending(provider.name)
         }
     }).catch(() => {});
 
@@ -1142,9 +1265,12 @@ async function routeToTab(provider, prompt, settings) {
 
 // 打开或激活provider对应的tab（处理"前往"按钮请求）
 async function openOrActivateProviderTab(providerId, activate = false) {
+    const locale = await getActiveLocale();
+    const texts = STATUS_TEXTS[locale];
+
     const provider = getProvider(providerId);
     if (!provider) {
-        return { success: false, error: '未知的provider' };
+        return { success: false, error: texts.unknownProvider };
     }
 
     const rememberedTabId = providerTabMap[provider.id];
@@ -1169,7 +1295,7 @@ async function openOrActivateProviderTab(providerId, activate = false) {
         }
         return { success: true, tabId: newTab.id, action: 'created' };
     } catch (error) {
-        return { success: false, error: error.message || '创建tab失败' };
+        return { success: false, error: error.message || texts.createdTabFailed };
     }
 }
 

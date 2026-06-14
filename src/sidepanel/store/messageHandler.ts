@@ -1,6 +1,6 @@
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
-import { PROVIDER_IDS, type ProviderId, type ProviderStatus, PROVIDER_NAME_MAP } from '../types';
+import { PROVIDER_IDS, getAvailableProviderIds, type ProviderId, type ProviderStatus } from '../types';
 import { buffers, createDefaultRecord } from './helpers';
 import type { AppStore } from './types';
 
@@ -221,7 +221,7 @@ export function createMessageListener(
       // 多通道模式下，通道输出完成后自动折叠该通道和深度思考
       setTimeout(() => {
         const s = get();
-        const enabledCount = PROVIDER_IDS.filter(id => s.enabledMap[id]).length;
+        const enabledCount = getAvailableProviderIds(s.locale).filter(id => s.enabledMap[id]).length;
         const stillRunning = PROVIDER_IDS.some(id => s.statusMap[id] === 'running');
         if (enabledCount >= 2) {
           // 多通道模式：当前通道完成后立即折叠通道和深度思考
