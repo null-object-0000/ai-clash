@@ -139,7 +139,7 @@
 }
 
 .share-bubble-list .share-bubble-assistant--collapsed .ant-bubble-content {
-  padding-bottom: 8px;
+  display: none;
 }
 
 .share-bubble-header__content {
