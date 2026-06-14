@@ -26,6 +26,7 @@ export function Header({
   path,
   themeMode,
   onToggleTheme,
+  onLoginRequired,
   appMode = false,
 }: {
   locale: Locale
@@ -109,7 +110,7 @@ export function Header({
           ) : null}
           {!appMode ? (
             <Button
-              aria-label={locale === 'zh' ? '打开导航菜单' : 'Open navigation menu'}
+              aria-label={locale === 'en' ? 'Open navigation menu' : '打开导航菜单'}
               className="mobile-menu-button"
               icon={<MenuOutlined />}
               type="text"
@@ -132,7 +133,7 @@ export function Header({
             <span>{homePages[locale].name}</span>
           </a>
           <Button
-            aria-label={locale === 'zh' ? '关闭导航菜单' : 'Close navigation menu'}
+            aria-label={locale === 'en' ? 'Close navigation menu' : '关闭导航菜单'}
             className="mobile-menu-button"
             icon={<MenuOutlined />}
             type="text"
@@ -152,7 +153,7 @@ export function Header({
           ))}
         </nav>
         <div className="mobile-menu-section">
-          <span className="mobile-menu-label">{locale === 'zh' ? '语言' : 'Language'}</span>
+          <span className="mobile-menu-label">{locale === 'en' ? 'Language' : '语言'}</span>
           <a href={withBasePath(pagePath)} onClick={() => window.localStorage.setItem('ai-clash-site-locale', 'zh')}>
             {localeLabels.zh}
           </a>

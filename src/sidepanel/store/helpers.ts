@@ -8,6 +8,7 @@ export const SETTINGS_KEY = 'aiclash.sidepanel.settings';
 export const API_CONFIG_KEY = 'aiclash.api.config';
 export const SUMMARY_CONFIG_KEY = 'aiclash.summary.config';
 export const SUMMARY_PROMPT_KEY = 'aiclash.summary.prompt';  // 自定义总结提示词
+export const ANALYTICS_STORAGE_KEY = 'aiclash.analytics.enabled';
 export const ENABLED_PROVIDERS_KEY = 'aiclash.enabled.providers';  // 记住用户开启的通道
 export const HISTORY_STORAGE_KEY = 'aiclash.chat.history';
 export const HISTORY_STORAGE_KEY_SINGLE = 'aiclash.chat.history.single';

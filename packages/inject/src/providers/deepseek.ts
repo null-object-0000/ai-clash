@@ -8,15 +8,21 @@ import { findAnyElement, hasClass, simulateRealClick } from '../core/dom-utils.j
 // 思考模式实现
 const thinkingAction: ToggleAction = {
   async getState() {
-    const selectors = ['.ds-toggle-button[role="button"] >> 深度思考'];
+    const selectors = [
+      '.ds-toggle-button[role="button"] >> 深度思考',
+      '.ds-toggle-button >> DeepThink',
+    ];
     const el = findAnyElement(selectors);
-    const parent = el?.parentElement?.parentElement;
+    const parent = el?.closest('.ds-toggle-button');
     if (!parent || !el) return { found: false, enabled: false };
     return { found: true, enabled: hasClass(parent, 'ds-toggle-button--selected') };
   },
 
   async enable() {
-    const selectors = ['.ds-toggle-button[role="button"] >> 深度思考'];
+    const selectors = [
+      '.ds-toggle-button[role="button"] >> 深度思考',
+      '.ds-toggle-button >> DeepThink',
+    ];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -24,7 +30,10 @@ const thinkingAction: ToggleAction = {
   },
 
   async disable() {
-    const selectors = ['.ds-toggle-button[role="button"] >> 深度思考'];
+    const selectors = [
+      '.ds-toggle-button[role="button"] >> 深度思考',
+      '.ds-toggle-button >> DeepThink',
+    ];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -35,16 +44,22 @@ const thinkingAction: ToggleAction = {
 // 智能搜索实现
 const searchAction: ToggleAction = {
   async getState() {
-    const selectors = ['.ds-toggle-button[role="button"] >> 智能搜索'];
+    const selectors = [
+      '.ds-toggle-button[role="button"] >> 智能搜索',
+      '.ds-toggle-button >> Search',
+    ];
     const el = findAnyElement(selectors);
     if (!el) return { found: false, enabled: false };
-    const parent = el.parentElement?.parentElement;
+    const parent = el.closest('.ds-toggle-button');
     if (!parent) return { found: false, enabled: false };
     return { found: true, enabled: hasClass(parent, 'ds-toggle-button--selected') };
   },
 
   async enable() {
-    const selectors = ['.ds-toggle-button[role="button"] >> 智能搜索'];
+    const selectors = [
+      '.ds-toggle-button[role="button"] >> 智能搜索',
+      '.ds-toggle-button >> Search',
+    ];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -52,7 +67,10 @@ const searchAction: ToggleAction = {
   },
 
   async disable() {
-    const selectors = ['.ds-toggle-button[role="button"] >> 智能搜索'];
+    const selectors = [
+      '.ds-toggle-button[role="button"] >> 智能搜索',
+      '.ds-toggle-button >> Search',
+    ];
     const el = findAnyElement(selectors);
     if (!el) return false;
     simulateRealClick(el);
@@ -243,7 +261,7 @@ export const deepseekProvider: ProviderConfig = {
           }
 
           // 忽略 TIP 类型（底部提示）
-          if (d.p === 'response/fragments' && Array.isArray(d.v) && (d.v as Array<{type?: string}>).every(fr => fr.type === 'TIP')) {
+          if (d.p === 'response/fragments' && Array.isArray(d.v) && (d.v as Array<{ type?: string }>).every(fr => fr.type === 'TIP')) {
             return null;
           }
 

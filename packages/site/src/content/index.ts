@@ -1,3 +1,5 @@
+import { downloadsZh, homePageZh, privacyPageZh } from './source'
+
 export type Locale = 'zh' | 'en'
 
 export const navItems = {
@@ -16,40 +18,7 @@ export const navItems = {
 } satisfies Record<Locale, Array<{ label: string; href: string }>>
 
 export const homePages = {
-  zh: {
-    name: 'AI 对撞机',
-    text: '顶级大模型同屏比拼',
-    tagline: '告别繁琐切网页！一键召唤多个顶级 AI 同屏赛博斗兽，内置归纳引擎直出终极答案。',
-    logoAlt: 'AI Clash Logo',
-    demoAlt: 'AI Clash 演示动画',
-    actions: [
-      {
-        kind: 'brand chrome',
-        label: 'Chrome 商店下载',
-        href: 'https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai',
-      },
-      {
-        kind: 'brand edge',
-        label: 'Edge 商店下载',
-        href: 'https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm',
-      },
-      { kind: 'alt', label: '下载离线 ZIP 包', href: '/download' },
-    ],
-    features: [
-      {
-        title: '⚡️ 一键多路并发',
-        details: '告别繁琐切网页！一键召唤多个顶级 AI 同屏赛博斗兽，内置归纳引擎直出终极答案。',
-      },
-      {
-        title: '⚖️ 内置 AI 裁判总结',
-        details: '自动对比各家回答，折叠冗长分析过程，一语道破核心分歧，直出最优终极建议。',
-      },
-      {
-        title: '💸 零 API 成本',
-        details: '采用纯前端 DOM 劫持技术，直接榨取你已登录网页端（DeepSeek/Kimi 等）的原生算力。',
-      },
-    ],
-  },
+  zh: homePageZh,
   en: {
     name: 'AI Clash',
     text: 'Ultimate LLM Arena',
@@ -91,27 +60,7 @@ export const homePages = {
 }
 
 export const downloads = {
-  zh: {
-    title: '📥 插件下载与安装',
-    storeTitle: '方式一：应用商店一键安装 (推荐)',
-    storeIntro: '如果你可以正常访问外网，强烈推荐通过官方商店安装，这样可以获得自动更新的能力。',
-    chrome: 'Chrome Web Store 官方下载',
-    edge: 'Edge Add-ons 官方下载',
-    offlineTitle: '方式二：离线 ZIP 包开发者模式安装 (国内可直连)',
-    offlineIntro: '无法访问应用商店时，可以直接从官网下载离线包，再按以下 3 步安装。',
-    stepDownload: '1. 下载最新版 ZIP 包',
-    releaseHref: '/downloads/ai-clash-v1.2.1.zip',
-    releaseLink: '👉 直接下载 AI 对撞机 v1.2.1 离线包',
-    releaseNote: '(下载 ai-clash-v1.2.1.zip；开发者模式安装不会自动更新，推荐优先使用 Chrome/Edge 应用商店)',
-    stepUnzip: '2. 解压文件',
-    unzip: '将下载的 ZIP 文件解压到电脑上的一个常用文件夹中（请不要删除该文件夹）。',
-    stepLoad: '3. 在浏览器中加载',
-    steps: [
-      '打开浏览器的扩展管理页面：Chrome 用户在地址栏输入 chrome://extensions/；Edge 用户在地址栏输入 edge://extensions/。',
-      '打开右上角的「开发者模式」开关。',
-      '点击左上角的「加载已解压的扩展程序」，然后选择你刚刚解压好的文件夹即可！🎉',
-    ],
-  },
+  zh: downloadsZh,
   en: {
     title: '📥 Download & Installation',
     storeTitle: 'Method 1: Store Installation (Recommended)',
@@ -121,9 +70,9 @@ export const downloads = {
     offlineTitle: 'Method 2: Offline ZIP Installation (Developer Mode)',
     offlineIntro: 'If you cannot access the stores, download the offline package directly from this site and install it in 3 steps.',
     stepDownload: '1. Download the Latest ZIP',
-    releaseHref: '/downloads/ai-clash-v1.2.1.zip',
-    releaseLink: '👉 Directly Download AI Clash v1.2.1 Offline Package',
-    releaseNote: '(Downloads ai-clash-v1.2.1.zip; developer-mode installs do not update automatically, so prefer the Chrome/Edge stores when available)',
+    releaseHref: '/downloads/ai-clash-v1.2.2.zip',
+    releaseLink: '👉 Directly Download AI Clash v1.2.2 Offline Package',
+    releaseNote: '(Downloads ai-clash-v1.2.2.zip; developer-mode installs do not update automatically, so prefer the Chrome/Edge stores when available)',
     stepUnzip: '2. Unzip Files',
     unzip: 'Extract the downloaded ZIP file to a folder on your computer (please do not delete this folder later).',
     stepLoad: '3. Load in Browser',
@@ -137,6 +86,24 @@ export const downloads = {
 
 export const changelogs = {
   zh: [
+    {
+      version: '[1.2.2] - 2026-06-08',
+      groups: [
+        {
+          title: '✨ 新增特性 (Features)',
+          items: [
+            '<strong>公开分享页</strong>：侧边栏生成分享链接后，可以在官网打开只读分享页，展示问题、各通道回答和归纳总结。',
+            '<strong>语言基础支持</strong>：新增英文扩展文案，并为内置总结提示词提供简中、英文版本。',
+          ],
+        },
+        {
+          title: '🛠️ 优化与修复 (Fixes & Improvements)',
+          items: [
+            '<strong>隐私与设置更新</strong>：补充公开分享和匿名统计说明，并在全局设置中新增「匿名数据统计」开关。',
+          ],
+        },
+      ],
+    },
     {
       version: '[1.2.0] - 待发布',
       groups: [
@@ -206,6 +173,24 @@ export const changelogs = {
   ],
   en: [
     {
+      version: '[1.2.2] - 2026-06-08',
+      groups: [
+        {
+          title: '✨ Features',
+          items: [
+            '<strong>Public Share Pages</strong>: Shared links now open a read-only site page with the question, model answers, and summary.',
+            '<strong>Language Foundation</strong>: Added English extension copy, plus Simplified Chinese and English built-in summary prompts.',
+          ],
+        },
+        {
+          title: '🛠️ Fixes & Improvements',
+          items: [
+            '<strong>Privacy & Settings Update</strong>: Clarified public sharing and anonymous analytics, and added an anonymous analytics toggle in global settings.',
+          ],
+        },
+      ],
+    },
+    {
       version: '[1.1.0] - 2026-04-17',
       groups: [
         {
@@ -255,44 +240,17 @@ export const changelogs = {
 }
 
 export const privacyPages = {
-  zh: {
-    title: 'AI 对撞机隐私政策',
-    updated: '最后更新时间：2026年4月16日',
-    sections: [
-      {
-        title: '1. 数据收集',
-        body: [
-          'AI 对撞机是一款纯正的浏览器端工具。所有 AI 模型交互均直接发生在您的浏览器和相应的 AI 服务提供商（例如 DeepSeek、Kimi 等）之间。我们<strong>不会</strong>收集、存储或向我们自己的服务器传输您的对话、提示词或任何个人数据。',
-        ],
-      },
-      {
-        title: '2. 权限说明',
-        body: [
-          [
-            '<strong>标签页/ActiveTab (Tabs)</strong>：用于在提供对话服务的不同 AI 标签页之间进行同步和切换，以提供无缝体验。',
-            '<strong>本地存储 (Storage)</strong>：用于在本地保存您的偏好设置，例如已启用的模型和自定义的提示词。',
-            '<strong>脚本注入 (Scripting/Content Scripts)</strong>：用于与您已经登录的 AI 平台网页界面进行交互（获取网页原生算力）。',
-          ],
-        ],
-      },
-      {
-        title: '3. 第三方服务',
-        body: ['此扩展程序会与第三方 AI 网站进行交互。您对这些服务的使用受其各自隐私政策的约束。'],
-      },
-      {
-        title: '4. 联系我们',
-        body: ['如果您有任何问题，请通过 GitHub Issues 联系我们。'],
-      },
-    ],
-  },
+  zh: privacyPageZh,
   en: {
     title: 'Privacy Policy for AI Clash',
-    updated: 'Last updated: April 16, 2026',
+    updated: 'Last updated: June 8, 2026',
     sections: [
       {
         title: '1. Data Collection',
         body: [
           'AI Clash is a browser-side tool. All AI model interactions happen directly between your browser and the respective AI service providers (e.g., DeepSeek, Kimi, etc.). We do <strong>NOT</strong> collect, store, or transmit your conversations, prompts, or personal data to our own servers.',
+          'When you explicitly create a public share link, the question, model answers, summary, and basic timing stats for that session are uploaded to the AI Clash backend so the public share page can be generated. You can revoke the share with its delete token.',
+          'Anonymous product analytics are enabled by default to understand install sources, product funnels, and failure types. Analytics events do not include your prompts, answers, API keys, account identifiers, or full URL query strings. You can disable anonymous analytics in the extension settings.',
         ],
       },
       {
@@ -307,7 +265,7 @@ export const privacyPages = {
       },
       {
         title: '3. Third-Party Services',
-        body: ['This extension interacts with third-party AI websites. Your use of those services is governed by their respective privacy policies.'],
+        body: ['This extension interacts with third-party AI websites. Your use of those services is governed by their respective privacy policies. Website and extension analytics reuse Umami Analytics.'],
       },
       {
         title: '4. Contact',

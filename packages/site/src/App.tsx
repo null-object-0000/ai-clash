@@ -8,7 +8,7 @@ import { createAntTheme } from './app/theme'
 import type { ThemeMode } from './app/theme'
 import { Footer } from './layout/Footer'
 import { Header } from './layout/Header'
-import { ChangelogPage, DownloadPage, HomePage, PrivacyPage } from './pages'
+import { ChangelogPage, DownloadPage, HomePage, PrivacyPage, SharePage } from './pages'
 
 const { Content } = Layout
 
@@ -21,6 +21,8 @@ function Page({
   onLoginRequired: () => void
 }) {
   switch (page) {
+    case '/share':
+      return <SharePage locale={locale} />
     case '/download':
       return <DownloadPage locale={locale} />
     case '/changelog':
@@ -28,6 +30,9 @@ function Page({
     case '/privacy':
       return <PrivacyPage locale={locale} />
     default:
+      if (page.startsWith('/share/')) {
+        return <SharePage locale={locale} shareId={page.slice('/share/'.length)} />
+      }
       return <HomePage locale={locale} />
   }
 }
@@ -41,8 +46,7 @@ export function App() {
   })
   const locale = getInitialLocale(path)
   const page = stripLocale(path)
-  const isSharePage = page === '/share' || page.startsWith('/share/')
-  const isAppPage = page === '/chat' || isSharePage
+  const isAppPage = page === '/chat'
 
   useEffect(() => {
     const updatePath = () => setPath(stripBasePath(window.location.pathname))

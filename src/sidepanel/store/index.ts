@@ -2,17 +2,21 @@ import { create } from 'zustand';
 import { message } from 'antd';
 import { MSG_TYPES } from '../../shared/messages.js';
 import logger, { setDebugEnabled } from '../../shared/logger.js';
+import { setAnalyticsEnabled, trackEvent } from '../../shared/analytics.js';
 import { PROVIDER_META, getDefaultModel, getModelIds, getModelOptions } from '../../shared/config.js';
-import { SUMMARY_SYSTEM_PROMPT } from '../../shared/summaryPrompt.js';
+import { SUMMARY_SYSTEM_PROMPT, SUMMARY_SYSTEM_PROMPTS, getSummarySystemPrompt } from '../../shared/summaryPrompt.js';
+import { getSidepanelText, interpolate, resolveLocale } from '../i18n';
 import {
-  PROVIDER_IDS, PROVIDER_NAME_MAP,
+  PROVIDER_IDS,
+  getAvailableProviderIds,
+  getProviderDisplayName,
   type ProviderId, type ProviderMode, type ProviderStatus, type StageType,
   type ProviderStats, type ProviderHistoryEntry, type SummaryHistoryEntry,
   type CompletedTurn, type ChatHistoryItem, type MultiChannelHistoryItem,
-  type SingleChannelHistoryItem, type ErrorType,
+  type SingleChannelHistoryItem, type ErrorType, type PublishedShare,
 } from '../types';
 import {
-  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY,
+  SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ANALYTICS_STORAGE_KEY, ENABLED_PROVIDERS_KEY,
   HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE,
   MAX_HISTORY_COUNT, CHARS_PER_FRAME,
   createSessionId, createDefaultRecord,
@@ -48,6 +52,8 @@ export const useStore = create<AppStore>()((set, get) => {
         isSummaryEnabled: s.isSummaryEnabled,
         isDebugEnabled: s.isDebugEnabled,
         isFocusFollowEnabled: s.isFocusFollowEnabled,
+        isAnalyticsEnabled: s.isAnalyticsEnabled,
+        locale: s.locale,
         hasCustomizedSummaryEnabled: s.hasCustomizedSummaryEnabled,
         hasCustomizedFocusFollowEnabled: s.hasCustomizedFocusFollowEnabled,
         isChannelListExpanded: s.isChannelListExpanded,
@@ -93,6 +99,12 @@ export const useStore = create<AppStore>()((set, get) => {
     if (!modelIds.length) return '';
     return modelIds.includes(model) ? model : getDefaultModel(providerId);
   };
+
+  const effectiveLocale = () => {
+    return resolveLocale(get().locale);
+  };
+
+  const availableProviderIds = () => getAvailableProviderIds(get().locale);
 
   const saveHistory = (list: ChatHistoryItem[]) => {
     const multi = list.filter(item => item.type === 'multi') as MultiChannelHistoryItem[];
@@ -188,7 +200,7 @@ export const useStore = create<AppStore>()((set, get) => {
       } else {
         session = {
           id: s.activeSessionId, type: 'single', providerId,
-          providerName: PROVIDER_NAME_MAP[providerId] || providerId,
+          providerName: getProviderDisplayName(providerId, s.locale),
           createdAt: now, updatedAt: now,
           turns: [{ question, response, thinkResponse, createdAt: now, stats, rawUrl }],
           summary: buildSummaryHistoryEntry() ?? undefined,
@@ -206,7 +218,7 @@ export const useStore = create<AppStore>()((set, get) => {
     const merged = { ...buffers.pendingRawUrlOverrides, ...rawUrlOverrides };
     buffers.pendingRawUrlOverrides = {};
 
-    const enabledProviders = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+    const enabledProviders = availableProviderIds().filter(id => s.enabledMap[id]);
     if (enabledProviders.length === 1) {
       const pid = enabledProviders[0];
       const ps = buildHistoryProviders(merged)[pid];
@@ -269,25 +281,26 @@ export const useStore = create<AppStore>()((set, get) => {
         type: MSG_TYPES.GET_PROVIDER_LOGIN_STATE,
         payload: { providerId },
       });
-      return r?.state || { status: 'unknown', message: '无法确认登录状态' };
+      return r?.state || { status: 'unknown', message: getSidepanelText(get().locale).app.loginUnknown };
     } catch (err) {
       return {
         status: 'unknown',
-        message: err instanceof Error ? err.message : '无法确认登录状态',
+        message: err instanceof Error ? err.message : getSidepanelText(get().locale).app.loginUnknown,
       };
     }
   };
 
   const getAuthRequiredText = (providerId: ProviderId, state?: LoginState) => {
-    const providerName = PROVIDER_NAME_MAP[providerId] || providerId;
+    const providerName = getProviderDisplayName(providerId, get().locale);
+    const text = getSidepanelText(get().locale);
     if (state?.status === 'logged_out') {
-      return state.message || `${providerName} 当前未登录，请先登录后再发送消息`;
+      return state.message || interpolate(text.app.loginRequired, { name: providerName });
     }
-    return state?.message || `无法确认 ${providerName} 登录状态，请先登录后再发送消息`;
+    return state?.message || interpolate(text.app.loginUnknownFor, { name: providerName });
   };
 
   const applyAuthRequiredState = (providerId: ProviderId, text: string) => {
-    const errText = `[需要登录] ${text}`;
+    const errText = `[${getSidepanelText(get().locale).app.loginPrefix}] ${text}`;
     buffers.fullText[providerId] = errText;
     buffers.thinkText[providerId] = '';
     buffers.displayedLen[providerId] = errText.length;
@@ -310,13 +323,14 @@ export const useStore = create<AppStore>()((set, get) => {
   const getAutoModeSettings = (
     enabledMap: Record<ProviderId, boolean>,
     options?: {
+      locale?: any;
       prevSummaryEnabled?: boolean;
       prevFocusFollowEnabled?: boolean;
       hasCustomizedSummaryEnabled?: boolean;
       hasCustomizedFocusFollowEnabled?: boolean;
     },
   ) => {
-    const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+    const enabledCount = getAvailableProviderIds(options?.locale ?? get().locale).filter(id => enabledMap[id]).length;
     const isMultiChannelMode = enabledCount > 1;
     const prevSummaryEnabled = options?.prevSummaryEnabled ?? false;
     const prevFocusFollowEnabled = options?.prevFocusFollowEnabled ?? false;
@@ -339,6 +353,7 @@ export const useStore = create<AppStore>()((set, get) => {
     s: AppStore,
     conversationHistory: Array<{ question: string; response: string }>,
     isNewConversation: boolean,
+    targetUrl?: string,
   ) => {
     await new Promise<void>((resolve, reject) => {
       const msg = {
@@ -352,12 +367,14 @@ export const useStore = create<AppStore>()((set, get) => {
             isWebSearchEnabled: s.isWebSearchEnabled,
             conversationHistory,
             isNewConversation,
+            // 单通道多轮续聊时，传入历史会话的 URL，background 会先导航到该页面再发消息
+            ...(targetUrl ? { targetUrl } : {}),
           },
         },
       };
 
       if (!chrome.runtime?.sendMessage) {
-        reject(new Error('chrome.runtime.sendMessage 不可用'));
+        reject(new Error(getSidepanelText(get().locale).app.runtimeUnavailable));
         return;
       }
 
@@ -365,7 +382,7 @@ export const useStore = create<AppStore>()((set, get) => {
       const timeoutId = window.setTimeout(() => {
         if (settled) return;
         settled = true;
-        reject(new Error('等待响应超时'));
+        reject(new Error(getSidepanelText(get().locale).app.responseTimeout));
       }, 5000);
 
       chrome.runtime.sendMessage(msg, () => {
@@ -393,6 +410,8 @@ export const useStore = create<AppStore>()((set, get) => {
     isDebugEnabled: false,
     isSummaryEnabled: false,
     isFocusFollowEnabled: false,
+    isAnalyticsEnabled: true,
+    locale: 'system',
     hasCustomizedSummaryEnabled: false,
     hasCustomizedFocusFollowEnabled: false,
     isChannelListExpanded: false,
@@ -480,7 +499,7 @@ export const useStore = create<AppStore>()((set, get) => {
     toggleSummary: () => {
       const s = get();
       if (!s.isSummaryConfigValid()) { set({ isSummarySettingsOpen: true }); return; }
-      const enabled = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+      const enabled = availableProviderIds().filter(id => s.enabledMap[id]);
       if (enabled.length < 2) return;
       set(prev => ({
         isSummaryEnabled: !prev.isSummaryEnabled,
@@ -497,10 +516,31 @@ export const useStore = create<AppStore>()((set, get) => {
       saveSettings();
     },
 
+    toggleAnalytics: () => {
+      set(prev => {
+        const next = !prev.isAnalyticsEnabled;
+        setAnalyticsEnabled(next);
+        if (next) trackEvent('analytics_enabled', {}, '/extension/settings');
+        return { isAnalyticsEnabled: next };
+      });
+      saveSettings();
+    },
+
+    setLocale: (locale) => {
+      const currentPrompt = get().summaryCustomPrompt;
+      const wasDefaultPrompt = Object.values(SUMMARY_SYSTEM_PROMPTS).includes(currentPrompt);
+      set({
+        locale,
+        ...(wasDefaultPrompt ? { summaryCustomPrompt: getSummarySystemPrompt(resolveLocale(locale)) } : {}),
+      });
+      saveSettings();
+      if (wasDefaultPrompt) saveSummaryPrompt();
+    },
+
     setSummaryProviderId: (v) => { set({ summaryProviderId: v }); saveSummaryConfig(); },
     setSummaryModel: (v) => { set({ summaryModel: v }); saveSummaryConfig(); },
     setSummaryCustomPrompt: (v) => { set({ summaryCustomPrompt: v }); saveSummaryPrompt(); },
-    resetSummaryPrompt: () => { set({ summaryCustomPrompt: SUMMARY_SYSTEM_PROMPT }); saveSummaryPrompt(); },
+    resetSummaryPrompt: () => { set({ summaryCustomPrompt: getSummarySystemPrompt(effectiveLocale()) }); saveSummaryPrompt(); },
     setChannelListExpanded: (expanded) => {
       set({ isChannelListExpanded: expanded });
       saveSettings();
@@ -511,7 +551,9 @@ export const useStore = create<AppStore>()((set, get) => {
     toggleProvider: async (providerId) => {
       const id = providerId as ProviderId;
       const s = get();
-      const nextEnabledMap = { ...s.enabledMap, [id]: !s.enabledMap[id] };
+      if (!availableProviderIds().includes(id)) return;
+      const nextEnabled = !s.enabledMap[id];
+      const nextEnabledMap = { ...s.enabledMap, [id]: nextEnabled };
       const autoModeSettings = getAutoModeSettings(nextEnabledMap, {
         prevSummaryEnabled: s.isSummaryEnabled,
         prevFocusFollowEnabled: s.isFocusFollowEnabled,
@@ -526,12 +568,17 @@ export const useStore = create<AppStore>()((set, get) => {
       // 保存启用的通道列表
       saveEnabledProviders();
       saveSettings();
+      trackEvent('provider_toggled', {
+        provider_id: id,
+        enabled: nextEnabled,
+        enabled_provider_count: availableProviderIds().filter(pid => nextEnabledMap[pid]).length,
+      }, '/extension/settings');
     },
 
     selectAllProviders: async () => {
       const s = get();
       // summarizer 是内置总结服务，不在常规通道列表中显示，所以全选时排除它
-      const visibleProviderIds = PROVIDER_IDS.filter(id => id !== 'summarizer');
+      const visibleProviderIds = availableProviderIds();
       const allEnabled = visibleProviderIds.every(id => s.enabledMap[id]);
       // 如果已经全部启用，则全部禁用；否则全部启用
       const newValue = !allEnabled;
@@ -556,7 +603,7 @@ export const useStore = create<AppStore>()((set, get) => {
     invertProviderSelection: async () => {
       const s = get();
       // summarizer 是内置总结服务，不在常规通道列表中显示，所以反选时排除它
-      const visibleProviderIds = PROVIDER_IDS.filter(id => id !== 'summarizer');
+      const visibleProviderIds = availableProviderIds();
       const nextEnabledMap = { ...s.enabledMap };
       visibleProviderIds.forEach(id => {
         nextEnabledMap[id] = !s.enabledMap[id];
@@ -579,6 +626,7 @@ export const useStore = create<AppStore>()((set, get) => {
       if (mode === 'api' && !get().apiKeyMap[id]?.trim()) return;
       set(prev => ({ modeMap: { ...prev.modeMap, [id]: mode } }));
       saveApiConfig(id, { mode });
+      trackEvent('provider_mode_changed', { provider_id: id, mode }, '/extension/settings');
     },
 
     setProviderApiKey: (id, value) => {
@@ -596,16 +644,27 @@ export const useStore = create<AppStore>()((set, get) => {
       try {
         const r = await chrome.runtime?.sendMessage({ type: MSG_TYPES.TEST_API_KEY, payload: { providerId, apiKey } });
         const success = !!r?.success;
-        const msg = r?.message || r?.error || '请求失败';
+        const msg = r?.message || r?.error || getSidepanelText(get().locale).app.requestFailed;
         set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success, message: msg } } }));
+        trackEvent('api_key_tested', {
+          provider_id: providerId,
+          success,
+          error_type: success ? undefined : 'api_key_test_failed',
+        }, '/extension/settings');
         if (success) {
           message.success(msg);
         } else {
           message.error(msg);
         }
       } catch {
-        set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success: false, message: '请求失败' } } }));
-        message.error('请求失败');
+        const text = getSidepanelText(get().locale);
+        set(prev => ({ apiKeyTestResult: { ...prev.apiKeyTestResult, [providerId]: { success: false, message: text.app.requestFailed } } }));
+        trackEvent('api_key_tested', {
+          provider_id: providerId,
+          success: false,
+          error_type: 'request_failed',
+        }, '/extension/settings');
+        message.error(text.app.requestFailed);
       } finally {
         set(prev => ({ testingApiKey: { ...prev.testingApiKey, [providerId]: false } }));
       }
@@ -615,13 +674,13 @@ export const useStore = create<AppStore>()((set, get) => {
       const s = get();
       if (!s.currentQuestion.trim() || !s.enabledMap[providerId] || s.statusMap[providerId] !== 'error') return;
       if (s.summaryStatus === 'running') {
-        message.info('正在归纳总结中，请稍后再重试失败通道');
+        message.info(getSidepanelText(s.locale).app.retryAfterSummary);
         return;
       }
 
-      const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+      const enabledIds = availableProviderIds().filter(id => s.enabledMap[id]);
       const isSingleChannel = enabledIds.length === 1;
-      const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked && !s.isCurrentSessionFromHistory;
+      const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked;
       const conversationHistory = (isSingleChannel && s.conversationTurns.length > 0)
         ? s.conversationTurns.map(t => ({ question: t.question, response: t.response }))
         : [];
@@ -673,6 +732,7 @@ export const useStore = create<AppStore>()((set, get) => {
         summaryStats: null,
         summaryVersions: [],
         summaryCurrentVersion: 0,
+        isCurrentSessionFromHistory: false,
       }));
 
       get().schedulePersist(0, { [providerId]: s.modeMap[providerId] === 'api' ? 'api' : '' });
@@ -680,7 +740,10 @@ export const useStore = create<AppStore>()((set, get) => {
       try {
         await dispatchProviderTask(providerId, s.currentQuestion, s, conversationHistory, isNewConversation);
       } catch (error) {
-        message.error(`${PROVIDER_NAME_MAP[providerId]} 重试派发失败：${error instanceof Error ? error.message : String(error)}`);
+        message.error(interpolate(getSidepanelText(get().locale).app.retryDispatchFailed, {
+          name: getProviderDisplayName(providerId, get().locale),
+          reason: error instanceof Error ? error.message : String(error),
+        }));
       }
     },
 
@@ -692,15 +755,21 @@ export const useStore = create<AppStore>()((set, get) => {
       const s = get();
       const prompt = s.inputStr.trim();
       if (!prompt) return;
-      const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+      const enabledIds = availableProviderIds().filter(id => s.enabledMap[id]);
       if (!enabledIds.length) {
         set({ showNoChannelTip: true });
         return;
       }
 
       buffers.userHasScrolled = false;
+      // 只有单通道模式才能进行多轮对话
       const isSingleChannel = enabledIds.length === 1;
-      const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked && !s.isCurrentSessionFromHistory;
+      const isMultiTurnContinuation = s.isMultiTurnSession && isSingleChannel && s.hasAsked;
+
+      // 单通道续聊时，记录上一轮的 rawUrl 用于后续导航（在 rawUrlMap 被重置前保存）
+      const prevSingleChannelRawUrl = isMultiTurnContinuation
+        ? (s.rawUrlMap[enabledIds[0]] || '')
+        : '';
 
       let newTurns = [...s.conversationTurns];
       let newSessionId = s.activeSessionId;
@@ -771,7 +840,12 @@ export const useStore = create<AppStore>()((set, get) => {
           applyAuthRequiredState(id, getAuthRequiredText(id, loginState));
           return;
         }
-        return dispatchProviderTask(id, prompt, s, conversationHistory, isNewConversation);
+        // 单通道多轮续聊时，将上一轮的 rawUrl 作为 targetUrl 传给 background
+        // background 会先确认 tab 当前 URL 是否匹配，若不匹配则先导航到历史会话页再发消息
+        const targetUrl = (isMultiTurnContinuation && isSingleChannel && prevSingleChannelRawUrl && prevSingleChannelRawUrl !== 'api')
+          ? prevSingleChannelRawUrl
+          : undefined;
+        return dispatchProviderTask(id, prompt, s, conversationHistory, isNewConversation, targetUrl);
       });
 
       // 等待所有任务发送完成（但不管结果，让后台继续执行）
@@ -1081,10 +1155,10 @@ export const useStore = create<AppStore>()((set, get) => {
       // 手动触发时（forceTrigger=true）不需要检查 isSummaryEnabled，允许用户在关闭自动总结时手动触发
       if (!forceTrigger && !s.isSummaryEnabled) return;
       if (!s.isSummaryConfigValid()) return;
-      const enabledIds = PROVIDER_IDS.filter(id => s.enabledMap[id]);
+      const enabledIds = availableProviderIds().filter(id => s.enabledMap[id]);
       const completed = enabledIds
         .filter(id => (s.statusMap[id] === 'completed' || s.statusMap[id] === 'error') && buffers.fullText[id]?.trim())
-        .map(id => ({ providerId: id, name: PROVIDER_NAME_MAP[id], text: buffers.fullText[id] }));
+        .map(id => ({ providerId: id, name: getProviderDisplayName(id, s.locale), text: buffers.fullText[id] }));
       if (completed.length < 2) return;
 
       // 如果是重新生成（已有总结内容），只清空当前显示内容
@@ -1152,6 +1226,37 @@ export const useStore = create<AppStore>()((set, get) => {
       });
     },
 
+    setSummaryVersionShare: (share: PublishedShare | null) => {
+      const s = get();
+      if (!s.summaryVersions.length) return;
+
+      const nextVersions = s.summaryVersions.map((version, index) => {
+        if (index !== s.summaryCurrentVersion) return version;
+        if (share) return { ...version, share };
+        const { share: _removed, ...rest } = version;
+        return rest;
+      });
+
+      const nextHistory = s.historyList.map((item) => {
+        if (item.id !== s.activeSessionId || !item.summary) return item;
+        return {
+          ...item,
+          summary: {
+            ...item.summary,
+            versions: nextVersions,
+            currentVersionIndex: s.summaryCurrentVersion,
+          },
+        } as ChatHistoryItem;
+      });
+
+      set({
+        summaryVersions: nextVersions,
+        historyList: nextHistory,
+      });
+      saveHistory(nextHistory);
+      get().schedulePersist(0);
+    },
+
     goToProvider: async (providerId, activate = true) => {
       try {
         return await chrome.runtime?.sendMessage({ type: MSG_TYPES.OPEN_PROVIDER_TAB, payload: { providerId, activate } });
@@ -1163,7 +1268,7 @@ export const useStore = create<AppStore>()((set, get) => {
 
     // ─── Derived Getters ───
 
-    getEnabledProviderIds: () => PROVIDER_IDS.filter(id => get().enabledMap[id]),
+    getEnabledProviderIds: () => availableProviderIds().filter(id => get().enabledMap[id]),
     isSummaryConfigValid: () => {
       const s = get();
       const pid = s.summaryProviderId as string;
@@ -1176,8 +1281,9 @@ export const useStore = create<AppStore>()((set, get) => {
     },
     summaryBlockReason: () => {
       const s = get();
-      if (!s.isSummaryConfigValid()) return '请先配置归纳总结通道';
-      if (PROVIDER_IDS.filter(id => s.enabledMap[id]).length < 2) return '请选择 2 个或以上通道';
+      const text = getSidepanelText(s.locale);
+      if (!s.isSummaryConfigValid()) return text.summary.providerRequired;
+      if (availableProviderIds().filter(id => s.enabledMap[id]).length < 2) return text.summary.minProviders;
       return null;
     },
     getSummaryProviderOptions: () => {
@@ -1186,25 +1292,29 @@ export const useStore = create<AppStore>()((set, get) => {
         .filter((p: any) => {
           // summarizer 是内置总结服务，始终显示
           if (p.id === 'summarizer') return true;
+          if (!availableProviderIds().includes(p.id as ProviderId)) return false;
           // 其他通道需要支持 API 且有 API Key 才显示
           return p.supportsApi && s.apiKeyMap[p.id as ProviderId]?.trim();
         })
-        .map((p: any) => ({ value: p.id, label: p.name }));
+        .map((p: any) => ({ value: p.id, label: getProviderDisplayName(p.id, s.locale) }));
     },
     getSummaryModelOptions: () => {
       const s = get();
       if (!s.summaryProviderId) return [];
-      return getModelOptions(s.summaryProviderId);
+      return getModelOptions(s.summaryProviderId, resolveLocale(s.locale));
     },
 
     // ─── Init (called once on mount) ───
 
     init: () => {
       chrome.storage?.local.get(
-        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
+        [SETTINGS_KEY, API_CONFIG_KEY, SUMMARY_CONFIG_KEY, SUMMARY_PROMPT_KEY, ANALYTICS_STORAGE_KEY, ENABLED_PROVIDERS_KEY, HISTORY_STORAGE_KEY, HISTORY_STORAGE_KEY_SINGLE],
         async (result) => {
           const saved = (result?.[SETTINGS_KEY] || {}) as SidepanelSettings;
           const debugVal = saved.isDebugEnabled ?? false;
+          const rawAnalyticsVal = result?.[ANALYTICS_STORAGE_KEY] ?? saved.isAnalyticsEnabled;
+          const analyticsVal = rawAnalyticsVal === false ? false : true;
+          setAnalyticsEnabled(analyticsVal);
           setDebugEnabled(debugVal);
 
           const apiConfig = (result?.[API_CONFIG_KEY] || {}) as Record<string, ApiConfig>;
@@ -1315,6 +1425,7 @@ export const useStore = create<AppStore>()((set, get) => {
           const hasCustomizedSummaryEnabled = saved.hasCustomizedSummaryEnabled ?? false;
           const hasCustomizedFocusFollowEnabled = saved.hasCustomizedFocusFollowEnabled ?? false;
           const autoModeSettings = getAutoModeSettings(newEnabled, {
+            locale: saved.locale ?? 'system',
             prevSummaryEnabled: saved.isSummaryEnabled ?? false,
             prevFocusFollowEnabled: saved.isFocusFollowEnabled ?? false,
             hasCustomizedSummaryEnabled,
@@ -1326,13 +1437,15 @@ export const useStore = create<AppStore>()((set, get) => {
             isWebSearchEnabled: saved.isWebSearchEnabled ?? false,
             ...autoModeSettings,
             isDebugEnabled: debugVal,
+            isAnalyticsEnabled: analyticsVal,
+            locale: saved.locale ?? 'system',
             hasCustomizedSummaryEnabled,
             hasCustomizedFocusFollowEnabled,
             isChannelListExpanded: saved.isChannelListExpanded ?? false,
             modeMap: newModes, apiKeyMap: newKeys, modelMap: newModels,
             summaryProviderId: sc.providerId || 'summarizer',
             summaryModel: normalizeStoredModel(sc.providerId || 'summarizer', sc.model) || getDefaultModel(sc.providerId || 'summarizer'),
-            summaryCustomPrompt: customPrompt ?? SUMMARY_SYSTEM_PROMPT,
+            summaryCustomPrompt: customPrompt ?? getSummarySystemPrompt(resolveLocale(saved.locale ?? 'system')),
             enabledMap: newEnabled,
             historyList: allHistory,
           });

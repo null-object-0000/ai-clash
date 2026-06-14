@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.2] - 2026-06-14
+
+### ✨ Features
+
+- **Public Sharing**: Create a share link for a multi-model comparison and view the question, answers, and summary on the website.
+- **English UI**: Added English interface copy. DeepSeek and Qwen are now available in the English UI.
+
+### 🛠️ Fixes & Improvements
+
+- **Anonymous Analytics**: Added a settings toggle and clarified that questions, answers, and API keys are not uploaded.
+- **Experience Improvements & Fixes**: Improved share pages, share status retention, English summary sections, single-channel history follow-ups, and version info display.
+
 ## [1.2.1] - 2026-06-03
 
 ### ✨ Features

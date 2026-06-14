@@ -1,11 +1,12 @@
-import { ExportOutlined } from '@ant-design/icons';
+import ExportOutlined from '@ant-design/icons/ExportOutlined';
 import { Alert, Button, Drawer, Input, Modal, Segmented, Select } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useState } from 'react';
 import { PROVIDER_META, getModelOptions, getDefaultModel } from '../../shared/config.js';
 import { useStore } from '../store';
-import { PROVIDER_NAME_MAP, type ProviderId, type ProviderMode } from '../types';
+import { getProviderDisplayName, type ProviderId, type ProviderMode } from '../types';
 import { getProviderColorIcon } from '../config/providerIcons.js';
+import { getSidepanelText, resolveLocale } from '../i18n';
 
 const NARROW_THRESHOLD = 500;
 
@@ -75,6 +76,43 @@ const useStyles = createStyles(({ token, css }) => ({
       color: ${token.colorPrimaryHover};
     }
   `,
+  apiKeyLinkIcon: css`
+    font-size: 11px;
+  `,
+  apiFields: css`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  `,
+  testRow: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  `,
+  testResult: css`
+    font-size: 12px;
+  `,
+  testResultSuccess: css`
+    color: ${token.colorSuccess};
+  `,
+  testResultError: css`
+    color: ${token.colorError};
+  `,
+  modelField: css`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  `,
+  fullWidth: css`
+    width: 100%;
+  `,
+  bottomDrawer: css`
+    .ant-drawer-content-wrapper,
+    .ant-drawer-content {
+      border-radius: 16px 16px 0 0;
+      overflow: hidden;
+    }
+  `,
 }));
 
 export default function ChannelSettingsDrawer() {
@@ -85,6 +123,8 @@ export default function ChannelSettingsDrawer() {
   const modelMap = useStore(s => s.modelMap);
   const testingApiKey = useStore(s => s.testingApiKey);
   const apiKeyTestResult = useStore(s => s.apiKeyTestResult);
+  const locale = useStore(s => s.locale);
+  const text = getSidepanelText(locale);
 
   const {
     closeProviderSettings, setProviderMode, setProviderApiKey,
@@ -102,13 +142,13 @@ export default function ChannelSettingsDrawer() {
   if (!activeProviderId) return null;
 
   const pid = activeProviderId as ProviderId;
-  const providerLabel = PROVIDER_NAME_MAP[pid] || activeProviderId;
+  const providerLabel = getProviderDisplayName(pid, locale);
   const meta = PROVIDER_META.find((p: any) => p.id === activeProviderId);
   const supportsApi = meta?.supportsApi ?? false;
   const mode = modeMap[pid];
   const apiKey = apiKeyMap[pid] || '';
   const model = modelMap[pid] || '';
-  const modelOptions = getModelOptions(activeProviderId);
+  const modelOptions = getModelOptions(activeProviderId, resolveLocale(locale));
   const testing = testingApiKey[activeProviderId] ?? false;
   const testResult = apiKeyTestResult[activeProviderId];
   const apiKeyLink = meta?.apiKeyLink;
@@ -116,9 +156,9 @@ export default function ChannelSettingsDrawer() {
   const Icon = getProviderColorIcon(activeProviderId);
 
   const modeOptions = [
-    { label: '网页模式', value: 'web' },
+    { label: text.channelSettings.webMode, value: 'web' },
     {
-      label: !supportsApi ? 'API（暂不支持）' : !apiKey.trim() ? 'API（需填 Key）' : 'API 模式',
+      label: !supportsApi ? text.channelSettings.apiUnsupported : !apiKey.trim() ? text.channelSettings.apiNeedKey : text.channelSettings.apiMode,
       value: 'api',
       disabled: !supportsApi || !apiKey.trim(),
     },
@@ -127,18 +167,18 @@ export default function ChannelSettingsDrawer() {
   const titleNode = (
     <div className={styles.titleRow}>
       {Icon && <Icon size={22} />}
-      <span>{providerLabel} 设置</span>
+      <span>{providerLabel} {text.channelSettings.settings}</span>
     </div>
   );
 
   const contentNode = (
     <>
       <div className={styles.subtitle}>
-        调整当前通道的接入模式和详细参数。
+        {text.channelSettings.subtitle}
       </div>
 
       <div className={styles.section}>
-        <div className={styles.sectionLabel}>接入模式</div>
+        <div className={styles.sectionLabel}>{text.channelSettings.accessMode}</div>
         <Segmented
           block
           options={modeOptions}
@@ -150,15 +190,15 @@ export default function ChannelSettingsDrawer() {
       {supportsApi && (
         <div className={styles.apiCard}>
           <div className={styles.apiCardHeader}>
-            <span className={styles.apiCardTitle}>API 配置</span>
-            <span className={styles.apiCardHint}>可用于接入及总结</span>
+            <span className={styles.apiCardTitle}>{text.channelSettings.apiConfig}</span>
+            <span className={styles.apiCardHint}>{text.channelSettings.apiHint}</span>
           </div>
 
           {apiNote && (
             <Alert type="warning" message={apiNote} showIcon />
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className={styles.apiFields}>
             <div className={styles.fieldRow}>
               <label className={styles.fieldLabel}>API Key</label>
               {apiKeyLink && (
@@ -168,44 +208,41 @@ export default function ChannelSettingsDrawer() {
                   rel="noopener noreferrer"
                   className={styles.apiKeyLink}
                 >
-                  获取 Key <ExportOutlined style={{ fontSize: 11 }} />
+                  {text.channelSettings.getKey} <ExportOutlined className={styles.apiKeyLinkIcon} />
                 </a>
               )}
             </div>
             <Password
               value={apiKey}
               onChange={(e) => setProviderApiKey(pid, e.target.value)}
-              placeholder="输入 API Key"
+              placeholder={text.channelSettings.apiKeyPlaceholder}
               allowClear
             />
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className={styles.testRow}>
               <Button
                 onClick={() => testApiKey(activeProviderId, apiKey)}
                 loading={testing}
                 disabled={!apiKey}
                 size="small"
               >
-                测试 Key
+                {text.channelSettings.testKey}
               </Button>
               {testResult && (
-                <span style={{
-                  fontSize: 12,
-                  color: testResult.success ? '#52c41a' : '#ff4d4f',
-                }}>
+                <span className={`${styles.testResult} ${testResult.success ? styles.testResultSuccess : styles.testResultError}`}>
                   {testResult.message}
                 </span>
               )}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <label className={styles.fieldLabel}>模型</label>
+            <div className={styles.modelField}>
+              <label className={styles.fieldLabel}>{text.channelSettings.model}</label>
               <Select
                 value={model || getDefaultModel(activeProviderId)}
                 options={modelOptions}
                 onChange={(value) => setProviderModel(pid, value)}
-                style={{ width: '100%' }}
-                placeholder="选择模型"
+                className={styles.fullWidth}
+                placeholder={text.channelSettings.modelPlaceholder}
               />
             </div>
           </div>
@@ -222,7 +259,7 @@ export default function ChannelSettingsDrawer() {
         placement="bottom"
         size="65vh"
         title={titleNode}
-        styles={{ wrapper: { borderRadius: '16px 16px 0 0' } }}
+        rootClassName={styles.bottomDrawer}
       >
         {contentNode}
       </Drawer>

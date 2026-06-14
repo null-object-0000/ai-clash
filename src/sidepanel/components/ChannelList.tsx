@@ -1,11 +1,17 @@
-import { BorderOutlined, CheckSquareOutlined, DownOutlined, SettingOutlined, SwapOutlined, UpOutlined } from '@ant-design/icons';
+import BorderOutlined from '@ant-design/icons/BorderOutlined';
+import CheckSquareOutlined from '@ant-design/icons/CheckSquareOutlined';
+import DownOutlined from '@ant-design/icons/DownOutlined';
+import SettingOutlined from '@ant-design/icons/SettingOutlined';
+import SwapOutlined from '@ant-design/icons/SwapOutlined';
+import UpOutlined from '@ant-design/icons/UpOutlined';
 import { Button, Switch, Tag } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useRef, useState } from 'react';
 import { getProvidersByRegion } from '../../shared/config.js';
 import { getProviderIcon } from '../config/providerIcons.js';
 import { useStore } from '../store';
-import type { ProviderId } from '../types';
+import { getProviderDisplayName, type ProviderId } from '../types';
+import { getSidepanelText, resolveLocale } from '../i18n';
 
 const COLLAPSED_CONTENT_HEIGHT = 180;
 const CHANNEL_LIST_MIN_HEIGHT = 272;
@@ -143,11 +149,23 @@ export default function ChannelList() {
   const apiKeyMap = useStore(s => s.apiKeyMap);
   const testingApiKey = useStore(s => s.testingApiKey);
   const expanded = useStore(s => s.isChannelListExpanded);
+  const locale = useStore(s => s.locale);
+  const text = getSidepanelText(locale);
+  const effectiveLocale = resolveLocale(locale);
   const { toggleProvider, goToProvider, openProviderSettings, testApiKey, selectAllProviders, invertProviderSelection, setChannelListExpanded } = useStore.getState();
 
-  const cnProviders = getProvidersByRegion('cn').filter((p: any) => p.id !== 'summarizer');
-  const globalProviders = getProvidersByRegion('global').filter((p: any) => p.id !== 'summarizer');
-  const allProviders = [...cnProviders, ...globalProviders];
+  const cnProviders = getProvidersByRegion('cn', effectiveLocale).filter((p: any) => p.id !== 'summarizer');
+  const globalProviders = getProvidersByRegion('global', effectiveLocale).filter((p: any) => p.id !== 'summarizer');
+  const providerSections = effectiveLocale === 'en'
+    ? [
+      { key: 'global', title: text.channelList.global, providers: globalProviders, empty: text.channelList.noGlobal, emptyHint: text.channelList.noGlobalHint },
+      { key: 'cn', title: text.channelList.cn, providers: cnProviders },
+    ]
+    : [
+      { key: 'cn', title: text.channelList.cn, providers: cnProviders },
+      { key: 'global', title: text.channelList.global, providers: globalProviders, empty: text.channelList.noGlobal, emptyHint: text.channelList.noGlobalHint },
+    ];
+  const allProviders = providerSections.flatMap(section => section.providers);
   const enabledCount = allProviders.filter((p: any) => enabledMap[p.id as ProviderId]).length;
   const allEnabled = allProviders.length > 0 && enabledCount === allProviders.length;
 
@@ -227,10 +245,10 @@ export default function ChannelList() {
             {Icon && React.createElement(Icon, { size: 20 })}
           </div>
           <div className={styles.nameArea}>
-            <span className={styles.providerName}>{provider.name}</span>
+            <span className={styles.providerName}>{getProviderDisplayName(pid, locale)}</span>
           </div>
           <div className={styles.actions}>
-            <Tag className={styles.modeTag}>{isApi ? 'API' : '网页'}</Tag>
+            <Tag className={styles.modeTag}>{isApi ? 'API' : text.channelList.web}</Tag>
             {isApi ? (
               <Button
                 size="small"
@@ -240,7 +258,7 @@ export default function ChannelList() {
                 disabled={!apiKey}
                 className={styles.actionBtn}
               >
-                测试
+                {text.channelList.test}
               </Button>
             ) : (
               <Button
@@ -249,7 +267,7 @@ export default function ChannelList() {
                 onClick={() => goToProvider(provider.id)}
                 className={styles.actionBtn}
               >
-                前往
+                {text.channelList.go}
               </Button>
             )}
             <Button
@@ -275,8 +293,8 @@ export default function ChannelList() {
       <div className={styles.card}>
         <div className={styles.header} ref={headerRef}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className={styles.headerTitle}>通道列表</span>
-            <Tag bordered={false} color="blue">{enabledCount} 已启用</Tag>
+            <span className={styles.headerTitle}>{text.channelList.title}</span>
+            <Tag variant="filled" color="blue">{enabledCount} {text.channelList.enabled}</Tag>
           </div>
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             <Button
@@ -285,7 +303,7 @@ export default function ChannelList() {
               onClick={selectAllProviders}
               style={{ fontSize: '12px', color: '#666' }}
             >
-              {allEnabled ? <><BorderOutlined /> 全不选</> : <><CheckSquareOutlined /> 全选</>}
+              {allEnabled ? <><BorderOutlined /> {text.channelList.none}</> : <><CheckSquareOutlined /> {text.channelList.all}</>}
             </Button>
             <Button
               size="small"
@@ -293,7 +311,7 @@ export default function ChannelList() {
               onClick={invertProviderSelection}
               style={{ fontSize: '12px', color: '#666' }}
             >
-              <><SwapOutlined /> 反选</>
+              <><SwapOutlined /> {text.channelList.invert}</>
             </Button>
           </div>
         </div>
@@ -304,25 +322,33 @@ export default function ChannelList() {
           style={expanded ? undefined : { minHeight: autoContentHeight, maxHeight: autoContentHeight }}
         >
           <div ref={contentInnerRef}>
-            {cnProviders.length > 0 && (
-              <>
-                <div className={styles.sectionHeader}>🇨🇳 国内原生大模型</div>
-                {renderListItems(cnProviders)}
-              </>
-            )}
-
-            <div className={styles.sectionHeader}>🌍 海外原生大模型</div>
-            {globalProviders.length > 0 ? (
-              renderListItems(globalProviders)
-            ) : (
-              <div style={{ padding: '24px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.25)', fontSize: '13px' }}>
-                暂无海外 AI 通道，敬请期待
+            {allProviders.length === 0 ? (
+              <div style={{ padding: '32px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.45)', fontSize: '13px' }}>
+                {text.channelList.noLocaleSupport}
                 <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.75 }}>
-                  ChatGPT、Gemini 等即将上线
+                  {text.channelList.noLocaleSupportHint}
                 </div>
               </div>
+            ) : (
+              providerSections.map((section) => (
+                <React.Fragment key={section.key}>
+                  <div className={styles.sectionHeader}>{section.title}</div>
+                  {section.providers.length > 0 ? (
+                    renderListItems(section.providers)
+                  ) : section.empty ? (
+                    <div style={{ padding: '24px 16px', textAlign: 'center', color: 'rgba(0, 0, 0, 0.25)', fontSize: '13px' }}>
+                      {section.empty}
+                      {section.emptyHint ? (
+                        <div style={{ marginTop: '8px', fontSize: '12px', opacity: 0.75 }}>
+                          {section.emptyHint}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </React.Fragment>
+              ))
             )}
-          </div>
+                </div>
         </div>
       </div>
 
@@ -335,7 +361,7 @@ export default function ChannelList() {
             icon={expanded ? <UpOutlined /> : <DownOutlined />}
             onClick={() => setChannelListExpanded(!expanded)}
           >
-            {expanded ? '收起通道列表' : '展开全部通道'}
+            {expanded ? text.channelList.collapse : text.channelList.expand}
           </Button>
         </div>
       )}

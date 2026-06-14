@@ -1,38 +1,36 @@
-import {
-  BulbOutlined,
-  CarOutlined,
-  CommentOutlined,
-  CopyOutlined,
-  GlobalOutlined,
-  HeartOutlined,
-  LeftOutlined,
-  LoginOutlined,
-  MergeCellsOutlined,
-  PlusOutlined,
-  RedoOutlined,
-  RightOutlined,
-  SettingOutlined,
-  ShareAltOutlined,
-  TrophyOutlined,
-  VideoCameraOutlined,
-} from '@ant-design/icons';
-import type { BubbleListProps, PromptsProps } from '@ant-design/x';
-import {
-  Bubble,
-  Sender,
-  Think,
-  ThoughtChain,
-  Welcome,
-} from '@ant-design/x';
-import { BubbleListRef } from '@ant-design/x/es/bubble';
+import BulbOutlined from '@ant-design/icons/BulbOutlined';
+import CarOutlined from '@ant-design/icons/CarOutlined';
+import CommentOutlined from '@ant-design/icons/CommentOutlined';
+import CopyOutlined from '@ant-design/icons/CopyOutlined';
+import GlobalOutlined from '@ant-design/icons/GlobalOutlined';
+import HeartOutlined from '@ant-design/icons/HeartOutlined';
+import LeftOutlined from '@ant-design/icons/LeftOutlined';
+import LoginOutlined from '@ant-design/icons/LoginOutlined';
+import MergeCellsOutlined from '@ant-design/icons/MergeCellsOutlined';
+import PlusOutlined from '@ant-design/icons/PlusOutlined';
+import RedoOutlined from '@ant-design/icons/RedoOutlined';
+import RightOutlined from '@ant-design/icons/RightOutlined';
+import SettingOutlined from '@ant-design/icons/SettingOutlined';
+import ShareAltOutlined from '@ant-design/icons/ShareAltOutlined';
+import TrophyOutlined from '@ant-design/icons/TrophyOutlined';
+import VideoCameraOutlined from '@ant-design/icons/VideoCameraOutlined';
+import Bubble, { type BubbleListProps, type BubbleListRef } from '@ant-design/x/es/bubble';
+import Sender from '@ant-design/x/es/sender';
+import Think from '@ant-design/x/es/think';
+import ThoughtChain from '@ant-design/x/es/thought-chain';
+import Welcome from '@ant-design/x/es/welcome';
+import type { PromptsProps } from '@ant-design/x/es/prompts';
 import XMarkdown from '@ant-design/x-markdown';
 import { Button, Dropdown, Flex, message, Modal, Popconfirm, Tooltip } from 'antd';
 import { createStyles } from 'antd-style';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore, buffers, PROVIDER_META } from './store';
+import { trackEvent } from '../shared/analytics.js';
 import {
-  PROVIDER_IDS, PROVIDER_NAME_MAP,
-  type ProviderId, type ProviderStats, type StageType,
+  PROVIDER_IDS,
+  getAvailableProviderIds,
+  getProviderDisplayName,
+  type ProviderId, type ProviderStats, type StageType, type PublishedShare,
 } from './types';
 import { MSG_TYPES } from './store';
 import ChannelList from './components/ChannelList';
@@ -40,6 +38,7 @@ import ChannelSettingsDrawer from './components/ChannelSettingsDrawer';
 import GlobalSettingsModal from './components/GlobalSettingsModal';
 import HistoryDrawer from './components/HistoryDrawer';
 import { getProviderIcon } from './config/providerIcons';
+import { getSidepanelText, interpolate, resolveLocale, type SidepanelText } from './i18n';
 
 // ════════════════════════════════════════════════════════════════════
 // Styles
@@ -303,11 +302,23 @@ function renderMarkdown(content: any) {
 type ThinkTitles = {
   loading: string;
   done: string;
+  summaryAnalysisRunning: string;
+  summaryAnalysisDone: string;
+  generatingSuffix: string;
+  summarySections: Record<string, string>;
 };
 
 const DEFAULT_THINK_TITLES: ThinkTitles = {
   loading: '深度思考中...',
   done: '深度思考完成',
+  summaryAnalysisRunning: '归纳总结过程中...',
+  summaryAnalysisDone: '归纳总结过程完成',
+  generatingSuffix: '生成中...',
+  summarySections: {
+    核心共识: '核心共识',
+    观点对撞: '观点对撞',
+    裁判取舍: '裁判取舍',
+  },
 };
 
 type SummaryAnalysisSection = {
@@ -317,14 +328,17 @@ type SummaryAnalysisSection = {
 };
 
 const SUMMARY_ANALYSIS_SECTION_TITLES = ['核心共识', '观点对撞', '裁判取舍'];
-const SUMMARY_FINAL_TITLE_RE = /^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议)\s*\n+/;
+const SUMMARY_FINAL_TITLE_RE = /^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议|Final Recommendation)\s*\n+/;
 const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
   综合解析: '裁判取舍',
   综合分析: '裁判取舍',
+  'Core Consensus': '核心共识',
+  'Clash Points': '观点对撞',
+  "Judge's Take": '裁判取舍',
 };
 
 function splitSummaryAnalysisSections(markdown: string): SummaryAnalysisSection[] {
-  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析)\s*$/gm;
+  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|Core Consensus|Clash Points|Judge's Take)\s*$/gm;
   const matches = Array.from(markdown.matchAll(headingRe));
   if (!matches.length) return [];
 
@@ -418,6 +432,7 @@ function renderSummaryThinkAndMarkdown({
   analysisExpanded,
   onThinkToggle,
   onAnalysisToggle,
+  titles = DEFAULT_THINK_TITLES,
 }: {
   thinkContent: any;
   analysisContent: any;
@@ -427,6 +442,7 @@ function renderSummaryThinkAndMarkdown({
   analysisExpanded: boolean;
   onThinkToggle?: (expanded: boolean) => void;
   onAnalysisToggle?: (expanded: boolean) => void;
+  titles?: ThinkTitles;
 }) {
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   const analysisStr = typeof analysisContent === 'string' ? analysisContent : '';
@@ -440,7 +456,7 @@ function renderSummaryThinkAndMarkdown({
     <>
       {thinkStr ? (
         <Think
-          title={thinkDone ? '深度思考完成' : '深度思考中...'}
+          title={thinkDone ? titles.done : titles.loading}
           loading={!thinkDone}
           expanded={thinkExpanded}
           onExpand={onThinkToggle}
@@ -451,10 +467,11 @@ function renderSummaryThinkAndMarkdown({
       {analysisSections.length ? (
         analysisSections.map((section, index) => {
           const sectionDone = !isStreaming || !!contentStr || index < analysisSections.length - 1;
+          const title = titles.summarySections[section.title] ?? section.title;
           return (
             <SummaryAnalysisThink
               key={section.key}
-              title={sectionDone ? section.title : `${section.title}生成中...`}
+              title={sectionDone ? title : `${title}${titles.generatingSuffix}`}
               loading={!sectionDone}
               content={section.content}
             />
@@ -462,7 +479,7 @@ function renderSummaryThinkAndMarkdown({
         })
       ) : analysisStr ? (
         <Think
-          title={analysisDone ? '归纳总结过程完成' : '归纳总结过程中...'}
+          title={analysisDone ? titles.summaryAnalysisDone : titles.summaryAnalysisRunning}
           loading={!analysisDone}
           expanded={analysisExpanded}
           onExpand={onAnalysisToggle}
@@ -483,6 +500,7 @@ function makeSummaryContentRender(
   analysisExpanded: boolean,
   onThinkToggle?: (expanded: boolean) => void,
   onAnalysisToggle?: (expanded: boolean) => void,
+  titles?: ThinkTitles,
 ) {
   const thinkStr = typeof thinkContent === 'string' ? thinkContent : '';
   const analysisStr = typeof analysisContent === 'string' ? analysisContent : '';
@@ -496,6 +514,7 @@ function makeSummaryContentRender(
       analysisExpanded,
       onThinkToggle,
       onAnalysisToggle,
+      titles,
     });
   };
 }
@@ -532,17 +551,11 @@ type ShareSnapshot = {
   };
 };
 
-type PublishedShare = {
-  id: string;
-  url: string;
-  deleteToken: string;
-};
-
-function formatStats(stats: import('./types').ProviderStats) {
-  return `首字 ${(stats.ttff / 1000).toFixed(1)}s · 总耗时 ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString('zh-CN')}字 · ${stats.charsPerSec}字/s`;
+function formatStats(stats: import('./types').ProviderStats, text: SidepanelText) {
+  return `${text.stats.ttff} ${(stats.ttff / 1000).toFixed(1)}s · ${text.stats.total} ${(stats.totalTime / 1000).toFixed(1)}s · ${stats.charCount.toLocaleString()}${text.stats.chars} · ${stats.charsPerSec}${text.stats.charsPerSec}`;
 }
 
-function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isCollapsed, onClick, styles }: {
+function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isCollapsed, onClick, styles, text }: {
   providerId?: string;
   label: string;
   stats?: import('./types').ProviderStats | null;
@@ -552,12 +565,13 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
   isCollapsed: boolean;
   onClick: () => void;
   styles: ReturnType<typeof useStyles>['styles'];
+  text: SidepanelText;
 }) {
   const Icon = providerId ? getProviderIcon(providerId as ProviderId | 'summary') : null;
-  const stageLabel = stage === 'thinking' ? '思考中...'
-    : stage === 'connecting' ? '连接中...'
-      : stage === 'sending' ? '发送中...'
-        : '输出中...';
+  const stageLabel = stage === 'thinking' ? text.status.thinkingNow
+    : stage === 'connecting' ? text.status.connectingNow
+      : stage === 'sending' ? text.status.sendingNow
+        : text.status.respondingNow;
   return (
     <div className={styles.providerHeader} onClick={onClick}>
       <span className="provider-header-icon" style={{ transform: isCollapsed ? 'rotate(0deg)' : 'rotate(90deg)', transition: 'transform 0.2s ease' }}>
@@ -573,7 +587,7 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
           <span className="provider-header-status" style={{ animation: 'pulse 1s infinite' }}>{stageLabel}</span>
         )}
         {!opStatus && status === 'completed' && stats && (
-          <span className="provider-header-status">{formatStats(stats)}</span>
+          <span className="provider-header-status">{formatStats(stats, text)}</span>
         )}
       </div>
     </div>
@@ -581,10 +595,11 @@ function ProviderHeader({ providerId, label, stats, status, stage, opStatus, isC
 }
 
 // 版本切换器组件
-function VersionSwitcher({ totalVersions, currentVersion, onSwitch }: {
+function VersionSwitcher({ totalVersions, currentVersion, onSwitch, text }: {
   totalVersions: number;
   currentVersion: number;
   onSwitch: (index: number) => void;
+  text: SidepanelText;
 }) {
   if (totalVersions <= 1) return null;
 
@@ -615,7 +630,7 @@ function VersionSwitcher({ totalVersions, currentVersion, onSwitch }: {
           e.stopPropagation();
           if (canPrev) onSwitch(currentVersion - 1);
         }}
-        title={canPrev ? '查看上一个版本' : '已经是第一个版本'}
+        title={canPrev ? text.version.previous : text.version.first}
       >
         <LeftOutlined style={{ fontSize: 8 }} />
       </button>
@@ -644,7 +659,7 @@ function VersionSwitcher({ totalVersions, currentVersion, onSwitch }: {
           e.stopPropagation();
           if (canNext) onSwitch(currentVersion + 1);
         }}
-        title={canNext ? '查看下一个版本' : '已经是最后一个版本'}
+        title={canNext ? text.version.next : text.version.last}
       >
         <RightOutlined style={{ fontSize: 8 }} />
       </button>
@@ -655,19 +670,10 @@ function VersionSwitcher({ totalVersions, currentVersion, onSwitch }: {
 // ─── ThoughtChain helpers ───
 
 const STAGE_ORDER: StageType[] = ['waiting', 'opening', 'loading', 'connecting', 'sending', 'thinking', 'responding'];
-const STAGE_LABELS: Record<string, string> = {
-  waiting: '等待启动',
-  opening: '启动浏览器',
-  loading: '加载页面',
-  connecting: '连接通道',
-  sending: '发送消息',
-  thinking: '深度思考',
-  responding: '生成回答',
-};
-
-function buildThoughtChainItems(stage: StageType, opStatus?: string, visitedStages?: Set<string>) {
+function buildThoughtChainItems(stage: StageType, text: SidepanelText, opStatus?: string, visitedStages?: Set<string>) {
   const visited = new Set(visitedStages);
   visited.add(stage);
+  const stageLabels: Record<string, string> = text.status;
 
   return STAGE_ORDER
     .filter(s => visited.has(s))
@@ -675,14 +681,14 @@ function buildThoughtChainItems(stage: StageType, opStatus?: string, visitedStag
       const isCurrent = s === stage;
       return {
         key: s,
-        title: STAGE_LABELS[s],
+        title: stageLabels[s],
         status: (isCurrent ? 'loading' : 'success') as 'loading' | 'success',
         description: isCurrent && opStatus ? opStatus : undefined,
       };
     });
 }
 
-function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; opStatus?: string; providerId?: string }) {
+function StageThoughtChain({ stage, opStatus, providerId, text }: { stage: StageType; opStatus?: string; providerId?: string; text: SidepanelText }) {
   const visited = providerId ? buffers.visitedStages[providerId as ProviderId] : undefined;
   const Icon = providerId ? getProviderIcon(providerId as ProviderId | 'summary') : null;
 
@@ -692,12 +698,12 @@ function StageThoughtChain({ stage, opStatus, providerId }: { stage: StageType; 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon style={{ fontSize: 16 }} />
           <span className="provider-header-name" style={{ fontSize: 12, fontWeight: 500, opacity: 0.75 }}>
-            {PROVIDER_NAME_MAP[providerId as ProviderId] || providerId}
+            {getProviderDisplayName(providerId as ProviderId, useStore.getState().locale)}
           </span>
         </div>
       )}
       <ThoughtChain
-        items={buildThoughtChainItems(stage, opStatus, visited)}
+        items={buildThoughtChainItems(stage, text, opStatus, visited)}
         style={{ padding: '4px 0' }}
       />
     </div>
@@ -717,30 +723,49 @@ const App = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [shareLoading, setShareLoading] = useState(false);
-  const [publishedShare, setPublishedShare] = useState<PublishedShare | null>(null);
-  const [publishedShareMap, setPublishedShareMap] = useState<Record<number, PublishedShare>>({});
+  const locale = useStore(s => s.locale);
+  const effectiveLocale = useMemo(() => resolveLocale(locale), [locale]);
+  const text = useMemo(() => getSidepanelText(locale), [locale]);
+  const thinkTitles = useMemo<ThinkTitles>(() => ({
+    loading: text.think.thinking,
+    done: text.think.done,
+    summaryAnalysisRunning: text.think.summaryAnalysisRunning,
+    summaryAnalysisDone: text.think.summaryAnalysisDone,
+    generatingSuffix: effectiveLocale === 'en' ? ' in progress...' : '生成中...',
+    summarySections: effectiveLocale === 'en'
+      ? {
+        核心共识: 'Core Consensus',
+        观点对撞: 'Clash Points',
+        裁判取舍: "Judge's Take",
+      }
+      : {
+        核心共识: '核心共识',
+        观点对撞: '观点对撞',
+        裁判取舍: '裁判取舍',
+      },
+  }), [effectiveLocale, text]);
 
   // 预设提示词
   const presetPrompts: PromptsProps['items'] = useMemo(() => [
     {
       key: 'world-cup',
       icon: <TrophyOutlined style={{ color: '#FAAD14' }} />,
-      description: '2026 美加墨世界杯从热度和实力两个角度盘点，TOP 10 是哪些？',
+      description: text.prompts.worldCup,
       disabled: false,
     },
     {
       key: 'car-wash',
       icon: <CarOutlined style={{ color: '#1890FF' }} />,
-      description: '我想去洗车，汽车店距离我家 50 米，你说我应该开车去还是走过去？',
+      description: text.prompts.carWash,
       disabled: false,
     },
     {
       key: 'baby-name',
       icon: <HeartOutlined style={{ color: '#FF4D4F' }} />,
-      description: '我姓王，我老婆姓牛，给我儿子起个名字，最好是两个字的。',
+      description: text.prompts.babyName,
       disabled: false,
     },
-  ], []);
+  ], [text]);
 
   // ==================== Store ====================
   const hasAsked = useStore(s => s.hasAsked);
@@ -768,20 +793,21 @@ const App = () => {
   const stageMap = useStore(s => s.stageMap);
   const collapseMap = useStore(s => s.collapseMap);
   const thinkExpandedMap = useStore(s => s.thinkExpandedMap);
+  const availableProviderIds = useMemo(() => getAvailableProviderIds(locale), [locale]);
 
   // 添加通道建议选项
   const providerSuggestions = useMemo(() => {
     return PROVIDER_META
-      .filter((p: any) => p.id !== 'summarizer' && !enabledMap[p.id as ProviderId])
+      .filter((p: any) => p.id !== 'summarizer' && availableProviderIds.includes(p.id as ProviderId) && !enabledMap[p.id as ProviderId])
       .map((provider: any) => {
         const Icon = getProviderIcon(provider.id as ProviderId);
         return {
           key: provider.id,
-          label: provider.name,
+          label: getProviderDisplayName(provider.id as ProviderId, locale),
           icon: Icon ? <Icon /> : undefined,
         };
       });
-  }, [enabledMap]);
+  }, [availableProviderIds, enabledMap, locale]);
 
   const handleAddChannel = ({ key }: { key: string }) => {
     const provider = PROVIDER_META.find((p: any) => p.id === key);
@@ -792,14 +818,14 @@ const App = () => {
       // 如果当前有问题，将新通道加入队列等待提交
       if (currentQuestion) {
         // 检查是否有通道正在运行（responding 状态）
-        const respondingChannels = PROVIDER_IDS.filter(id =>
+        const respondingChannels = availableProviderIds.filter(id =>
           s.statusMap[id] === 'running' && s.stageMap[id] === 'responding'
         );
 
         if (respondingChannels.length === 0) {
           // 没有通道在 responding，立即提交
           toggleProvider(providerId);
-          message.success(`已启用 ${provider.name} 通道`);
+          message.success(interpolate(text.app.channelEnabled, { name: getProviderDisplayName(providerId, locale) }));
           submitNewChannel(providerId, currentQuestion, s);
         } else {
           // 有通道在 responding，先启用通道，等待完成后提交
@@ -816,12 +842,12 @@ const App = () => {
             thinkExpandedMap: newThinkExpandedMap,
           });
 
-          message.info(`已启用 ${provider.name} 通道，将在当前通道完成后自动提交`);
+          message.info(interpolate(text.app.channelQueued, { name: getProviderDisplayName(providerId, locale) }));
         }
       } else {
         // 没有当前问题，只是启用通道
         toggleProvider(providerId);
-        message.success(`已启用 ${provider.name} 通道`);
+        message.success(interpolate(text.app.channelEnabled, { name: getProviderDisplayName(providerId, locale) }));
       }
     }
   };
@@ -886,11 +912,8 @@ const App = () => {
   };
   const summaryVersions = useStore(s => s.summaryVersions);
   const summaryCurrentVersion = useStore(s => s.summaryCurrentVersion);
-  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider, goToProvider } = useStore();
-
-  useEffect(() => {
-    setPublishedShare(publishedShareMap[summaryCurrentVersion] ?? null);
-  }, [publishedShareMap, summaryCurrentVersion]);
+  const publishedShare = summaryVersions[summaryCurrentVersion]?.share ?? null;
+  const { toggleCollapse, setThinkExpanded, triggerSummary, regenerateSummary, switchSummaryVersion, retryProvider, goToProvider, setSummaryVersionShare } = useStore();
 
   const {
     setInputStr, submit, createNewChat,
@@ -901,6 +924,7 @@ const App = () => {
   // ==================== Init ====================
   useEffect(() => {
     const cleanup = useStore.getState().init();
+    trackEvent('sidepanel_opened', { source: 'sidepanel_mount' }, '/extension/sidepanel');
 
     // 监听通道完成事件，触发队列检查
     const messageListener = (request: any) => {
@@ -923,16 +947,17 @@ const App = () => {
     if (!question) return;
 
     const s = useStore.getState();
+    const activeProviderIds = getAvailableProviderIds(s.locale);
     // 查找正在运行但已经开始输出的通道（responding 状态）
     // 只要有通道开始输出，就可以提交下一个新通道
-    const respondingChannels = PROVIDER_IDS.filter(id =>
+    const respondingChannels = activeProviderIds.filter(id =>
       s.statusMap[id] === 'running' && s.stageMap[id] === 'responding'
     );
 
     // 如果没有通道在 responding 状态，检查是否有刚刚启用但还没提交的通道
     if (respondingChannels.length === 0) {
       // 查找已启用但状态为 idle 的通道（可能是刚添加的）
-      const idleEnabledChannels = PROVIDER_IDS.filter(id =>
+      const idleEnabledChannels = activeProviderIds.filter(id =>
         s.enabledMap[id] && s.statusMap[id] === 'idle' && !buffers.fullText[id]
       );
 
@@ -958,8 +983,8 @@ const App = () => {
     return () => resizeObserver.disconnect();
   }, []);
 
-  const isAnyRunning = PROVIDER_IDS.some(id => statusMap[id] === 'running');
-  const shareableProviderCount = PROVIDER_IDS.filter((id) => {
+  const isAnyRunning = availableProviderIds.some(id => statusMap[id] === 'running');
+  const shareableProviderCount = availableProviderIds.filter((id) => {
     if (!enabledMap[id]) return false;
     if (statusMap[id] !== 'completed' && statusMap[id] !== 'error') return false;
     return !!(responses[id]?.trim() || thinkResponses[id]?.trim());
@@ -978,7 +1003,7 @@ const App = () => {
         if (!response && !thinkResponse) return null;
         return {
           providerId: id,
-          providerName: PROVIDER_NAME_MAP[id] || id,
+          providerName: getProviderDisplayName(id, locale),
           status: statusMap[id] === 'error' ? 'error' as const : 'completed' as const,
           response,
           ...(thinkResponse ? { thinkResponse } : {}),
@@ -995,11 +1020,11 @@ const App = () => {
     const summaryAnalysis = (currentSummaryVersion?.analysisResponse ?? summaryAnalysisResponse ?? '').trim();
     const summary = summaryResp || summaryThink || summaryAnalysis
       ? {
-          response: summaryResp,
-          ...(summaryThink ? { thinkResponse: summaryThink } : {}),
-          ...(summaryAnalysis ? { analysisResponse: summaryAnalysis } : {}),
-          stats: currentSummaryVersion?.stats ?? summaryStats ?? null,
-        }
+        response: summaryResp,
+        ...(summaryThink ? { thinkResponse: summaryThink } : {}),
+        ...(summaryAnalysis ? { analysisResponse: summaryAnalysis } : {}),
+        stats: currentSummaryVersion?.stats ?? summaryStats ?? null,
+      }
       : undefined;
 
     return {
@@ -1007,7 +1032,7 @@ const App = () => {
       title: question.slice(0, 80),
       question,
       createdAt: Date.now(),
-      locale: 'zh',
+      locale: effectiveLocale === 'en' ? 'en' : 'zh',
       providers,
       ...(summary ? { summary } : {}),
     };
@@ -1026,11 +1051,15 @@ const App = () => {
   const publishShare = async () => {
     const snapshot = buildShareSnapshot();
     if (!snapshot) {
-      message.warning('当前没有可分享的完整回答');
+      message.warning(text.share.noCompleteAnswer);
       return;
     }
 
     setShareLoading(true);
+    trackEvent('share_started', {
+      provider_count: snapshot.providers.length,
+      has_summary: Boolean(snapshot.summary),
+    }, '/extension/share');
     try {
       const res = await fetch(`${API_BASE_URL}/api/shares`, {
         method: 'POST',
@@ -1039,27 +1068,30 @@ const App = () => {
       });
       const data = await res.json().catch(() => null) as { id?: string; url?: string; deleteToken?: string; error?: string } | null;
       if (!res.ok || !data?.id || !data?.url || !data?.deleteToken) {
-        throw new Error(data?.error || `分享失败：HTTP ${res.status}`);
+        throw new Error(data?.error || `${text.share.failed}: HTTP ${res.status}`);
       }
 
       const nextShare: PublishedShare = { id: data.id, url: data.url, deleteToken: data.deleteToken };
-      setPublishedShare(nextShare);
-      setPublishedShareMap(prev => ({
-        ...prev,
-        [summaryCurrentVersion]: nextShare,
-      }));
+      setSummaryVersionShare(nextShare);
       const copied = await copyShareUrl(data.url);
       if (copied) {
-        message.success('分享链接已复制到剪贴板');
+        message.success(text.share.copied);
       } else {
         Modal.info({
-          title: '分享链接已生成',
+          title: text.share.generated,
           content: data.url,
-          okText: '知道了',
+          okText: text.share.ok,
         });
       }
+      trackEvent('share_created', {
+        provider_count: snapshot.providers.length,
+        has_summary: Boolean(snapshot.summary),
+      }, '/extension/share');
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '分享失败，请稍后重试');
+      trackEvent('share_failed', {
+        reason: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
+      }, '/extension/share');
+      message.error(error instanceof Error ? error.message : text.share.failed);
     } finally {
       setShareLoading(false);
     }
@@ -1076,17 +1108,17 @@ const App = () => {
       });
       const data = await res.json().catch(() => null) as { error?: string } | null;
       if (!res.ok) {
-        throw new Error(data?.error || `取消分享失败：HTTP ${res.status}`);
+        throw new Error(data?.error || `${text.share.revokeFailed}: HTTP ${res.status}`);
       }
-      setPublishedShare(null);
-      setPublishedShareMap(prev => {
-        const next = { ...prev };
-        delete next[summaryCurrentVersion];
-        return next;
-      });
-      message.success('已取消分享');
+      setSummaryVersionShare(null);
+      trackEvent('share_deleted', {}, '/extension/share');
+      message.success(text.share.revoked);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : '取消分享失败，请稍后重试');
+      trackEvent('share_failed', {
+        action: 'delete',
+        reason: error instanceof Error ? error.message.slice(0, 80) : 'unknown',
+      }, '/extension/share');
+      message.error(error instanceof Error ? error.message : text.share.revokeFailed);
     } finally {
       setShareLoading(false);
     }
@@ -1094,34 +1126,31 @@ const App = () => {
 
   const handleShareCurrentSession = () => {
     if (!canShareCurrentSession) {
-      message.info(isAnyRunning || summaryStatus === 'running' ? '请等待当前回答完成后再分享' : '当前没有可分享内容');
+      message.info(isAnyRunning || summaryStatus === 'running' ? text.share.waitComplete : text.share.noShareableContent);
       return;
     }
 
     Modal.confirm({
-      title: '生成公开分享链接？',
-      content: '会把本次问题、各通道回答和归纳总结上传到后端，任何拿到链接的人都可以查看。',
-      okText: '生成分享链接',
-      cancelText: '取消',
+      title: text.share.confirmTitle,
+      content: text.share.confirmContent,
+      okText: text.share.confirmOk,
+      cancelText: text.share.cancel,
       onOk: publishShare,
     });
   };
 
-  const resetPublishedShares = () => {
-    setPublishedShare(null);
-    setPublishedShareMap({});
-  };
+  const resetPublishedShares = () => { };
 
   const copyPublishedShareUrl = async () => {
     if (!publishedShare) return;
     const copied = await copyShareUrl(publishedShare.url);
     if (copied) {
-      message.success('分享链接已复制到剪贴板');
+      message.success(text.share.copied);
     } else {
       Modal.info({
-        title: '分享链接',
+        title: text.share.copyLink,
         content: publishedShare.url,
-        okText: '知道了',
+        okText: text.share.ok,
       });
     }
   };
@@ -1129,10 +1158,10 @@ const App = () => {
   const confirmRevokeShare = () => {
     if (!publishedShare) return;
     Modal.confirm({
-      title: '取消公开分享？',
-      content: '取消后，已生成的分享链接将无法继续访问。',
-      okText: '取消分享',
-      cancelText: '返回',
+      title: text.share.revokeTitle,
+      content: text.share.revokeContent,
+      okText: text.share.revokeOk,
+      cancelText: text.share.back,
       okButtonProps: { danger: true },
       onOk: revokeShare,
     });
@@ -1161,7 +1190,7 @@ const App = () => {
       items.push({
         key: `ai-${turn.providerId}-${idx}`,
         role: 'assistant',
-        content: response || '等待中...',
+        content: response || text.status.pending,
         style: { paddingTop: 0, paddingBottom: 0 },
         ...(isCollapsed ? {
           className: styles.bubbleContentHidden,
@@ -1169,17 +1198,18 @@ const App = () => {
         } : (thinkResponse ? {
           contentRender: makeContentRender(thinkResponse, false, thinkExpanded, (expanded) => {
             setThinkExpanded(turn.providerId, expanded);
-          }),
+          }, thinkTitles),
         } : {})),
         header: (
           <ProviderHeader
             providerId={turn.providerId}
-            label={PROVIDER_NAME_MAP[turn.providerId] || turn.providerId}
+            label={getProviderDisplayName(turn.providerId, locale)}
             stats={turn.stats}
             status="completed"
             isCollapsed={isCollapsed}
             onClick={() => toggleCollapse(turn.providerId)}
             styles={styles}
+            text={text}
           />
         ),
       });
@@ -1192,7 +1222,7 @@ const App = () => {
         content: currentQuestion,
       });
 
-      const enabledProviderIds = PROVIDER_IDS.filter(id => enabledMap[id]);
+      const enabledProviderIds = availableProviderIds.filter(id => enabledMap[id]);
       enabledProviderIds.forEach(id => {
         const isRunning = statusMap[id] === 'running';
         const think = thinkResponses[id];
@@ -1214,7 +1244,7 @@ const App = () => {
         } else if (think) {
           contentRenderFn = makeContentRender(think, isRunning, thinkExpanded, (expanded) => {
             setThinkExpanded(id, expanded);
-          });
+          }, thinkTitles);
         }
 
         items.push({
@@ -1233,7 +1263,7 @@ const App = () => {
           header: (
             <ProviderHeader
               providerId={id}
-              label={PROVIDER_NAME_MAP[id]}
+              label={getProviderDisplayName(id, locale)}
               stats={statsMap[id]}
               status={statusMap[id]}
               stage={stageMap[id]}
@@ -1241,6 +1271,7 @@ const App = () => {
               isCollapsed={isCollapsed}
               onClick={() => toggleCollapse(id)}
               styles={styles}
+              text={text}
             />
           ),
           footer: statusMap[id] === 'error' && !isCollapsed ? (
@@ -1253,7 +1284,7 @@ const App = () => {
                   onClick={() => goToProvider(id, true)}
                   style={{ borderRadius: 999 }}
                 >
-                  前往登录
+                  {text.app.login}
                 </Button>
               ) : null}
               <Button
@@ -1264,13 +1295,13 @@ const App = () => {
                 disabled={summaryStatus === 'running'}
                 style={{ borderRadius: 999 }}
               >
-                重试
+                {text.app.retry}
               </Button>
             </Flex>
           ) : undefined,
           ...(isRunning && !hasContent && !isCollapsed ? {
             loadingRender: () => (
-              <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} providerId={id} />
+              <StageThoughtChain stage={stageMap[id]} opStatus={operationStatus[id]} providerId={id} text={text} />
             ),
           } : {}),
         });
@@ -1325,14 +1356,14 @@ const App = () => {
               }}
               onClick={() => {
                 navigator.clipboard?.writeText(summaryResp);
-                message.success('总结内容已复制到剪贴板');
+                message.success(text.summary.copied);
               }}
             >
               <CopyOutlined style={{ fontSize: 14 }} />
-              复制总结
+              {text.summary.copy}
             </button>
           ) : (
-            <Tooltip title="复制总结" placement="top">
+            <Tooltip title={text.summary.copy} placement="top">
               <button
                 className={styles.floatingBtn}
                 style={{
@@ -1342,7 +1373,7 @@ const App = () => {
                 }}
                 onClick={() => {
                   navigator.clipboard?.writeText(summaryResp);
-                  message.success('总结内容已复制到剪贴板');
+                  message.success(text.summary.copied);
                 }}
               >
                 <CopyOutlined style={{ fontSize: 14 }} />
@@ -1355,9 +1386,9 @@ const App = () => {
         const regenerateButton = isSummaryCompleted && hasSummaryContent ? (
           showButtonText ? (
             <Popconfirm
-              title="确认重新生成归纳总结吗？"
-              okText="确认"
-              cancelText="取消"
+              title={text.summary.regenerateConfirm}
+              okText={text.dialog.ok}
+              cancelText={text.dialog.cancel}
               onConfirm={() => {
                 regenerateSummary();
               }}
@@ -1373,20 +1404,20 @@ const App = () => {
                 }}
               >
                 <RedoOutlined style={{ fontSize: 14 }} />
-                重新总结
+                {text.summary.regenerate}
               </button>
             </Popconfirm>
           ) : (
             <Popconfirm
-              title="确认重新生成归纳总结吗？"
-              okText="确认"
-              cancelText="取消"
+              title={text.summary.regenerateConfirm}
+              okText={text.dialog.ok}
+              cancelText={text.dialog.cancel}
               onConfirm={() => {
                 regenerateSummary();
               }}
               okButtonProps={{ danger: true }}
             >
-              <Tooltip title="重新总结" placement="top">
+              <Tooltip title={text.summary.regenerate} placement="top">
                 <button
                   className={styles.floatingBtn}
                   style={{
@@ -1413,7 +1444,7 @@ const App = () => {
                   onClick={copyPublishedShareUrl}
                 >
                   <CopyOutlined style={{ fontSize: 14 }} />
-                  复制链接
+                  {text.share.copyLink}
                 </button>
                 <button
                   className={styles.floatingBtnWithText}
@@ -1422,12 +1453,12 @@ const App = () => {
                   onClick={confirmRevokeShare}
                 >
                   <ShareAltOutlined spin={shareLoading} style={{ fontSize: 14 }} />
-                  取消分享
+                  {text.share.revoke}
                 </button>
               </>
             ) : (
               <>
-                <Tooltip title="复制分享链接" placement="top">
+                <Tooltip title={text.share.copyShareLink} placement="top">
                   <button
                     className={styles.floatingBtn}
                     style={{ width: '32px', height: '32px', borderRadius: '50%' }}
@@ -1437,7 +1468,7 @@ const App = () => {
                     <CopyOutlined style={{ fontSize: 14 }} />
                   </button>
                 </Tooltip>
-                <Tooltip title="取消分享" placement="top">
+                <Tooltip title={text.share.revoke} placement="top">
                   <button
                     className={styles.floatingBtn}
                     style={{ width: '32px', height: '32px', borderRadius: '50%' }}
@@ -1464,10 +1495,10 @@ const App = () => {
               onClick={handleShareCurrentSession}
             >
               <ShareAltOutlined spin={shareLoading} style={{ fontSize: 14 }} />
-              分享
+              {text.share.share}
             </button>
           ) : (
-            <Tooltip title={canShareCurrentSession ? '分享当前会话' : '回答完成后可分享'} placement="top">
+            <Tooltip title={canShareCurrentSession ? text.share.shareCurrent : text.share.shareAfterComplete} placement="top">
               <button
                 className={styles.floatingBtn}
                 style={{
@@ -1492,6 +1523,7 @@ const App = () => {
             totalVersions={summaryVersions.length}
             currentVersion={summaryCurrentVersion}
             onSwitch={switchSummaryVersion}
+            text={text}
           />
         ) : null;
 
@@ -1520,25 +1552,26 @@ const App = () => {
           } : (summaryThink || summaryAnalysis ? {
             contentRender: makeSummaryContentRender(summaryThink, summaryAnalysis, summaryStatus === 'running', summaryThinkExpanded, summaryAnalysisExpanded, (expanded) => {
               setThinkExpanded('summary', expanded);
-            }, setSummaryAnalysisExpanded),
+            }, setSummaryAnalysisExpanded, thinkTitles),
           } : {})),
           status: summaryStatus === 'error' ? 'error' : undefined,
           footer: summaryFooter,
           header: (
             <ProviderHeader
               providerId="summary"
-              label="归纳总结"
+              label={text.summary.title}
               stats={summaryStats}
               status={summaryStatus}
               opStatus={summaryOperationStatus}
               isCollapsed={isSummaryCollapsed}
               onClick={() => toggleCollapse('summary')}
               styles={styles}
+              text={text}
             />
           ),
           ...(summaryStatus === 'running' && !hasSummaryContent && !isSummaryCollapsed ? {
             loadingRender: () => (
-              <StageThoughtChain stage={summaryStage as StageType} opStatus={summaryOperationStatus} />
+              <StageThoughtChain stage={summaryStage as StageType} opStatus={summaryOperationStatus} text={text} />
             ),
           } : {}),
         });
@@ -1564,7 +1597,7 @@ const App = () => {
                   background: 'var(--ant-color-primary-bg)',
                 }}
               >
-                <MergeCellsOutlined /> 生成归纳总结
+                <MergeCellsOutlined /> {text.summary.generate}
               </button>
             </Flex>
           ),
@@ -1585,20 +1618,35 @@ const App = () => {
     sidebarWidth, retryProvider, goToProvider, isCurrentSessionFromHistory,
     canShareCurrentSession, publishedShare, shareLoading, handleShareCurrentSession,
     copyPublishedShareUrl, confirmRevokeShare,
+    text, thinkTitles, availableProviderIds,
   ]);
 
   // ==================== Event ====================
   const handleUserSubmit = async (val: string) => {
     if (!val.trim()) return;
+    trackEvent('question_submitted', {
+      enabled_provider_count: availableProviderIds.filter(id => enabledMap[id]).length,
+      has_previous_question: hasAsked,
+      summary_enabled: isSummaryEnabled,
+    }, '/extension/question');
 
-    // 多通道模式下的追问拦截：当已有对话内容且启用通道数 >= 2 时，需要确认
-    const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
-    if (hasAsked && enabledCount >= 2) {
+    // 需要弹窗确认的场景：
+    // 1. 多通道模式：已有对话内容且启用通道数 >= 2（会开新对话）
+    // 2. 查看历史记录时：isCurrentSessionFromHistory=true 且本次提交不是真正的续聊
+    //    （真正的续聊 = 单通道 + isMultiTurnSession）
+    const enabledCount = availableProviderIds.filter(id => enabledMap[id]).length;
+    const isMultiTurnSession = useStore.getState().isMultiTurnSession;
+    const willContinueSingleChannel = enabledCount === 1 && isMultiTurnSession;
+    const needConfirm = hasAsked && (
+      enabledCount >= 2 ||
+      (isCurrentSessionFromHistory && !willContinueSingleChannel)
+    );
+    if (needConfirm) {
       Modal.confirm({
-        title: '开启新对话？',
-        content: '多通道模式暂不支持连续追问。发送新问题将清空当前界面并开启全新的会话，之前的内容会自动保存至"历史记录"中。是否继续？',
-        okText: '确认',
-        cancelText: '取消',
+        title: text.dialog.newConversationTitle,
+        content: text.dialog.newConversationContent,
+        okText: text.dialog.ok,
+        cancelText: text.dialog.cancel,
         onOk: () => {
           setInputStr(val);
           setInputValue(''); // 立即清空输入框，提升用户体验
@@ -1613,6 +1661,7 @@ const App = () => {
       return;
     }
 
+
     // 单通道模式或首次提问，直接提交
     setInputStr(val);
     setInputValue(''); // 立即清空输入框，提升用户体验
@@ -1623,7 +1672,7 @@ const App = () => {
 
   // ==================== Render ====================
   const summaryBlockReason = useStore.getState().summaryBlockReason();
-  const enabledCount = PROVIDER_IDS.filter(id => enabledMap[id]).length;
+  const enabledCount = availableProviderIds.filter(id => enabledMap[id]).length;
 
   return (
     <div className={styles.copilotChat} ref={containerRef}>
@@ -1631,21 +1680,21 @@ const App = () => {
       <div className={styles.floatingToolbar}>
         <button
           className={styles.floatingBtnWithText}
-          title="新对话"
+          title={text.app.newChat}
           onClick={() => {
             if (hasAsked) {
               resetPublishedShares();
               createNewChat();
             }
-            else message.info('当前已经是新会话');
+            else message.info(text.app.alreadyNewChat);
           }}
         >
           <PlusOutlined />
         </button>
-        <button className={styles.floatingBtn} title="历史记录" onClick={() => setHistoryOpen(true)}>
+        <button className={styles.floatingBtn} title={text.app.history} onClick={() => setHistoryOpen(true)}>
           <CommentOutlined />
         </button>
-        <button className={styles.floatingBtn} title="全局设置" onClick={() => setSettingsOpen(true)}>
+        <button className={styles.floatingBtn} title={text.app.settings} onClick={() => setSettingsOpen(true)}>
           <SettingOutlined />
         </button>
       </div>
@@ -1663,14 +1712,14 @@ const App = () => {
           <div className={styles.emptyStateContainer}>
             <Welcome
               variant="borderless"
-              title="👋 欢迎召唤「AI 对撞机」"
-              description="一次提问，多款满血 AI 同屏对撞，直接拿最优解！"
+              title={text.app.welcomeTitle}
+              description={text.app.welcomeDescription}
               className={styles.chatWelcome}
             />
             <ChannelList />
             {inputValue.trim() ? null : (
               <>
-                <div className={styles.promptTitle}>💡 你可以问我：</div>
+                <div className={styles.promptTitle}>{text.app.promptTitle}</div>
                 {presetPrompts.map((prompt, index, arr) => (
                   <div
                     key={prompt.key}
@@ -1696,122 +1745,122 @@ const App = () => {
 
       {/* ─── Sender ─── */}
       <Flex vertical className={styles.chatSend}>
-          {enabledCount >= 2 && (
-            <Flex gap="small" style={{ marginBottom: 8 }}>
-              <Tooltip title="多通道模型输出完成后自动生成归纳总结，帮助你快速抓住重点">
-                <Button
-                  size="small"
-                  type={isSummaryEnabled ? "primary" : "default"}
-                  onClick={toggleSummary}
-                  icon={<MergeCellsOutlined />}
-                  style={{ borderRadius: 6, fontSize: 13, height: 28 }}
-                >
-                  自动总结
-                </Button>
-              </Tooltip>
-              <Tooltip title="自动追踪并切换至正在输出的模型">
-                <Button
-                  size="small"
-                  type={isFocusFollowEnabled ? "primary" : "default"}
-                  onClick={toggleFocusFollow}
-                  icon={<VideoCameraOutlined />}
-                  style={{ borderRadius: 6, fontSize: 13, height: 28 }}
-                >
-                  导播模式
-                </Button>
-              </Tooltip>
-              {hasAsked && summaryStatus !== 'running' && (
-                <>
-                  {providerSuggestions.length === 0 ? (
-                    <Tooltip title="已启用所有 AI 通道，无需添加">
-                      <Button
-                        size="small"
-                        type="default"
-                        icon={<PlusOutlined />}
-                        style={{ borderRadius: 6, fontSize: 13, height: 28, opacity: 0.5 }}
-                        disabled
-                      >
-                        添加通道
-                      </Button>
-                    </Tooltip>
-                  ) : (
-                    <Dropdown
-                      menu={{
-                        items: providerSuggestions,
-                        onClick: handleAddChannel,
-                      }}
-                      trigger={['click']}
+        {enabledCount >= 2 && (
+          <Flex gap="small" style={{ marginBottom: 8 }}>
+            <Tooltip title={text.app.autoSummaryTip}>
+              <Button
+                size="small"
+                type={isSummaryEnabled ? "primary" : "default"}
+                onClick={toggleSummary}
+                icon={<MergeCellsOutlined />}
+                style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+              >
+                {text.app.autoSummary}
+              </Button>
+            </Tooltip>
+            <Tooltip title={text.app.focusFollowTip}>
+              <Button
+                size="small"
+                type={isFocusFollowEnabled ? "primary" : "default"}
+                onClick={toggleFocusFollow}
+                icon={<VideoCameraOutlined />}
+                style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+              >
+                {text.app.focusFollow}
+              </Button>
+            </Tooltip>
+            {hasAsked && summaryStatus !== 'running' && (
+              <>
+                {providerSuggestions.length === 0 ? (
+                  <Tooltip title={text.app.addChannelAllEnabledTip}>
+                    <Button
+                      size="small"
+                      type="default"
+                      icon={<PlusOutlined />}
+                      style={{ borderRadius: 6, fontSize: 13, height: 28, opacity: 0.5 }}
+                      disabled
                     >
-                      <Button
-                        size="small"
-                        type="default"
-                        icon={<PlusOutlined />}
-                        style={{ borderRadius: 6, fontSize: 13, height: 28 }}
-                      >
-                        添加通道
-                      </Button>
-                    </Dropdown>
-                  )}
-                </>
-              )}
-              {hasAsked && summaryStatus === 'running' && (
-                <Tooltip title="正在归纳总结中，请稍后再添加通道">
-                  <Button
-                    size="small"
-                    type="default"
-                    icon={<PlusOutlined />}
-                    style={{ borderRadius: 6, fontSize: 13, height: 28, opacity: 0.5 }}
-                    disabled
+                      {text.app.addChannel}
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <Dropdown
+                    menu={{
+                      items: providerSuggestions,
+                      onClick: handleAddChannel,
+                    }}
+                    trigger={['click']}
                   >
-                    添加通道
-                  </Button>
-                </Tooltip>
-              )}
-            </Flex>
-          )}
-          <Sender
-            loading={isAnyRunning}
-            value={inputValue}
-            onChange={setInputValue}
-            autoSize
-            placeholder="输入你的问题，按 Enter 发送"
-            onSubmit={() => handleUserSubmit(inputValue)}
-            onCancel={() => message.info('取消功能待实现')}
-            suffix={false}
-            footer={(_, { components }) => {
-                  const { SendButton, LoadingButton } = components;
-                  return (
-                    <Flex justify="space-between" align="center">
-                      <Flex gap="small" align="center">
-                        <Sender.Switch
-                          icon={<BulbOutlined />}
-                          value={isDeepThinkingEnabled}
-                          onChange={toggleDeepThinking}
-                          style={{ fontSize: '13px' }}
-                        >
-                          深度思考
-                        </Sender.Switch>
-                        <Sender.Switch
-                          icon={<GlobalOutlined />}
-                          value={isWebSearchEnabled}
-                          onChange={toggleWebSearch}
-                          style={{ fontSize: '13px' }}
-                        >
-                          联网搜索
-                        </Sender.Switch>
-                      </Flex>
-                      <Flex align="center">
-                        {isAnyRunning ? (
-                          <LoadingButton type="default" />
-                        ) : (
-                          <SendButton type="primary" disabled={false} />
-                        )}
-                      </Flex>
-                    </Flex>
-                  );
-                }}
-              />
-        </Flex>
+                    <Button
+                      size="small"
+                      type="default"
+                      icon={<PlusOutlined />}
+                      style={{ borderRadius: 6, fontSize: 13, height: 28 }}
+                    >
+                      {text.app.addChannel}
+                    </Button>
+                  </Dropdown>
+                )}
+              </>
+            )}
+            {hasAsked && summaryStatus === 'running' && (
+              <Tooltip title={text.app.addChannelSummaryRunningTip}>
+                <Button
+                  size="small"
+                  type="default"
+                  icon={<PlusOutlined />}
+                  style={{ borderRadius: 6, fontSize: 13, height: 28, opacity: 0.5 }}
+                  disabled
+                >
+                  {text.app.addChannel}
+                </Button>
+              </Tooltip>
+            )}
+          </Flex>
+        )}
+        <Sender
+          loading={isAnyRunning}
+          value={inputValue}
+          onChange={setInputValue}
+          autoSize
+          placeholder={text.app.senderPlaceholder}
+          onSubmit={() => handleUserSubmit(inputValue)}
+          onCancel={() => message.info(text.app.cancelTodo)}
+          suffix={false}
+          footer={(_, { components }) => {
+            const { SendButton, LoadingButton } = components;
+            return (
+              <Flex justify="space-between" align="center">
+                <Flex gap="small" align="center">
+                  <Sender.Switch
+                    icon={<BulbOutlined />}
+                    value={isDeepThinkingEnabled}
+                    onChange={toggleDeepThinking}
+                    style={{ fontSize: '13px' }}
+                  >
+                    {text.app.deepThinking}
+                  </Sender.Switch>
+                  <Sender.Switch
+                    icon={<GlobalOutlined />}
+                    value={isWebSearchEnabled}
+                    onChange={toggleWebSearch}
+                    style={{ fontSize: '13px' }}
+                  >
+                    {text.app.webSearch}
+                  </Sender.Switch>
+                </Flex>
+                <Flex align="center">
+                  {isAnyRunning ? (
+                    <LoadingButton type="default" />
+                  ) : (
+                    <SendButton type="primary" disabled={false} />
+                  )}
+                </Flex>
+              </Flex>
+            );
+          }}
+        />
+      </Flex>
 
       {/* ─── Modals & Drawers ─── */}
       <ChannelSettingsDrawer />

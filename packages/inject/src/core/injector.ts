@@ -79,6 +79,7 @@ function shouldTrackSSE(text: string): boolean {
 }
 
 function resetSSEState() {
+  sseConversationId = undefined;
   sseState = {
     phase: 'RESPONSE',
     chunkCount: 0,
@@ -98,6 +99,10 @@ function parseSSELine(line: string) {
 
   const result = currentProvider.sse.parseLine(line);
   if (!result) return;
+
+  if (result.conversationId) {
+    sseConversationId = result.conversationId;
+  }
 
   if (result.done) {
     emitSSEEnd();
@@ -515,6 +520,7 @@ async function waitForConversationId(
   // 轮询等待
   while (Date.now() - start < timeout) {
     await wait(100);
+    if (sseConversationId) return sseConversationId;
     id = getConversationId(provider);
     if (id) return id;
   }

@@ -1,14 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { CommentOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
-import type { ConversationsProps } from '@ant-design/x';
-import { Conversations } from '@ant-design/x';
+import CommentOutlined from '@ant-design/icons/CommentOutlined';
+import DeleteOutlined from '@ant-design/icons/DeleteOutlined';
+import EditOutlined from '@ant-design/icons/EditOutlined';
+import Conversations, { type ConversationsProps } from '@ant-design/x/es/conversations';
 import { Drawer, Input, Modal } from 'antd';
 import { createStyles } from 'antd-style';
 import { useStore } from '../store';
 import {
-  PROVIDER_NAME_MAP,
+  getProviderDisplayName,
   type ProviderId, type ChatHistoryItem,
 } from '../types';
+import { getSidepanelText, type SidepanelText } from '../i18n';
 
 const useStyles = createStyles(({ css, token }) => ({
   conversations: css`
@@ -52,7 +54,7 @@ const useStyles = createStyles(({ css, token }) => ({
 
 // ─── Time grouping ───
 
-function getTimeGroup(timestamp: number): string {
+function getTimeGroup(timestamp: number, text: SidepanelText): string {
   const now = new Date();
   const date = new Date(timestamp);
 
@@ -60,20 +62,20 @@ function getTimeGroup(timestamp: number): string {
   const yesterdayStart = todayStart - 86400000;
   const weekStart = todayStart - 6 * 86400000;
 
-  if (timestamp >= todayStart) return '今天';
-  if (timestamp >= yesterdayStart) return '昨天';
-  if (timestamp >= weekStart) return '近 7 天';
-  return '更早';
+  if (timestamp >= todayStart) return text.history.today;
+  if (timestamp >= yesterdayStart) return text.history.yesterday;
+  if (timestamp >= weekStart) return text.history.last7Days;
+  return text.history.earlier;
 }
 
 function getItemTimestamp(item: ChatHistoryItem): number {
   return item.type === 'single' ? item.updatedAt : item.createdAt;
 }
 
-function getDefaultLabel(item: ChatHistoryItem) {
+function getDefaultLabel(item: ChatHistoryItem, text: SidepanelText, locale: string) {
   return item.type === 'single'
-    ? `${PROVIDER_NAME_MAP[item.providerId as ProviderId] || '对话'} · ${item.turns?.[0]?.question?.slice(0, 15) || '...'}`
-    : `多通道 · ${item.question?.slice(0, 15) || '...'}`;
+    ? `${getProviderDisplayName(item.providerId as ProviderId, locale) || text.history.chat} · ${item.turns?.[0]?.question?.slice(0, 15) || '...'}`
+    : `${text.history.multi} · ${item.question?.slice(0, 15) || '...'}`;
 }
 
 // ─── Component ───
@@ -86,6 +88,8 @@ interface Props {
 const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
   const { styles } = useStyles();
   const historyList = useStore(s => s.historyList);
+  const locale = useStore(s => s.locale);
+  const text = getSidepanelText(locale);
   const [renameTarget, setRenameTarget] = useState<{ id: string; label: string } | null>(null);
 
   const {
@@ -95,16 +99,16 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
   const conversationItems = useMemo(() => {
     return historyList.slice(0, 20).map(item => ({
       key: item.id,
-      label: item.customLabel || getDefaultLabel(item),
-      group: getTimeGroup(getItemTimestamp(item)),
+      label: item.customLabel || getDefaultLabel(item, text, locale),
+      group: getTimeGroup(getItemTimestamp(item), text),
     }));
-  }, [historyList]);
+  }, [historyList, text]);
 
   const conversationMenu: ConversationsProps['menu'] = (conversation) => ({
     items: [
-      { label: '重命名', key: 'rename', icon: <EditOutlined /> },
+      { label: text.history.rename, key: 'rename', icon: <EditOutlined /> },
       { type: 'divider' as const },
-      { label: '删除', key: 'delete', icon: <DeleteOutlined />, danger: true },
+      { label: text.history.delete, key: 'delete', icon: <DeleteOutlined />, danger: true },
     ],
     onClick: (info) => {
       info.domEvent.stopPropagation();
@@ -115,11 +119,11 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
         });
       } else if (info.key === 'delete') {
         Modal.confirm({
-          title: '删除对话',
-          content: '确定要删除这条对话记录吗？删除后无法恢复。',
-          okText: '删除',
+          title: text.history.deleteTitle,
+          content: text.history.deleteContent,
+          okText: text.history.delete,
           okButtonProps: { danger: true },
-          cancelText: '取消',
+          cancelText: text.dialog.cancel,
           centered: true,
           onOk: () => deleteHistoryItem(conversation.key as string),
         });
@@ -131,7 +135,7 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
     <>
       <Drawer
         placement="right"
-        width="clamp(200px, 75%, 320px)"
+        size="clamp(200px, 75%, 320px)"
         open={open}
         onClose={onClose}
         closable={false}
@@ -140,8 +144,8 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
         {historyList.length === 0 ? (
           <div className={styles.emptyState}>
             <CommentOutlined className={styles.emptyIcon} />
-            <div className={styles.emptyText}>暂无历史记录</div>
-            <div className={styles.emptyDesc}>开始提问后，对话记录会保存在这里</div>
+            <div className={styles.emptyText}>{text.history.empty}</div>
+            <div className={styles.emptyDesc}>{text.history.emptyDesc}</div>
           </div>
         ) : (
           <Conversations
@@ -162,9 +166,9 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
       </Drawer>
       <Modal
         open={!!renameTarget}
-        title="重命名对话"
-        okText="保存"
-        cancelText="取消"
+        title={text.history.renameTitle}
+        okText={text.history.save}
+        cancelText={text.dialog.cancel}
         centered
         width={360}
         onOk={() => {
@@ -186,7 +190,7 @@ const HistoryDrawer: React.FC<Props> = ({ open, onClose }) => {
             }
             setRenameTarget(null);
           }}
-          placeholder="输入新名称"
+          placeholder={text.history.renamePlaceholder}
           maxLength={50}
           style={{ marginTop: 8 }}
         />

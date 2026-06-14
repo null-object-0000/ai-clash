@@ -14,7 +14,7 @@ import { isContextValid, safeSend } from '../shared/utils.js';
 
 /**
  * 启动 provider
- * @param {string} providerId - 提供者 ID (deepseek/doubao/qianwen/longcat/yuanbao/wenxin)
+ * @param {string} providerId - 提供者 ID (deepseek/doubao/qianwen/qwen/longcat/yuanbao/wenxin)
  */
 export function bootstrapProvider(providerId) {
   const PROVIDER = providerId;
@@ -52,7 +52,6 @@ export function bootstrapProvider(providerId) {
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('packages/inject/dist/standalone.js');
         script.async = true;
-        document.documentElement.appendChild(script);
         script.onload = () => {
           logger.log(`[AI Clash ${PROVIDER}] ✓ standalone.js 加载完成，注入 MAIN 世界成功`);
           resolve();
@@ -61,6 +60,14 @@ export function bootstrapProvider(providerId) {
           logger.warn(`[AI Clash ${PROVIDER}] standalone.js 加载失败`);
           resolve();
         };
+        const target = document.documentElement || document.head || document.body;
+        if (target) {
+          target.appendChild(script);
+          return;
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+          (document.documentElement || document.head || document.body)?.appendChild(script);
+        }, { once: true });
       });
     }
 

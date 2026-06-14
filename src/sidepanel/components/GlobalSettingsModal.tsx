@@ -1,16 +1,16 @@
-import {
-  CheckCircleOutlined,
-  CloudSyncOutlined,
-  DownloadOutlined,
-  ExportOutlined,
-  InfoCircleOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
+import CheckCircleOutlined from '@ant-design/icons/CheckCircleOutlined';
+import CloudSyncOutlined from '@ant-design/icons/CloudSyncOutlined';
+import DownloadOutlined from '@ant-design/icons/DownloadOutlined';
+import ExportOutlined from '@ant-design/icons/ExportOutlined';
+import InfoCircleOutlined from '@ant-design/icons/InfoCircleOutlined';
+import ReloadOutlined from '@ant-design/icons/ReloadOutlined';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Flex, Modal, Select, Switch, Tag } from 'antd';
 import pkg from '../../../package.json';
 import { useStore } from '../store';
+import type { AppLocale } from '../store/types';
 import { getDefaultModel } from '../../shared/config.js';
+import { getSidepanelText, interpolate, resolveLocale, type SidepanelText } from '../i18n';
 
 interface Props {
   open: boolean;
@@ -20,14 +20,18 @@ interface Props {
 
 type ChannelStatus = 'published' | 'reviewing' | 'preview' | 'deprecated';
 type InstallChannel = 'chrome' | 'edge' | 'manual';
+type ReleaseLocale = 'zh-CN' | 'en';
+type LocalizedText = Partial<Record<ReleaseLocale, string>>;
 
 interface ReleaseChannel {
   label: string;
+  labels?: LocalizedText;
   version: string;
   pendingVersion?: string;
   status: ChannelStatus;
   url: string;
   note?: string;
+  notes?: LocalizedText;
 }
 
 interface ReleaseFeed {
@@ -90,15 +94,59 @@ function openExternalUrl(url: string) {
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 
-function getStatusTag(status: ChannelStatus) {
-  if (status === 'published') return <Tag color="green">已发布</Tag>;
-  if (status === 'reviewing') return <Tag color="gold">审核中</Tag>;
-  if (status === 'preview') return <Tag color="blue">先行版</Tag>;
-  return <Tag>已停用</Tag>;
+function getStatusTag(status: ChannelStatus, text: SidepanelText) {
+  if (status === 'published') return <Tag color="green">{text.settings.published}</Tag>;
+  if (status === 'reviewing') return <Tag color="gold">{text.settings.reviewing}</Tag>;
+  if (status === 'preview') return <Tag color="blue">{text.settings.preview}</Tag>;
+  return <Tag>{text.settings.deprecated}</Tag>;
+}
+
+function getLocalizedText(values: LocalizedText | undefined, fallback: string | undefined, locale: AppLocale) {
+  const effectiveLocale = resolveLocale(locale);
+  return values?.[effectiveLocale] || values?.['zh-CN'] || fallback || '';
+}
+
+function isOfflinePackageChannel(channel: ReleaseChannel) {
+  const lowerLabel = channel.label.toLowerCase();
+  if (lowerLabel.includes('github') || channel.url.includes('/downloads/') || channel.url.endsWith('.zip')) {
+    return true;
+  }
+  return false;
+}
+
+function getChannelLabel(channel: ReleaseChannel, text: SidepanelText, locale: AppLocale) {
+  const effectiveLocale = resolveLocale(locale);
+  const localizedLabel = channel.labels?.[effectiveLocale] || channel.labels?.['zh-CN'];
+  if (localizedLabel) return localizedLabel;
+  if (isOfflinePackageChannel(channel)) {
+    return text.settings.offlinePackage;
+  }
+  return channel.label;
+}
+
+function getChannelNote(channel: ReleaseChannel, text: SidepanelText, locale: AppLocale) {
+  const localizedNote = getLocalizedText(channel.notes, channel.note, locale);
+  if (localizedNote) return localizedNote;
+
+  const label = getChannelLabel(channel, text, locale);
+  if (channel.status === 'published') {
+    return interpolate(text.settings.publishedStoreNote, { channel: label, version: channel.version });
+  }
+  if (channel.status === 'reviewing') {
+    const version = channel.pendingVersion || channel.version;
+    return interpolate(text.settings.reviewingStoreNote, { channel: label, version });
+  }
+  if (channel.status === 'preview') {
+    return interpolate(text.settings.previewPackageNote, { version: channel.version });
+  }
+  return text.settings.deprecatedChannelNote;
 }
 
 const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 }) => {
   const isDebugEnabled = useStore(s => s.isDebugEnabled);
+  const isAnalyticsEnabled = useStore(s => s.isAnalyticsEnabled);
+  const locale = useStore(s => s.locale);
+  const text = getSidepanelText(locale);
   const summaryProviderId = useStore(s => s.summaryProviderId);
   const summaryModel = useStore(s => s.summaryModel);
   const summaryCustomPrompt = useStore(s => s.summaryCustomPrompt);
@@ -107,7 +155,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
   const [releaseError, setReleaseError] = useState('');
 
   const {
-    toggleDebug, setSummaryProviderId, setSummaryModel,
+    toggleDebug, toggleAnalytics, setLocale, setSummaryProviderId, setSummaryModel,
     setSummaryCustomPrompt, resetSummaryPrompt,
   } = useStore.getState();
 
@@ -143,8 +191,8 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
     }
 
     setReleaseLoading(false);
-    setReleaseError('暂时无法获取版本信息');
-  }, []);
+    setReleaseError(text.settings.releaseFetchFailed);
+  }, [text]);
 
   useEffect(() => {
     if (open && !releaseFeed && !releaseLoading) {
@@ -161,7 +209,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
     if (!releaseFeed) {
       return {
         icon: <InfoCircleOutlined />,
-        text: releaseError || '正在获取渠道版本信息...',
+        text: releaseError || text.settings.releaseFetching,
         tone: '#666',
       };
     }
@@ -170,13 +218,13 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
       if (github && compareVersions(installedVersion, github.version) < 0) {
         return {
           icon: <DownloadOutlined />,
-          text: `官网先行版 v${github.version} 可手动下载安装`,
+          text: interpolate(text.settings.manualUpdate, { version: github.version }),
           tone: '#1677ff',
         };
       }
       return {
         icon: <CheckCircleOutlined />,
-        text: '当前已是最新先行版',
+        text: text.settings.latestPreview,
         tone: '#389e0d',
       };
     }
@@ -184,7 +232,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
     if (storeChannel && compareVersions(installedVersion, storeChannel.version) < 0) {
       return {
         icon: <CloudSyncOutlined />,
-        text: `${storeChannel.label} 有新版 v${storeChannel.version}`,
+        text: interpolate(text.settings.storeUpdate, { channel: getChannelLabel(storeChannel, text, locale), version: storeChannel.version }),
         tone: '#1677ff',
       };
     }
@@ -192,17 +240,17 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
     if (github && compareVersions(installedVersion, github.version) < 0) {
       return {
         icon: <InfoCircleOutlined />,
-        text: `商店版已是最新，官网先行版 v${github.version} 已发布`,
+        text: interpolate(text.settings.storeLatestPreviewAvailable, { version: github.version }),
         tone: '#d48806',
       };
     }
 
     return {
       icon: <CheckCircleOutlined />,
-      text: '当前已是最新版本',
+      text: text.settings.latest,
       tone: '#389e0d',
     };
-  }, [installChannel, installedVersion, releaseError, releaseFeed]);
+  }, [installChannel, installedVersion, locale, releaseError, releaseFeed, text]);
 
   // 计算弹框宽度：侧边栏宽度超过 500px 时随动，最小 400px，最大 800px
   const modalWidth = sidebarWidth > 500
@@ -213,33 +261,33 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
     <Modal
       open={open}
       onCancel={onClose}
-      title="全局设置"
+      title={text.settings.title}
       footer={null}
       width={modalWidth}
       centered
-      maskClosable={false}  // 禁用点击遮罩关闭
+      mask={{ closable: false }}  // 禁用点击遮罩关闭
       keyboard={false}  // 禁用 ESC 键关闭
     >
       <Flex vertical gap={20} style={{ paddingTop: 8 }}>
         <Flex vertical gap={10}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>归纳总结配置</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{text.settings.summaryConfig}</div>
           <div style={{ fontSize: 12, color: '#999' }}>
-            选择用于归纳总结的 AI 通道和模型，需先在对应通道中配置 API Key。
+            {text.settings.summaryConfigDesc}
           </div>
           <Flex vertical gap={8}>
             <Select
               value={summaryProviderId || undefined}
               options={summaryProviderOptions}
               onChange={handleProviderChange}
-              placeholder="选择总结通道"
+              placeholder={text.settings.summaryProviderPlaceholder}
               style={{ width: '100%' }}
-              notFoundContent="请先在通道设置中配置 API Key"
+              notFoundContent={text.settings.summaryProviderNotFound}
             />
             <Select
               value={summaryModel || undefined}
               options={summaryModelOptions}
               onChange={setSummaryModel}
-              placeholder="选择模型"
+              placeholder={text.settings.summaryModelPlaceholder}
               style={{ width: '100%' }}
               disabled={!summaryProviderId}
             />
@@ -247,15 +295,15 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
         </Flex>
 
         <Flex vertical gap={10}>
-          <div style={{ fontSize: 13, fontWeight: 500 }}>自定义总结提示词</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>{text.settings.customPrompt}</div>
           <div style={{ fontSize: 12, color: '#999' }}>
-            定制归纳总结的风格和输出格式，AI 们的回答会自动附加在提示词之后。
+            {text.settings.customPromptDesc}
           </div>
           <Flex vertical gap={8}>
             <textarea
               value={summaryCustomPrompt}
               onChange={(e) => setSummaryCustomPrompt(e.target.value)}
-              placeholder="输入自定义总结提示词..."
+              placeholder={text.settings.customPromptPlaceholder}
               rows={12}
               style={{
                 width: 'calc(100% - 16px)',
@@ -272,7 +320,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
                 size="small"
                 onClick={resetSummaryPrompt}
               >
-                恢复默认提示词
+                {text.settings.resetPrompt}
               </Button>
             </Flex>
           </Flex>
@@ -280,16 +328,41 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
 
         <Flex justify="space-between" align="center">
           <Flex vertical gap={2}>
-            <span style={{ fontSize: 13, fontWeight: 500 }}>调试模式</span>
-            <span style={{ fontSize: 12, color: '#999' }}>开启后在控制台输出详细日志</span>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>{text.settings.debug}</span>
+            <span style={{ fontSize: 12, color: '#999' }}>{text.settings.debugDesc}</span>
           </Flex>
           <Switch checked={isDebugEnabled} onChange={toggleDebug} size="small" />
+        </Flex>
+
+        <Flex justify="space-between" align="center">
+          <Flex vertical gap={2}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>{text.settings.analytics}</span>
+            <span style={{ fontSize: 12, color: '#999' }}>{text.settings.analyticsDesc}</span>
+          </Flex>
+          <Switch checked={isAnalyticsEnabled} onChange={toggleAnalytics} size="small" />
+        </Flex>
+
+        <Flex vertical gap={8}>
+          <Flex vertical gap={2}>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>{text.settings.language}</span>
+            <span style={{ fontSize: 12, color: '#999' }}>{text.settings.languageDesc}</span>
+          </Flex>
+          <Select
+            value={locale}
+            onChange={(value) => setLocale(value as AppLocale)}
+            options={[
+              { value: 'system', label: text.settings.system },
+              { value: 'zh-CN', label: text.settings.zhCN },
+              { value: 'en', label: text.settings.en },
+            ]}
+            style={{ width: '100%' }}
+          />
         </Flex>
 
         <Flex vertical gap={12} style={{ borderTop: '1px solid #f0f0f0', paddingTop: 16 }}>
           <Flex justify="space-between" align="center">
             <Flex vertical gap={4}>
-              <span style={{ fontSize: 13, fontWeight: 500 }}>关于 / 版本更新</span>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{text.settings.about}</span>
               <span style={{ fontSize: 12, color: versionSummary.tone, display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                 {versionSummary.icon}
                 {versionSummary.text}
@@ -301,30 +374,30 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
               loading={releaseLoading}
               onClick={loadReleaseFeed}
             >
-              检查更新
+              {text.settings.checkUpdate}
             </Button>
           </Flex>
 
           <Flex vertical gap={8}>
             <Flex justify="space-between" align="center" style={{ fontSize: 12 }}>
-              <span style={{ color: '#666' }}>当前安装版本</span>
-              <Tag bordered={false}>v{installedVersion}</Tag>
+              <span style={{ color: '#666' }}>{text.settings.installedVersion}</span>
+              <Tag variant="filled">v{installedVersion}</Tag>
             </Flex>
 
             {releaseFeed?.channels.chrome && (
-              <ReleaseChannelRow channel={releaseFeed.channels.chrome} installedVersion={installedVersion} />
+              <ReleaseChannelRow channel={releaseFeed.channels.chrome} installedVersion={installedVersion} text={text} locale={locale} />
             )}
             {releaseFeed?.channels.edge && (
-              <ReleaseChannelRow channel={releaseFeed.channels.edge} installedVersion={installedVersion} />
+              <ReleaseChannelRow channel={releaseFeed.channels.edge} installedVersion={installedVersion} text={text} locale={locale} />
             )}
             {releaseFeed?.channels.github && (
-              <ReleaseChannelRow channel={releaseFeed.channels.github} installedVersion={installedVersion} />
+              <ReleaseChannelRow channel={releaseFeed.channels.github} installedVersion={installedVersion} text={text} locale={locale} />
             )}
           </Flex>
 
           {releaseError && (
             <div style={{ fontSize: 12, color: '#d48806' }}>
-              {releaseError}，可直接打开更新日志查看。
+              {releaseError}, {text.settings.openChangelogFallback}
             </div>
           )}
 
@@ -334,7 +407,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
               icon={<ExportOutlined />}
               onClick={() => openExternalUrl(releaseFeed?.changelogUrl || DEFAULT_CHANGELOG_URL)}
             >
-              查看更新日志
+              {text.settings.changelog}
             </Button>
             {releaseFeed?.channels.github && (
               <Button
@@ -342,7 +415,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
                 icon={<DownloadOutlined />}
                 onClick={() => openExternalUrl(releaseFeed.channels.github!.url)}
               >
-                下载先行版
+                {text.settings.downloadPreview}
               </Button>
             )}
           </Flex>
@@ -352,7 +425,7 @@ const GlobalSettingsModal: React.FC<Props> = ({ open, onClose, sidebarWidth = 0 
   );
 };
 
-function ReleaseChannelRow({ channel, installedVersion }: { channel: ReleaseChannel; installedVersion: string }) {
+function ReleaseChannelRow({ channel, installedVersion, text, locale }: { channel: ReleaseChannel; installedVersion: string; text: SidepanelText; locale: AppLocale }) {
   const isNewer = compareVersions(installedVersion, channel.version) < 0;
 
   return (
@@ -369,12 +442,12 @@ function ReleaseChannelRow({ channel, installedVersion }: { channel: ReleaseChan
     >
       <Flex vertical gap={3} style={{ minWidth: 0, flex: 1 }}>
         <Flex align="center" gap={6} wrap="wrap">
-          <span style={{ fontSize: 12, fontWeight: 500 }}>{channel.label}</span>
-          {getStatusTag(channel.status)}
-          {isNewer && <Tag color="blue">可更新</Tag>}
+          <span style={{ fontSize: 12, fontWeight: 500 }}>{getChannelLabel(channel, text, locale)}</span>
+          {getStatusTag(channel.status, text)}
+          {isNewer && <Tag color="blue">{text.settings.updatable}</Tag>}
         </Flex>
         <span style={{ fontSize: 12, color: '#999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {channel.note || (channel.pendingVersion ? `v${channel.pendingVersion} 等待发布` : '渠道版本信息')}
+          {getChannelNote(channel, text, locale)}
         </span>
       </Flex>
       <Button

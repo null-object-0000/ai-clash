@@ -10,12 +10,13 @@ Spring Boot backend service for AI Clash server-side features.
 
 ## Local Development
 
-Copy `.env.example` to `.env`, fill in the MySQL dev database, GitHub OAuth values, and new-api proxy values, then run:
+Copy `.env.example` to `.env`, fill in the MySQL dev database, then run from the repository root:
 
 ```bash
-cd packages/api
-mvn spring-boot:run
+bun dev:api
 ```
+
+Spring Boot imports `packages/api/.env` automatically during local startup.
 
 The service listens on `http://localhost:8080`.
 
