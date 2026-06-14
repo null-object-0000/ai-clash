@@ -4,7 +4,7 @@
     "description": "Extension name"
   },
   "extensionDescription": {
-    "message": "Ask once and compare answers from DeepSeek, Doubao, Qwen, Tencent Yuanbao, Wenxin Yiyan, and more side by side. Use native web AI power at zero API cost, then let the built-in AI judge summarize the best answer.",
+    "message": "Ask once, compare multiple AI answers side by side, and let the built-in AI judge summarize the best result. No API key required.",
     "description": "Extension description"
   }
 }
