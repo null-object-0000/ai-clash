@@ -14,11 +14,14 @@ const STAGE_INDEX: Record<string, number> = {
 const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
   综合解析: '裁判取舍',
   综合分析: '裁判取舍',
+  'Core Consensus': '核心共识',
+  'Clash Points': '观点对撞',
+  "Judge's Take": '裁判取舍',
 };
 
-const SUMMARY_HEADING_RE = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|最终建议|终极建议|最终结论|建议)\s*$/gm;
+const SUMMARY_HEADING_RE = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|Core Consensus|Clash Points|Judge's Take|最终建议|终极建议|最终结论|建议|Final Recommendation)\s*$/gm;
 const SUMMARY_ANALYSIS_TITLES = new Set(['核心共识', '观点对撞', '裁判取舍']);
-const SUMMARY_FINAL_TITLES = new Set(['最终建议', '终极建议', '最终结论', '建议']);
+const SUMMARY_FINAL_TITLES = new Set(['最终建议', '终极建议', '最终结论', '建议', 'Final Recommendation']);
 const SUMMARY_MARKER_RE = /^\s*\[\[AI_CLASH_SUMMARY_ANALYSIS_(?:BEGIN|END)\]\]\s*$/gm;
 
 function normalizeSummaryHeading(title: string) {

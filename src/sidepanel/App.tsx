@@ -38,7 +38,7 @@ import ChannelSettingsDrawer from './components/ChannelSettingsDrawer';
 import GlobalSettingsModal from './components/GlobalSettingsModal';
 import HistoryDrawer from './components/HistoryDrawer';
 import { getProviderIcon } from './config/providerIcons';
-import { getSidepanelText, interpolate, type SidepanelText } from './i18n';
+import { getSidepanelText, interpolate, resolveLocale, type SidepanelText } from './i18n';
 
 // ════════════════════════════════════════════════════════════════════
 // Styles
@@ -305,6 +305,7 @@ type ThinkTitles = {
   summaryAnalysisRunning: string;
   summaryAnalysisDone: string;
   generatingSuffix: string;
+  summarySections: Record<string, string>;
 };
 
 const DEFAULT_THINK_TITLES: ThinkTitles = {
@@ -313,6 +314,11 @@ const DEFAULT_THINK_TITLES: ThinkTitles = {
   summaryAnalysisRunning: '归纳总结过程中...',
   summaryAnalysisDone: '归纳总结过程完成',
   generatingSuffix: '生成中...',
+  summarySections: {
+    核心共识: '核心共识',
+    观点对撞: '观点对撞',
+    裁判取舍: '裁判取舍',
+  },
 };
 
 type SummaryAnalysisSection = {
@@ -322,14 +328,17 @@ type SummaryAnalysisSection = {
 };
 
 const SUMMARY_ANALYSIS_SECTION_TITLES = ['核心共识', '观点对撞', '裁判取舍'];
-const SUMMARY_FINAL_TITLE_RE = /^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议)\s*\n+/;
+const SUMMARY_FINAL_TITLE_RE = /^\s{0,3}#{1,6}\s*(终极建议|最终建议|最终结论|建议|Final Recommendation)\s*\n+/;
 const SUMMARY_ANALYSIS_TITLE_ALIASES: Record<string, string> = {
   综合解析: '裁判取舍',
   综合分析: '裁判取舍',
+  'Core Consensus': '核心共识',
+  'Clash Points': '观点对撞',
+  "Judge's Take": '裁判取舍',
 };
 
 function splitSummaryAnalysisSections(markdown: string): SummaryAnalysisSection[] {
-  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析)\s*$/gm;
+  const headingRe = /^#{1,6}\s*(核心共识|观点对撞|裁判取舍|综合解析|综合分析|Core Consensus|Clash Points|Judge's Take)\s*$/gm;
   const matches = Array.from(markdown.matchAll(headingRe));
   if (!matches.length) return [];
 
@@ -458,10 +467,11 @@ function renderSummaryThinkAndMarkdown({
       {analysisSections.length ? (
         analysisSections.map((section, index) => {
           const sectionDone = !isStreaming || !!contentStr || index < analysisSections.length - 1;
+          const title = titles.summarySections[section.title] ?? section.title;
           return (
             <SummaryAnalysisThink
               key={section.key}
-              title={sectionDone ? section.title : `${section.title}${titles.generatingSuffix}`}
+              title={sectionDone ? title : `${title}${titles.generatingSuffix}`}
               loading={!sectionDone}
               content={section.content}
             />
@@ -714,14 +724,26 @@ const App = () => {
   const [sidebarWidth, setSidebarWidth] = useState(400);
   const [shareLoading, setShareLoading] = useState(false);
   const locale = useStore(s => s.locale);
+  const effectiveLocale = useMemo(() => resolveLocale(locale), [locale]);
   const text = useMemo(() => getSidepanelText(locale), [locale]);
   const thinkTitles = useMemo<ThinkTitles>(() => ({
     loading: text.think.thinking,
     done: text.think.done,
     summaryAnalysisRunning: text.think.summaryAnalysisRunning,
     summaryAnalysisDone: text.think.summaryAnalysisDone,
-    generatingSuffix: locale === 'en' ? ' in progress...' : '生成中...',
-  }), [locale, text]);
+    generatingSuffix: effectiveLocale === 'en' ? ' in progress...' : '生成中...',
+    summarySections: effectiveLocale === 'en'
+      ? {
+        核心共识: 'Core Consensus',
+        观点对撞: 'Clash Points',
+        裁判取舍: "Judge's Take",
+      }
+      : {
+        核心共识: '核心共识',
+        观点对撞: '观点对撞',
+        裁判取舍: '裁判取舍',
+      },
+  }), [effectiveLocale, text]);
 
   // 预设提示词
   const presetPrompts: PromptsProps['items'] = useMemo(() => [
@@ -1010,7 +1032,7 @@ const App = () => {
       title: question.slice(0, 80),
       question,
       createdAt: Date.now(),
-      locale: locale === 'en' ? 'en' : 'zh',
+      locale: effectiveLocale === 'en' ? 'en' : 'zh',
       providers,
       ...(summary ? { summary } : {}),
     };

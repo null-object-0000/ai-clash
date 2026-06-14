@@ -10,7 +10,7 @@
 ### 🛠️ Fixes & Improvements
 
 - **Anonymous Analytics**: Added a settings toggle and clarified that questions, answers, and API keys are not uploaded.
-- **Experience Improvements & Fixes**: Improved share pages, share status retention, single-channel history follow-ups, and version info display.
+- **Experience Improvements & Fixes**: Improved share pages, share status retention, English summary sections, single-channel history follow-ups, and version info display.
 
 ## [1.2.1] - 2026-06-03
 

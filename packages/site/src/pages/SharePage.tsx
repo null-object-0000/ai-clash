@@ -73,7 +73,16 @@ const labels = {
 
 const chromeStoreUrl = 'https://chromewebstore.google.com/detail/ggngmgpjdklmkpoldbfahmeefpnfhhai'
 const edgeStoreUrl = 'https://microsoftedge.microsoft.com/addons/detail/khjmihaeihajagobgbdhlbjeobdpmfkm'
-const summarySectionTitles = ['核心共识', '觀點對撞', '观点对撞', '裁判取舍', '裁判取捨']
+const summarySectionTitleMap: Record<string, string> = {
+  核心共识: '核心共识',
+  觀點對撞: '观点对撞',
+  观点对撞: '观点对撞',
+  裁判取舍: '裁判取舍',
+  裁判取捨: '裁判取舍',
+  'Core Consensus': 'Core Consensus',
+  'Clash Points': 'Clash Points',
+  "Judge's Take": "Judge's Take",
+}
 
 const providerIcons: Record<string, AiIcon> = {
   deepseek: DeepSeek.Color as AiIcon,
@@ -105,8 +114,8 @@ function splitSummaryAnalysis(content = '') {
     .map((part) => {
       const match = part.match(/^#{1,6}\s+(.+?)\s*\n([\s\S]*)$/)
       if (!match) return null
-      const title = match[1].trim()
-      if (!summarySectionTitles.includes(title)) return null
+      const title = summarySectionTitleMap[match[1].trim()]
+      if (!title) return null
       return { title, content: match[2].trim() }
     })
     .filter((section): section is { title: string; content: string } => Boolean(section?.content))
