@@ -77,6 +77,7 @@ function detectProviderFromDomain(): string | null {
     'doubao.com': 'doubao',
     'www.doubao.com': 'doubao',
     'www.qianwen.com': 'qianwen',
+    'chat.qwen.ai': 'qwen',
     'longcat.chat': 'longcat',
     'yuanbao.tencent.com': 'yuanbao',
     'yiyan.baidu.com': 'wenxin',

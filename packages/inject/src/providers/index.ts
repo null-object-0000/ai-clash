@@ -5,6 +5,7 @@
 export { deepseekProvider } from './deepseek.js';
 export { doubaoProvider } from './doubao.js';
 export { qianwenProvider } from './qianwen.js';
+export { qwenProvider } from './qwen.js';
 export { longcatProvider } from './longcat.js';
 export { yuanbaoProvider } from './yuanbao.js';
 export { wenxinProvider } from './wenxin.js';
@@ -14,6 +15,7 @@ import type { ProviderConfig, ProviderId } from '../core/types.js';
 import { deepseekProvider } from './deepseek.js';
 import { doubaoProvider } from './doubao.js';
 import { qianwenProvider } from './qianwen.js';
+import { qwenProvider } from './qwen.js';
 import { longcatProvider } from './longcat.js';
 import { yuanbaoProvider } from './yuanbao.js';
 import { wenxinProvider } from './wenxin.js';
@@ -26,6 +28,7 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
   deepseek: deepseekProvider,
   doubao: doubaoProvider,
   qianwen: qianwenProvider,
+  qwen: qwenProvider,
   longcat: longcatProvider,
   yuanbao: yuanbaoProvider,
   wenxin: wenxinProvider,

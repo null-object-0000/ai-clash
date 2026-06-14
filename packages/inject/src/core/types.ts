@@ -20,7 +20,8 @@
  * 预定义的提供者：
  * - `'deepseek'` - DeepSeek (https://chat.deepseek.com)
  * - `'doubao'` - 豆包 (https://doubao.com)
- * - `'qianwen'` - 通义千问 (https://tongyi.aliyun.com)
+ * - `'qianwen'` - 通义千问 (https://www.qianwen.com)
+ * - `'qwen'` - Qwen International (https://chat.qwen.ai)
  * - `'longcat'` - LongCat/天工 (https://tiangong.cn)
  * - `'yuanbao'` - 腾讯元宝 (https://yuanbao.tencent.com)
  * - `'wenxin'` - 百度文心一言 (https://yiyan.baidu.com)
@@ -28,7 +29,7 @@
  *
  *、也支持自定义字符串作为扩展提供者的 ID。
  */
-export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'longcat' | 'yuanbao' | 'wenxin' | 'xiaomi' | string;
+export type ProviderId = 'deepseek' | 'doubao' | 'qianwen' | 'qwen' | 'longcat' | 'yuanbao' | 'wenxin' | 'xiaomi' | string;
 
 /**
  * 适配器类型
@@ -247,7 +248,12 @@ export interface ModelAction {
  */
 export interface SSEConfig {
   urlPattern: string;
-  parseLine: (line: string) => { text: string; isThink: boolean | null; done: boolean } | null;
+  parseLine: (line: string) => {
+    text: string;
+    isThink: boolean | null;
+    done: boolean;
+    conversationId?: string;
+  } | null;
   detectionKeywords: string[];
 }
 
