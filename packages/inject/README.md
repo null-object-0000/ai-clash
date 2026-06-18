@@ -15,7 +15,7 @@
 
 ```bash
 cd packages/inject
-bun run dev
+bun dev
 ```
 
 服务器启动后访问：**<http://localhost:5173>**
