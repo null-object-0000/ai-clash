@@ -44,6 +44,8 @@ Analytics must always be analyzed by source first:
 
 Both sources currently use the same Umami website id by default. Do not mix them without filtering by `hostname`, `url`, and event names.
 
+Custom events are sent to the first-party API endpoint `/api/analytics` first. The API forwards valid event payloads to Umami Cloud and overwrites the `website` id from server configuration. If the first-party proxy is unavailable, the client falls back to Umami's `/api/send` endpoint. This proxy reduces loss from browser privacy tools that block `cloud.umami.is` directly.
+
 ## Extension Sidepanel Analytics
 
 ### Shared Dimensions

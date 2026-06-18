@@ -12,12 +12,18 @@ public class AppProperties {
   private final List<String> corsOrigins;
   private final int maxShareBytes;
   private final int shareDefaultTtlDays;
+  private final String umamiHostUrl;
+  private final String umamiWebsiteId;
+  private final int maxAnalyticsBytes;
 
   public AppProperties(
       @Value("${app.public-site-url}") String publicSiteUrl,
       @Value("${app.cors-origins}") String corsOrigins,
       @Value("${app.max-share-bytes}") int maxShareBytes,
-      @Value("${app.share-default-ttl-days}") int shareDefaultTtlDays
+      @Value("${app.share-default-ttl-days}") int shareDefaultTtlDays,
+      @Value("${app.umami-host-url}") String umamiHostUrl,
+      @Value("${app.umami-website-id}") String umamiWebsiteId,
+      @Value("${app.max-analytics-bytes}") int maxAnalyticsBytes
   ) {
     this.publicSiteUrl = trimTrailingSlash(publicSiteUrl);
     this.corsOrigins = Arrays.stream(corsOrigins.split(","))
@@ -26,6 +32,9 @@ public class AppProperties {
         .toList();
     this.maxShareBytes = maxShareBytes;
     this.shareDefaultTtlDays = shareDefaultTtlDays;
+    this.umamiHostUrl = trimTrailingSlash(umamiHostUrl);
+    this.umamiWebsiteId = umamiWebsiteId == null ? "" : umamiWebsiteId.trim();
+    this.maxAnalyticsBytes = maxAnalyticsBytes;
   }
 
   public String publicSiteUrl() {
@@ -42,6 +51,18 @@ public class AppProperties {
 
   public int shareDefaultTtlDays() {
     return shareDefaultTtlDays;
+  }
+
+  public String umamiHostUrl() {
+    return umamiHostUrl;
+  }
+
+  public String umamiWebsiteId() {
+    return umamiWebsiteId;
+  }
+
+  public int maxAnalyticsBytes() {
+    return maxAnalyticsBytes;
   }
 
   private static String trimTrailingSlash(String value) {

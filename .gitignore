@@ -2,6 +2,9 @@ dist
 node_modules
 release
 target
+_locales/en_US
+_locales/en_GB
+_locales/en_AU
 .claude
 .claude.json
 .cursor

@@ -1,6 +1,10 @@
 const ANALYTICS_STORAGE_KEY = 'aiclash.analytics.enabled';
 const UMAMI_HOST_URL = (import.meta.env.VITE_UMAMI_HOST_URL || 'https://cloud.umami.is').replace(/\/+$/, '');
 const UMAMI_WEBSITE_ID = import.meta.env.VITE_UMAMI_WEBSITE_ID || '3895ace9-ac76-4d79-aa29-40618f3386c9';
+const ANALYTICS_PROXY_URL = (
+  import.meta.env.VITE_ANALYTICS_PROXY_URL
+  || `${(import.meta.env.VITE_API_BASE_URL || 'https://ai-clash-service.snewbie.site').replace(/\/+$/, '')}/api/analytics`
+).replace(/\/+$/, '');
 const ANALYTICS_ENABLED = import.meta.env.VITE_ANALYTICS_ENABLED !== 'false';
 
 function chromeStorageGet(key) {
@@ -76,9 +80,17 @@ export async function trackEvent(name, data = {}, url = '/extension') {
     }),
   };
 
-  fetch(`${UMAMI_HOST_URL}/api/send`, {
+  const body = JSON.stringify({ type: 'event', payload });
+
+  fetch(ANALYTICS_PROXY_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ type: 'event', payload }),
-  }).catch(() => {});
+    body,
+  }).catch(() => {
+    fetch(`${UMAMI_HOST_URL}/api/send`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body,
+    }).catch(() => {});
+  });
 }
